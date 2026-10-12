@@ -6,6 +6,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "MacDroidCore", targets: ["MacDroidCore"]),
+        .executable(name: "macdroid-devserver", targets: ["MacDroidDevServer"]),
     ],
     dependencies: [
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.27.0"),
@@ -33,6 +34,7 @@ let package = Package(
                 .product(name: "Tracing", package: "swift-distributed-tracing"),
             ]
         ),
+        .executableTarget(name: "MacDroidDevServer", dependencies: ["MacDroidCore"]),
         .testTarget(
             name: "MacDroidCoreTests",
             dependencies: [
