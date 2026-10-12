@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -68,13 +69,17 @@ class ConnectionManager(
     private val nudges = Channel<Unit>(Channel.CONFLATED)
     @Volatile private var socket: WebSocket? = null
     private var job: Job? = null
+    /** Identifies the live loop; a loop whose generation is stale must not touch shared state. */
+    private var generation = 0
 
     @Synchronized fun start() {
         if (job?.isActive == true) return
-        job = CoroutineScope(SupervisorJob() + dispatcher).launch { runLoop() }
+        val gen = ++generation
+        job = CoroutineScope(SupervisorJob() + dispatcher).launch { runLoop(gen) }
     }
 
     @Synchronized fun stop() {
+        generation++
         job?.cancel()
         job = null
         socket?.cancel()
@@ -90,22 +95,22 @@ class ConnectionManager(
     fun send(message: Message): Boolean = socket?.send(MessageCodec.encode(message)) ?: false
 
     /** Only the live loop may publish state, so a cancelled loop can't overwrite `Stopped`. */
-    private suspend fun setState(value: ConnectionState) {
-        if (currentCoroutineContext()[Job]?.isActive == true) _state.value = value
+    private fun setState(gen: Int, value: ConnectionState) {
+        synchronized(this) { if (gen == generation) _state.value = value }
     }
 
-    private suspend fun runLoop() {
+    private suspend fun runLoop(gen: Int) {
         while (currentCoroutineContext().isActive) {
             val mac = store.paired.value
             if (mac == null) {
-                setState(ConnectionState.NotPaired)
+                setState(gen, ConnectionState.NotPaired)
                 store.paired.first { it != null }
                 backoff.reset()
                 continue
             }
-            if (state.value !is ConnectionState.TrustFailure) setState(ConnectionState.Connecting)
+            if (state.value !is ConnectionState.TrustFailure) setState(gen, ConnectionState.Connecting)
             val outcome = try {
-                connectOnce(mac)
+                connectOnce(mac, gen)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -113,14 +118,27 @@ class ConnectionManager(
             }
             when (outcome) {
                 is Outcome.Closed -> if (outcome.wasOpen) backoff.reset()
-                is Outcome.Trust -> setState(ConnectionState.TrustFailure(outcome.detail))
+                is Outcome.Trust -> setState(gen, ConnectionState.TrustFailure(outcome.detail))
                 Outcome.Failed -> Unit
             }
             val delayMs = backoff.next()
-            if (state.value !is ConnectionState.TrustFailure) setState(ConnectionState.Waiting(delayMs))
-            when (val wake = waitForRetry(mac, delayMs)) {
+            if (state.value !is ConnectionState.TrustFailure) setState(gen, ConnectionState.Waiting(delayMs))
+            val wake = try {
+                waitForRetry(mac, delayMs)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            when (wake) {
                 is Wake.Found -> {
-                    store.save(mac.copy(host = wake.address.host, port = wake.address.port))
+                    try {
+                        store.save(mac.copy(host = wake.address.host, port = wake.address.port))
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        // Couldn't persist the new address; the loop keeps retrying the stored one.
+                    }
                     backoff.reset()
                 }
                 Wake.Nudged -> backoff.reset()
@@ -140,7 +158,7 @@ class ConnectionManager(
         return withTimeoutOrNull(delayMs) {
             merge<Wake>(
                 nudges.receiveAsFlow().map { Wake.Nudged },
-                locator.appearances(mac.fingerprint).filter { it != current }.map { Wake.Found(it) },
+                locator.appearances(mac.fingerprint).catch { }.filter { it != current }.map { Wake.Found(it) },
             ).first()
         }
     }
@@ -158,7 +176,7 @@ class ConnectionManager(
         data class Failure(val error: Throwable) : SocketEvent
     }
 
-    private suspend fun connectOnce(mac: PairedMac): Outcome {
+    private suspend fun connectOnce(mac: PairedMac, gen: Int): Outcome {
         val client = TlsClientFactory.pinned(identity(), mac.fingerprint, baseClient).newBuilder()
             .pingInterval(15, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.MILLISECONDS)
@@ -178,10 +196,11 @@ class ConnectionManager(
                 when (event) {
                     is SocketEvent.Open -> {
                         open = true
-                        socket = event.socket
+                        val owned = synchronized(this) { if (gen == generation) { socket = event.socket; true } else false }
+                        if (!owned) return Outcome.Failed
                         event.socket.send(MessageCodec.encode(Message.Hello(hello())))
                     }
-                    is SocketEvent.Text -> handleText(event.text, mac)
+                    is SocketEvent.Text -> handleText(event.text, mac, gen)
                     SocketEvent.Closed -> return Outcome.Closed(open)
                     is SocketEvent.Failure -> return when {
                         open -> Outcome.Closed(true)
@@ -192,19 +211,19 @@ class ConnectionManager(
             }
             return Outcome.Failed
         } finally {
-            socket = null
+            synchronized(this) { if (socket === webSocket) socket = null }
             webSocket.cancel()
         }
     }
 
-    private suspend fun handleText(text: String, mac: PairedMac) {
+    private suspend fun handleText(text: String, mac: PairedMac, gen: Int) {
         val message = try {
             MessageCodec.decode(text)
         } catch (e: MalformedMessageException) {
             return
         }
         if (message is Message.Hello) {
-            setState(ConnectionState.Connected(message.body.device))
+            setState(gen, ConnectionState.Connected(message.body.device))
             if (message.body.device != mac.name) store.save(mac.copy(name = message.body.device))
         }
         _incoming.emit(message)

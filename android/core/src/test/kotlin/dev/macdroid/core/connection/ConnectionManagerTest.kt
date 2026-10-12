@@ -10,6 +10,7 @@ import dev.macdroid.core.protocol.Message
 import java.net.ServerSocket
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -152,6 +153,69 @@ class ConnectionManagerTest {
                 manager.awaitState { it is ConnectionState.Waiting }
                 manager.nudge()
                 manager.awaitState(timeoutMs = 2_000) { it is ConnectionState.Connected }
+            } finally {
+                manager.stop()
+            }
+        }
+    }
+
+    @Test fun survivesLocatorFailure(): Unit = runBlocking {
+        MockMac().use { mac ->
+            mac.server.enqueue(MockResponse.Builder().code(500).build())
+            mac.enqueueSession()
+            mac.start()
+            val locator = MacLocator { flow { throw SecurityException("denied") } }
+            val manager = manager(mac, InMemoryPairingStore(mac.pairedMac()), locator, backoff = Backoff(10_000, 10_000))
+            manager.start()
+            try {
+                manager.awaitState { it is ConnectionState.Waiting }
+                manager.nudge()
+                manager.awaitState(timeoutMs = 2_000) { it is ConnectionState.Connected }
+            } finally {
+                manager.stop()
+            }
+        }
+    }
+
+    @Test fun survivesStoreSaveFailure(): Unit = runBlocking {
+        MockMac().use { mac ->
+            mac.enqueueSession()
+            mac.start()
+            val deadPort = ServerSocket(0).use { it.localPort }
+            val inner = InMemoryPairingStore(mac.pairedMac().copy(port = deadPort))
+            val store = object : PairingStore by inner {
+                override fun save(mac: dev.macdroid.core.pairing.PairedMac) = throw IllegalStateException("disk full")
+            }
+            val locator = MacLocator { flowOf(MacAddress(mac.server.hostName, mac.server.port)) }
+            val manager = manager(mac, store, locator, backoff = Backoff(50, 100))
+            manager.start()
+            try {
+                manager.awaitState { it is ConnectionState.Waiting }
+                // Save keeps failing, so the stored address stays dead; the loop must still be alive.
+                manager.nudge()
+                manager.awaitState { it is ConnectionState.Connecting || it is ConnectionState.Waiting }
+                assertTrue(manager.state.value !is ConnectionState.Stopped)
+            } finally {
+                manager.stop()
+            }
+        }
+    }
+
+    @Test fun sendWorksAfterRestart(): Unit = runBlocking {
+        MockMac().use { mac ->
+            mac.enqueueSession()
+            mac.enqueueSession()
+            mac.start()
+            val manager = manager(mac, InMemoryPairingStore(mac.pairedMac()))
+            try {
+                manager.start()
+                manager.awaitState { it is ConnectionState.Connected }
+                manager.stop()
+                assertEquals(ConnectionState.Stopped, manager.state.value)
+                manager.start()
+                manager.awaitState { it is ConnectionState.Connected }
+                Thread.sleep(300) // let the old loop's teardown run
+                assertTrue(manager.send(Message.DeviceStatus(DeviceStatusBody(7, false))))
             } finally {
                 manager.stop()
             }
