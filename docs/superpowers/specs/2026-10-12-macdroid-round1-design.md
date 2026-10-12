@@ -33,6 +33,7 @@ Photo gallery browsing, SMS/contacts, screen mirroring/remote control, webcam/mi
 
 Publishing constraints that shaped the design:
 - **Mac sandbox:** entitlements `com.apple.security.network.server`, `network.client`, user-selected files read-write. Info.plist `NSLocalNetworkUsageDescription` and `NSBonjourServices = [_macdroid._tcp]`. Chosen download folder persisted as a security-scoped bookmark.
+- **Android 17 local network permission:** apps targeting API 37 must hold `ACCESS_LOCAL_NETWORK` (runtime) before opening sockets to LAN hosts or using NSD. It is requested as the first onboarding step, before pairing.
 - **Play policy:** no SMS permissions, no `MANAGE_EXTERNAL_STORAGE` (use Storage Access Framework), no Accessibility Service. Notification access via `NotificationListenerService` is permitted for this use case.
 
 ## 3. Repository layout
@@ -80,7 +81,7 @@ Android (client)                                   Mac (server, :port advertised
 
 - Mac advertises `_macdroid._tcp` with TXT records `v=1`, `fp=<first 16 hex of fingerprint>` so the phone picks the right Mac.
 - Phone connection order: last known host/port → NSD resolution matching `fp`. Retries use exponential backoff from 1s, capped at 30s. Backoff resets and an immediate retry fires on Wi-Fi network change (`ConnectivityManager.NetworkCallback`) or when NSD sees the Mac appear.
-- Liveness: WebSocket ping frames every 15s; connection considered dead after 45s without a pong.
+- Liveness: WebSocket ping frames every 15s from both sides (Hummingbird auto-ping, OkHttp `pingInterval`); a missing pong closes the connection within ~30s.
 - Android runs the connection inside a **foreground service** (type `connectedDevice`) with a persistent notification. Onboarding asks the user to exempt the app from battery optimisation (with a Nothing OS–specific hint).
 
 ### 4.4 Control channel messages
@@ -196,11 +197,12 @@ Exact JSON for each lives in `protocol/fixtures/*.json`.
 
 ### Android
 - **Onboarding** steps:
-  1. Scan QR (or manual)
-  2. Grant notification access
-  3. `POST_NOTIFICATIONS`
-  4. Battery optimisation exemption
-  5. Pick download folder
+  1. Allow local network access (Android 17+, `ACCESS_LOCAL_NETWORK`)
+  2. Scan QR (or manual)
+  3. Grant notification access
+  4. `POST_NOTIFICATIONS`
+  5. Battery optimisation exemption (opens the system battery-optimisation list; no `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` permission, for Play policy)
+  6. Pick download folder
 - **Home**:
   - connection status
   - active and recent transfers
