@@ -1,0 +1,6 @@
+{
+  "v": 1,
+  "type": "hello",
+  "id": "6f1c2a0e-0000-4000-8000-000000000001",
+  "body": { "protocol": 1, "app": "0.1.0", "device": "Nothing Phone (3)", "features": [] }
+}
