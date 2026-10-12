@@ -30,6 +30,7 @@ let package = Package(
                 .product(name: "NIOSSL", package: "swift-nio-ssl"),
                 .product(name: "X509", package: "swift-certificates"),
                 .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "Tracing", package: "swift-distributed-tracing"),
             ]
         ),
         .testTarget(
