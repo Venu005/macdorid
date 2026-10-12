@@ -35,6 +35,7 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import dev.macdroid.app.platform.Permissions
 import java.util.concurrent.Executors
 
 @Composable

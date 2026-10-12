@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.macdroid.app.AppGraph
 import dev.macdroid.app.graph
+import dev.macdroid.app.platform.Permissions
 import dev.macdroid.app.service.ConnectionService
 
 class MainActivity : ComponentActivity() {

@@ -35,11 +35,27 @@ class CrossPlatformTest {
         val result = PairingClient(phone).pair(invite, "MacDroid Test Phone", "JVM")
         assertTrue("pairing failed: $result", result is PairResult.Success)
 
-        // The window is closed now: a different phone must not get in.
-        assertTrue(PairingClient(newIdentity("Intruder")).pair(invite, "Intruder", "JVM") !is PairResult.Success)
+        // The window is closed now: a different phone must not get in, and is told to rescan rather than
+        // that the Mac is an impostor (the Mac's certificate is the pinned one; it just refuses ours).
+        val intruder = newIdentity("Intruder")
+        assertEquals(PairResult.CodeRejected, PairingClient(intruder).pair(invite, "Intruder", "JVM"))
+
+        // A phone the Mac doesn't trust that tries to connect lands in TrustFailure (spec §7 re-pair path).
+        val stranger = ConnectionManager(
+            InMemoryPairingStore((result as PairResult.Success).mac),
+            { intruder },
+            MacLocator.None,
+            { HelloBody(app = "test", device = "Intruder") },
+        )
+        stranger.start()
+        try {
+            withTimeout(10_000) { stranger.state.first { it is ConnectionState.TrustFailure } }
+        } finally {
+            stranger.stop()
+        }
 
         val manager = ConnectionManager(
-            InMemoryPairingStore((result as PairResult.Success).mac),
+            InMemoryPairingStore(result.mac),
             { phone },
             MacLocator.None,
             { HelloBody(app = "test", device = "MacDroid Test Phone") },

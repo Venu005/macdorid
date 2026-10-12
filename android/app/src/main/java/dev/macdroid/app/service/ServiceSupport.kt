@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import dev.macdroid.app.R
 import dev.macdroid.app.graph
+import dev.macdroid.app.platform.Permissions
 import dev.macdroid.app.ui.MainActivity
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.protocol.DeviceStatusBody
@@ -24,6 +25,8 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 object StatusText {
+    const val LOCAL_NETWORK_NEEDED = "Local network permission needed — open MacDroid"
+
     fun title(state: ConnectionState): String = when (state) {
         ConnectionState.Stopped -> "Disconnected"
         ConnectionState.NotPaired -> "Not paired"
@@ -57,6 +60,18 @@ object Notifications {
             .setOngoing(true)
             .setContentIntent(open)
             .addAction(0, "Disconnect", disconnect)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .build()
+    }
+
+    /** Shown instead of a connection status when the service can't run without the local network permission. */
+    fun localNetworkNeeded(context: Context): Notification {
+        val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        return NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_macdroid)
+            .setContentTitle(StatusText.LOCAL_NETWORK_NEEDED)
+            .setContentIntent(open)
+            .setAutoCancel(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
@@ -97,7 +112,10 @@ object BatteryMonitor {
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED && context.graph.pairingStore.paired.value != null) {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED &&
+            context.graph.pairingStore.paired.value != null &&
+            Permissions.hasLocalNetwork(context)
+        ) {
             ConnectionService.start(context)
         }
     }

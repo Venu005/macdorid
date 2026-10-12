@@ -3,9 +3,7 @@ package dev.macdroid.app.ui
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,24 +36,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.macdroid.app.platform.Permissions
 import dev.macdroid.core.tls.Fingerprint
-
-object Permissions {
-    const val ACCESS_LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
-    val needsLocalNetwork: Boolean get() = Build.VERSION.SDK_INT >= 37
-    val needsNotifications: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-
-    fun granted(context: Context, permission: String) =
-        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-
-    fun hasLocalNetwork(context: Context) = !needsLocalNetwork || granted(context, ACCESS_LOCAL_NETWORK)
-    fun hasNotifications(context: Context) = !needsNotifications || granted(context, Manifest.permission.POST_NOTIFICATIONS)
-}
 
 @Composable
 fun StepScaffold(title: String, body: String, content: @Composable ColumnScope.() -> Unit) {

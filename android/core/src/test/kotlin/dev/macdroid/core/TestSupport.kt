@@ -28,9 +28,11 @@ fun eventually(timeoutMs: Long = 5_000, condition: () -> Boolean) {
  * A MockWebServer with its own self-signed certificate that requires the phone's client certificate,
  * mirroring the real Mac server's mutual TLS.
  */
-class MockMac(val macName: String = "Test Mac") : java.io.Closeable {
+class MockMac(val macName: String = "Test Mac", trustsPhone: Boolean = true) : java.io.Closeable {
     private val serverCert = okhttp3.tls.HeldCertificate.Builder().ecdsa256().commonName("mac").build()
     private val phoneCert = okhttp3.tls.HeldCertificate.Builder().ecdsa256().commonName("phone").build()
+    /** With `trustsPhone = false` the Mac only trusts some other phone, like a Mac whose pairing window closed. */
+    private val trustedCert = if (trustsPhone) phoneCert else okhttp3.tls.HeldCertificate.Builder().ecdsa256().commonName("other").build()
     val phoneIdentity = dev.macdroid.core.tls.ClientIdentity(phoneCert.keyPair.private, phoneCert.certificate)
     val fingerprint: String = dev.macdroid.core.tls.Fingerprint.of(serverCert.certificate)
     val received = java.util.concurrent.LinkedBlockingQueue<dev.macdroid.core.protocol.Message>()
@@ -38,7 +40,7 @@ class MockMac(val macName: String = "Test Mac") : java.io.Closeable {
         useHttps(
             okhttp3.tls.HandshakeCertificates.Builder()
                 .heldCertificate(serverCert)
-                .addTrustedCertificate(phoneCert.certificate)
+                .addTrustedCertificate(trustedCert.certificate)
                 .build()
                 .sslSocketFactory(),
         )

@@ -99,6 +99,14 @@ class ConnectionManager(
         synchronized(this) { if (gen == generation) _state.value = value }
     }
 
+    /**
+     * Only the live loop may persist, under the same monitor as [stop]: once `stop()` returns, no save from an
+     * older loop can land, so Forget's `stop()` + `clear()` can't be undone by a cancelled loop.
+     */
+    private fun saveIfCurrent(gen: Int, mac: PairedMac) {
+        synchronized(this) { if (gen == generation) store.save(mac) }
+    }
+
     private suspend fun runLoop(gen: Int) {
         while (currentCoroutineContext().isActive) {
             val mac = store.paired.value
@@ -133,7 +141,7 @@ class ConnectionManager(
             when (wake) {
                 is Wake.Found -> {
                     try {
-                        store.save(mac.copy(host = wake.address.host, port = wake.address.port))
+                        saveIfCurrent(gen, mac.copy(host = wake.address.host, port = wake.address.port))
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
@@ -224,7 +232,7 @@ class ConnectionManager(
         }
         if (message is Message.Hello) {
             setState(gen, ConnectionState.Connected(message.body.device))
-            if (message.body.device != mac.name) store.save(mac.copy(name = message.body.device))
+            if (message.body.device != mac.name) saveIfCurrent(gen, mac.copy(name = message.body.device))
         }
         _incoming.emit(message)
     }

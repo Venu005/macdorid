@@ -9,6 +9,7 @@ import android.os.IBinder
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import dev.macdroid.app.graph
+import dev.macdroid.app.platform.Permissions
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.protocol.Message
 import kotlinx.coroutines.CoroutineScope
@@ -21,13 +22,20 @@ import kotlinx.coroutines.launch
 /** Foreground service that keeps the connection to the Mac alive while the app is in the background. */
 class ConnectionService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private lateinit var networkWatcher: NetworkWatcher
+    private var networkWatcher: NetworkWatcher? = null
+    private var running = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         Notifications.createChannel(this)
+        // Without the permission sockets and NSD fail, so don't run (e.g. a sticky restart after it was revoked).
+        if (!Permissions.hasLocalNetwork(this)) {
+            stopForPermission()
+            return
+        }
+        running = true
         ServiceCompat.startForeground(
             this, Notifications.SERVICE_ID,
             Notifications.status(this, ConnectionState.Connecting),
@@ -48,15 +56,33 @@ class ConnectionService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!running) return START_NOT_STICKY // onCreate already posted the notice and stopped
+        if (!Permissions.hasLocalNetwork(this)) {
+            stopForPermission()
+            return START_NOT_STICKY
+        }
         if (intent?.action == ACTION_DISCONNECT) stopSelf()
         return START_STICKY
     }
 
     override fun onDestroy() {
-        networkWatcher.stop()
+        networkWatcher?.stop()
         scope.cancel()
-        graph.connectionManager.stop()
+        if (running) graph.connectionManager.stop()
         super.onDestroy()
+    }
+
+    /** A foreground-service start must call startForeground, so show the permission notice, keep it, and stop. */
+    private fun stopForPermission() {
+        val notice = Notifications.localNetworkNeeded(this)
+        try {
+            ServiceCompat.startForeground(this, Notifications.SERVICE_ID, notice, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
+        } catch (e: RuntimeException) {
+            // The platform may refuse this foreground type without the permission; post the notice directly instead.
+            getSystemService(NotificationManager::class.java).notify(Notifications.SERVICE_ID, notice)
+        }
+        stopSelf()
     }
 
     companion object {

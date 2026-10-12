@@ -5,6 +5,8 @@ import dev.macdroid.core.protocol.PairRequest
 import dev.macdroid.core.protocol.PairResponse
 import dev.macdroid.core.tls.CapturingTrustManager
 import dev.macdroid.core.tls.ClientIdentity
+import dev.macdroid.core.tls.PinnedTrustManager
+import dev.macdroid.core.tls.RecordingTrustManager
 import dev.macdroid.core.tls.TlsClientFactory
 import dev.macdroid.core.tls.TrustFailures
 import java.io.IOException
@@ -19,9 +21,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 sealed interface PairResult {
     data class Success(val mac: PairedMac) : PairResult
-    /** The Mac answered 403: wrong code or the pairing window closed. */
+    /**
+     * Wrong code or the pairing window closed: the Mac answered 403, or it was the pinned Mac but its TLS
+     * layer refused our (unpaired) certificate, which it does once the window is closed.
+     */
     data object CodeRejected : PairResult
-    /** The server's certificate is not the one in the QR code (or it refused our certificate). */
+    /** The server's certificate is not the one in the QR code. */
     data object FingerprintMismatch : PairResult
     data class Failed(val reason: String) : PairResult
 }
@@ -29,12 +34,15 @@ sealed interface PairResult {
 class PairingClient(private val identity: ClientIdentity, private val base: OkHttpClient = OkHttpClient()) {
 
     suspend fun pair(invite: PairingInvite, deviceName: String, model: String): PairResult = withContext(Dispatchers.IO) {
+        val trust = RecordingTrustManager(PinnedTrustManager(invite.fingerprint))
+        var responded = false
         try {
-            val client = TlsClientFactory.pinned(identity, invite.fingerprint, base)
+            val client = TlsClientFactory.create(identity, trust, base)
             val body = MessageCodec.json.encodeToString(PairRequest.serializer(), PairRequest(invite.code, deviceName, model))
                 .toRequestBody("application/json".toMediaType())
             val request = Request.Builder().url(url(invite.host, invite.port, "v1/pair")).post(body).build()
             client.newCall(request).execute().use { response ->
+                responded = true
                 when {
                     response.isSuccessful -> {
                         val reply = MessageCodec.json.decodeFromString(PairResponse.serializer(), response.body.string())
@@ -45,7 +53,15 @@ class PairingClient(private val identity: ClientIdentity, private val base: OkHt
                 }
             }
         } catch (e: IOException) {
-            if (TrustFailures.isTrustFailure(e)) PairResult.FingerprintMismatch else PairResult.Failed(e.message ?: e.javaClass.simpleName)
+            when {
+                // Only a server certificate that failed the pin means "not the Mac that showed the code".
+                trust.serverRejected -> PairResult.FingerprintMismatch
+                // The pinned Mac hung up before replying: it refused our certificate. With TLS 1.3 that refusal
+                // arrives after our side of the handshake, so it surfaces as an alert, a reset or a closed stream.
+                trust.serverAccepted && !responded -> PairResult.CodeRejected
+                TrustFailures.isTrustFailure(e) -> PairResult.FingerprintMismatch
+                else -> PairResult.Failed(e.message ?: e.javaClass.simpleName)
+            }
         } catch (e: SerializationException) {
             PairResult.Failed("unexpected reply from Mac")
         } catch (e: IllegalArgumentException) {

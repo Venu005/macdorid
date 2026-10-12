@@ -74,6 +74,23 @@ class PairingTest {
         }
     }
 
+    // The Mac's TLS layer rejects unpaired phones once its window is closed, so no 403 ever arrives.
+    @Test fun macRejectingOurCertificateIsCodeRejected() = runBlocking {
+        MockMac(trustsPhone = false).use { mac ->
+            mac.enqueueJson(200, """{"macName":"Studio"}""")
+            mac.start()
+            assertEquals(PairResult.CodeRejected, PairingClient(mac.phoneIdentity).pair(invite(mac), "P", "M"))
+        }
+    }
+
+    @Test fun wrongFingerprintWinsOverRejectedCertificate() = runBlocking {
+        MockMac(trustsPhone = false).use { mac ->
+            mac.start()
+            val result = PairingClient(mac.phoneIdentity).pair(invite(mac).copy(fingerprint = "00".repeat(32)), "P", "M")
+            assertEquals(PairResult.FingerprintMismatch, result)
+        }
+    }
+
     @Test fun unreachableMacIsFailed() = runBlocking {
         val deadPort = ServerSocket(0).use { it.localPort }
         val identity = MockMac().use { it.phoneIdentity }

@@ -123,6 +123,21 @@ class ConnectionManagerTest {
         }
     }
 
+    // Spec §7: the Mac no longer knows this phone (forgotten, or another phone paired) → re-pair.
+    @Test fun macRejectingOurCertificateIsTrustFailure(): Unit = runBlocking {
+        MockMac(trustsPhone = false).use { mac ->
+            mac.enqueueSession()
+            mac.start()
+            val manager = manager(mac, InMemoryPairingStore(mac.pairedMac()))
+            manager.start()
+            try {
+                manager.awaitState { it is ConnectionState.TrustFailure }
+            } finally {
+                manager.stop()
+            }
+        }
+    }
+
     // Review Focus #1
     @Test fun movesToAddressReportedByLocator(): Unit = runBlocking {
         MockMac().use { mac ->
@@ -198,6 +213,37 @@ class ConnectionManagerTest {
             } finally {
                 manager.stop()
             }
+        }
+    }
+
+    // A save racing Forget (stop() then clear()) must not bring the forgotten Mac back.
+    @Test fun saveInFlightCannotResurrectForgottenMac(): Unit = runBlocking {
+        MockMac().use { mac ->
+            mac.start()
+            val deadPort = ServerSocket(0).use { it.localPort }
+            val inner = InMemoryPairingStore(mac.pairedMac().copy(port = deadPort))
+            val saveStarted = java.util.concurrent.CountDownLatch(1)
+            val cleared = java.util.concurrent.CountDownLatch(1)
+            val store = object : PairingStore by inner {
+                override fun save(mac: dev.macdroid.core.pairing.PairedMac) {
+                    saveStarted.countDown()
+                    cleared.await(500, TimeUnit.MILLISECONDS) // let a concurrent Forget run first, if it can
+                    inner.save(mac)
+                }
+                override fun clear() {
+                    inner.clear()
+                    cleared.countDown()
+                }
+            }
+            val locator = MacLocator { flowOf(MacAddress(mac.server.hostName, mac.server.port)) }
+            val manager = manager(mac, store, locator, backoff = Backoff(10_000, 10_000))
+            manager.start()
+            assertTrue(saveStarted.await(5, TimeUnit.SECONDS))
+            // Forget, as the app does it.
+            manager.stop()
+            store.clear()
+            Thread.sleep(600)
+            assertEquals(null, store.paired.value)
         }
     }
 

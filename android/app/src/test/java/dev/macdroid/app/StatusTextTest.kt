@@ -14,4 +14,8 @@ class StatusTextTest {
         assertEquals("Disconnected", StatusText.title(ConnectionState.Stopped))
         assertEquals("Pairing problem — open MacDroid to re-pair", StatusText.title(ConnectionState.TrustFailure("x")))
     }
+
+    @Test fun localNetworkPermissionNotice() {
+        assertEquals("Local network permission needed — open MacDroid", StatusText.LOCAL_NETWORK_NEEDED)
+    }
 }
