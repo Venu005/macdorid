@@ -32,8 +32,8 @@ actor SlowCloseTransport: MessageTransport {
 @Suite struct ConnectionHubTests {
     let phoneHello = Message.hello(Hello(app: "0.1.0", device: "Nothing Phone (3)", features: []))
 
-    func start(_ hub: ConnectionHub, _ transport: FakeTransport) -> Task<Void, Never> {
-        Task { await hub.run(transport: transport, incoming: transport.incoming) }
+    func start(_ hub: ConnectionHub, _ transport: FakeTransport, fingerprint: String = "aa") -> Task<Void, Never> {
+        Task { await hub.run(transport: transport, incoming: transport.incoming, peerFingerprint: fingerprint) }
     }
 
     @Test func sendsHelloFirst() async throws {
@@ -111,7 +111,7 @@ actor SlowCloseTransport: MessageTransport {
     @Test func helloIsFirstFrameEvenWithConcurrentSend() async throws {
         let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
         let (oldStream, oldContinuation) = AsyncThrowingStream.makeStream(of: String.self)
-        let oldTask = Task { await hub.run(transport: SlowCloseTransport(), incoming: oldStream) }
+        let oldTask = Task { await hub.run(transport: SlowCloseTransport(), incoming: oldStream, peerFingerprint: "aa") }
         try await eventually { (try? await hub.send(.deviceStatus(DeviceStatus(battery: 0, charging: false)))) != nil }
         let second = FakeTransport()
         let secondTask = start(hub, second)
@@ -130,11 +130,66 @@ actor SlowCloseTransport: MessageTransport {
         let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
         let (stream, continuation) = AsyncThrowingStream.makeStream(of: String.self)
         let transport = FakeTransport()
-        let task = Task { await hub.run(transport: transport, incoming: stream) }
+        let task = Task { await hub.run(transport: transport, incoming: stream, peerFingerprint: "aa") }
         try await eventually { await !transport.sent.isEmpty }
         continuation.finish(throwing: Boom())
         await task.value
         #expect(await transport.closed)
         #expect(await hub.status == .disconnected)
     }
+
+    @Test func disconnectUnlessFingerprintKeepsMatchingSession() async throws {
+        let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
+        let transport = FakeTransport()
+        let task = start(hub, transport, fingerprint: "phone-a")
+        try transport.receive(phoneHello)
+        try await eventually { if case .connected = await hub.status { return true }; return false }
+        await hub.disconnect(unlessFingerprint: "phone-a")
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(await !transport.closed)
+        if case .connected = await hub.status {} else { Issue.record("matching session was dropped") }
+        transport.hangUp(); await task.value
+    }
+
+    @Test func disconnectUnlessFingerprintDropsOtherPhonesSession() async throws {
+        let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
+        let transport = FakeTransport()
+        let task = start(hub, transport, fingerprint: "old-phone")
+        try transport.receive(phoneHello)
+        try await eventually { if case .connected = await hub.status { return true }; return false }
+        await hub.disconnect(unlessFingerprint: "new-phone")
+        await task.value
+        #expect(await transport.closed)
+        #expect(await hub.status == .disconnected)
+        await #expect(throws: HubError.notConnected) { try await hub.send(.deviceStatus(DeviceStatus(battery: 1, charging: false))) }
+    }
+
+    @Test func disconnectUnlessFingerprintStopsOtherPhoneStillSendingHello() async throws {
+        let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
+        let gate = GatedHelloTransport()
+        let (stream, continuation) = AsyncThrowingStream.makeStream(of: String.self)
+        let task = Task { await hub.run(transport: gate, incoming: stream, peerFingerprint: "old-phone") }
+        try await eventually { await gate.sendStarted }
+        await hub.disconnect(unlessFingerprint: "new-phone")
+        await gate.release()
+        await task.value
+        #expect(await gate.closed)
+        await #expect(throws: HubError.notConnected) { try await hub.send(.deviceStatus(DeviceStatus(battery: 1, charging: false))) }
+        continuation.finish()
+    }
+}
+
+/// Holds the hello send until released, so a session can be caught before it is published.
+actor GatedHelloTransport: MessageTransport {
+    private(set) var sendStarted = false
+    private(set) var closed = false
+    private var waiter: CheckedContinuation<Void, Never>?
+    private var released = false
+
+    func send(_ text: String) async throws {
+        sendStarted = true
+        if !released { await withCheckedContinuation { waiter = $0 } }
+    }
+    func release() { released = true; waiter?.resume(); waiter = nil }
+    func close() async { closed = true }
 }

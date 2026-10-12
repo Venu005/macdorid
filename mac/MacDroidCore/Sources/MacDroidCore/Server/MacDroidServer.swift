@@ -92,13 +92,16 @@ public final class MacDroidServer: Sendable {
                     configuration: .init(ws: .init(maxFrameSize: Self.maxMessageSize, autoPing: .enabled(timePeriod: .seconds(15))))
                 ) { request, channel, _ in
                     guard request.path == "/v1/ws",
-                          let certificate = try await channel.nioSSL_peerCertificate().get(),
-                          await pairing.isTrusted(fingerprint: try Fingerprint.of(certificate)) else {
+                          let certificate = try await channel.nioSSL_peerCertificate().get() else {
                         return .dontUpgrade
                     }
+                    let fingerprint = try Fingerprint.of(certificate)
+                    guard await pairing.isTrusted(fingerprint: fingerprint) else { return .dontUpgrade }
                     return .upgrade([:]) { inbound, outbound, _ in
                         let (stream, continuation) = AsyncThrowingStream.makeStream(of: String.self)
-                        let session = Task { await hub.run(transport: WebSocketTransport(outbound: outbound), incoming: stream) }
+                        let session = Task {
+                            await hub.run(transport: WebSocketTransport(outbound: outbound), incoming: stream, peerFingerprint: fingerprint)
+                        }
                         do {
                             for try await message in inbound.messages(maxSize: Self.maxMessageSize) {
                                 if case .text(let text) = message { continuation.yield(text) }

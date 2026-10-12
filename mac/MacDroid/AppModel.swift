@@ -61,7 +61,7 @@ final class AppModel {
             for await status in hub.statusUpdates { self?.status = status }
         })
         tasks.append(Task { [weak self, pairing] in
-            for await event in pairing.events { self?.handle(event) }
+            for await event in pairing.events { await self?.handle(event) }
         })
     }
 
@@ -69,6 +69,7 @@ final class AppModel {
         guard let port = listeningPort else { errorMessage = "Server is still starting — try again in a moment."; return }
         guard let host = LocalAddress.primaryIPv4() else { errorMessage = "No network connection. Join Wi-Fi and try again."; return }
         let window = await pairing.openWindow()
+        errorMessage = nil
         invite = PairingInvite(host: host, port: port, fingerprint: fingerprint, code: window.code, name: macName)
         inviteExpiresAt = window.expiresAt
         let delay = max(0, window.expiresAt.timeIntervalSinceNow)
@@ -94,12 +95,18 @@ final class AppModel {
         }
     }
 
-    private func handle(_ event: PairingEvent) {
+    private func handle(_ event: PairingEvent) async {
         switch event {
         case .windowOpened: break
         case .windowClosed: invite = nil; inviteExpiresAt = nil
-        case .paired(let device): pairedDevice = device
-        case .forgotten: pairedDevice = nil
+        case .paired(let device):
+            pairedDevice = device
+            errorMessage = nil
+            // A newly paired phone replaces the old one: end any session authenticated with another certificate.
+            await hub.disconnect(unlessFingerprint: device.fingerprint)
+        case .forgotten:
+            pairedDevice = nil
+            await hub.disconnect()
         }
     }
 }

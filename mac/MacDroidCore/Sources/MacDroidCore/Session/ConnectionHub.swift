@@ -37,9 +37,9 @@ public actor ConnectionHub {
     private let statusContinuation: AsyncStream<ConnectionStatus>.Continuation
     private let hello: Hello
     private let logger = Logger(label: "dev.macdroid.hub")
-    private var current: (id: UUID, transport: any MessageTransport)?
+    private var current: (id: UUID, transport: any MessageTransport, fingerprint: String)?
     /// The most recently started session; an older `run` still sending its hello must back off.
-    private var latest: UUID?
+    private var latest: (id: UUID, fingerprint: String)?
 
     public private(set) var status: ConnectionStatus = .disconnected {
         didSet { if status != oldValue { statusContinuation.yield(status) } }
@@ -54,9 +54,10 @@ public actor ConnectionHub {
 
     /// Runs one session until `incoming` ends, then closes `transport`.
     /// The session is published to `send` only after its hello went out, so hello is always the first frame.
-    public func run(transport: any MessageTransport, incoming: AsyncThrowingStream<String, any Error>) async {
+    /// `peerFingerprint` is the phone certificate the session was authenticated with.
+    public func run(transport: any MessageTransport, incoming: AsyncThrowingStream<String, any Error>, peerFingerprint: String) async {
         let id = UUID()
-        latest = id
+        latest = (id, peerFingerprint)
         let previous = current
         current = nil
         if previous != nil { status = .disconnected }
@@ -64,11 +65,11 @@ public actor ConnectionHub {
 
         do {
             try await transport.send(MessageCodec.encode(.hello(hello)))
-            guard latest == id else {
+            guard latest?.id == id else {
                 await transport.close()
                 return
             }
-            current = (id, transport)
+            current = (id, transport, peerFingerprint)
             for try await text in incoming { handle(text, session: id) }
         } catch {
             logger.debug("session ended: \(error)")
@@ -85,6 +86,15 @@ public actor ConnectionHub {
     public func disconnect() async {
         latest = nil
         guard let session = current else { return }
+        current = nil
+        status = .disconnected
+        await session.transport.close()
+    }
+
+    /// Ends any session that does not belong to `fingerprint` (e.g. after a different phone paired).
+    public func disconnect(unlessFingerprint fingerprint: String) async {
+        if let pending = latest, pending.fingerprint != fingerprint { latest = nil }
+        guard let session = current, session.fingerprint != fingerprint else { return }
         current = nil
         status = .disconnected
         await session.transport.close()
