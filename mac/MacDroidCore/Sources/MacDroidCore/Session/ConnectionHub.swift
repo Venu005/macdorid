@@ -38,6 +38,8 @@ public actor ConnectionHub {
     private let hello: Hello
     private let logger = Logger(label: "dev.macdroid.hub")
     private var current: (id: UUID, transport: any MessageTransport)?
+    /// The most recently started session; an older `run` still sending its hello must back off.
+    private var latest: UUID?
 
     public private(set) var status: ConnectionStatus = .disconnected {
         didSet { if status != oldValue { statusContinuation.yield(status) } }
@@ -50,21 +52,29 @@ public actor ConnectionHub {
         self.hello = Hello(app: appVersion, device: macName, features: features)
     }
 
-    /// Runs one session until `incoming` ends.
+    /// Runs one session until `incoming` ends, then closes `transport`.
+    /// The session is published to `send` only after its hello went out, so hello is always the first frame.
     public func run(transport: any MessageTransport, incoming: AsyncThrowingStream<String, any Error>) async {
         let id = UUID()
+        latest = id
         let previous = current
-        current = (id, transport)
+        current = nil
         if previous != nil { status = .disconnected }
         if let previous { await previous.transport.close() }
 
         do {
             try await transport.send(MessageCodec.encode(.hello(hello)))
+            guard latest == id else {
+                await transport.close()
+                return
+            }
+            current = (id, transport)
             for try await text in incoming { handle(text, session: id) }
         } catch {
             logger.debug("session ended: \(error)")
         }
         endSession(id)
+        await transport.close()
     }
 
     public func send(_ message: Message) async throws {
@@ -73,6 +83,7 @@ public actor ConnectionHub {
     }
 
     public func disconnect() async {
+        latest = nil
         guard let session = current else { return }
         current = nil
         status = .disconnected

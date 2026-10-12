@@ -22,6 +22,13 @@ actor FakeTransport: MessageTransport {
     nonisolated func hangUp() { continuation.finish() }
 }
 
+/// Records frames; close() suspends so a session handover stays in flight for a while.
+actor SlowCloseTransport: MessageTransport {
+    private(set) var closed = false
+    func send(_ text: String) async throws {}
+    func close() async { try? await Task.sleep(for: .milliseconds(150)); closed = true }
+}
+
 @Suite struct ConnectionHubTests {
     let phoneHello = Message.hello(Hello(app: "0.1.0", device: "Nothing Phone (3)", features: []))
 
@@ -99,5 +106,35 @@ actor FakeTransport: MessageTransport {
         await hub.disconnect()
         await task.value
         #expect(await transport.closed)
+    }
+
+    @Test func helloIsFirstFrameEvenWithConcurrentSend() async throws {
+        let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
+        let (oldStream, oldContinuation) = AsyncThrowingStream.makeStream(of: String.self)
+        let oldTask = Task { await hub.run(transport: SlowCloseTransport(), incoming: oldStream) }
+        try await eventually { (try? await hub.send(.deviceStatus(DeviceStatus(battery: 0, charging: false)))) != nil }
+        let second = FakeTransport()
+        let secondTask = start(hub, second)
+        for _ in 0..<50 {
+            try? await hub.send(.deviceStatus(DeviceStatus(battery: 1, charging: false)))
+            await Task.yield()
+        }
+        try await eventually { await !second.sent.isEmpty }
+        #expect(try MessageCodec.decode(await second.sent[0]) == .hello(Hello(app: "0.1.0", device: "Test Mac", features: [])))
+        oldContinuation.finish(); await oldTask.value
+        second.hangUp(); await secondTask.value
+    }
+
+    @Test func transportClosedWhenStreamFails() async throws {
+        struct Boom: Error {}
+        let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
+        let (stream, continuation) = AsyncThrowingStream.makeStream(of: String.self)
+        let transport = FakeTransport()
+        let task = Task { await hub.run(transport: transport, incoming: stream) }
+        try await eventually { await !transport.sent.isEmpty }
+        continuation.finish(throwing: Boom())
+        await task.value
+        #expect(await transport.closed)
+        #expect(await hub.status == .disconnected)
     }
 }
