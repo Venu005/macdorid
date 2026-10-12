@@ -47,6 +47,8 @@ class MockMac(val macName: String = "Test Mac") : java.io.Closeable {
 
     fun start() = server.start()
 
+    fun pairedMac() = dev.macdroid.core.pairing.PairedMac(fingerprint, macName, server.hostName, server.port)
+
     fun enqueueJson(code: Int, body: String) {
         server.enqueue(mockwebserver3.MockResponse.Builder().code(code).body(body).build())
     }
