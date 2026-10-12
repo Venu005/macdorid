@@ -10,3 +10,6 @@ build/
 local.properties
 .idea/
 *.iml
+
+# Subagent-driven development scratch
+.superpowers/
