@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -83,6 +84,7 @@ fun LocalNetworkScreen(onResult: () -> Unit) {
 @Composable
 fun PairScreen(viewModel: PairingViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { viewModel.resetIfFinished() }
     var mode by rememberSaveable { mutableStateOf("choose") }
     when (mode) {
         "scan" -> QrScannerScreen(enabled = state == PairingViewModel.UiState.Idle, onResult = viewModel::onScanned, onCancel = { mode = "choose" })
@@ -136,7 +138,7 @@ private fun PairingDialogs(state: PairingViewModel.UiState, onDismiss: () -> Uni
             title = { Text("Check the fingerprint") },
             text = { Text("Does your Mac show this fingerprint?\n\n${Fingerprint.display(state.fingerprint)}") },
         )
-        PairingViewModel.UiState.Idle -> Unit
+        PairingViewModel.UiState.Idle, PairingViewModel.UiState.Paired -> Unit
     }
 }
 
