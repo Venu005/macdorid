@@ -1,0 +1,37 @@
+name: MacDroid
+options:
+  bundleIdPrefix: dev.macdroid
+  deploymentTarget:
+    macOS: "14.0"
+packages:
+  MacDroidCore:
+    path: MacDroidCore
+targets:
+  MacDroid:
+    type: application
+    platform: macOS
+    sources: [MacDroid]
+    dependencies:
+      - package: MacDroidCore
+    info:
+      path: MacDroid/Info.plist
+      properties:
+        CFBundleDisplayName: MacDroid
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSUIElement: true
+        NSLocalNetworkUsageDescription: MacDroid connects to your Android phone over your local network.
+        NSBonjourServices: [_macdroid._tcp]
+    entitlements:
+      path: MacDroid/MacDroid.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.server: true
+        com.apple.security.network.client: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.macdroid.mac
+        SWIFT_VERSION: "6.0"
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        ENABLE_HARDENED_RUNTIME: YES
