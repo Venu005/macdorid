@@ -179,22 +179,22 @@ class ConnectionManagerTest {
 
     @Test fun survivesStoreSaveFailure(): Unit = runBlocking {
         MockMac().use { mac ->
-            mac.enqueueSession()
             mac.start()
             val deadPort = ServerSocket(0).use { it.localPort }
             val inner = InMemoryPairingStore(mac.pairedMac().copy(port = deadPort))
+            val saves = java.util.concurrent.atomic.AtomicInteger()
             val store = object : PairingStore by inner {
-                override fun save(mac: dev.macdroid.core.pairing.PairedMac) = throw IllegalStateException("disk full")
+                override fun save(mac: dev.macdroid.core.pairing.PairedMac) {
+                    saves.incrementAndGet()
+                    throw IllegalStateException("disk full")
+                }
             }
             val locator = MacLocator { flowOf(MacAddress(mac.server.hostName, mac.server.port)) }
             val manager = manager(mac, store, locator, backoff = Backoff(50, 100))
             manager.start()
             try {
-                manager.awaitState { it is ConnectionState.Waiting }
-                // Save keeps failing, so the stored address stays dead; the loop must still be alive.
-                manager.nudge()
-                manager.awaitState { it is ConnectionState.Connecting || it is ConnectionState.Waiting }
-                assertTrue(manager.state.value !is ConnectionState.Stopped)
+                // Each failed save is followed by another retry cycle (and another save) only if the loop survived.
+                eventually { saves.get() >= 3 }
             } finally {
                 manager.stop()
             }
