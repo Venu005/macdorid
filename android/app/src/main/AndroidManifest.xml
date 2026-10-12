@@ -1,10 +1,41 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:label="MacDroid" android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- Android 17 (API 37): runtime permission for LAN sockets and NSD -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <application
+        android:name=".MacDroidApp"
+        android:label="MacDroid"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
         <activity android:name=".ui.MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".service.ConnectionService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <!-- BOOT_COMPLETED is a protected broadcast; only the system can send it. -->
+        <receiver android:name=".service.BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
