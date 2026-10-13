@@ -40,6 +40,12 @@ object MessageCodec {
             is Message.NotificationMute -> "notification.mute" to json.encodeToJsonElement(NotificationMuteBody.serializer(), message.body)
             is Message.NotificationError -> "notification.error" to json.encodeToJsonElement(NotificationErrorBody.serializer(), message.body)
             is Message.ClipboardSet -> "clipboard.set" to json.encodeToJsonElement(ClipboardSetBody.serializer(), message.body)
+            is Message.DeviceRing -> "device.ring" to json.encodeToJsonElement(DeviceRingBody.serializer(), message.body)
+            is Message.RingState -> "device.ringState" to json.encodeToJsonElement(RingStateBody.serializer(), message.body)
+            is Message.LinkOpen -> "link.open" to json.encodeToJsonElement(LinkOpenBody.serializer(), message.body)
+            is Message.MediaState -> "media.state" to json.encodeToJsonElement(MediaStateBody.serializer(), message.body)
+            is Message.MediaArt -> "media.art" to json.encodeToJsonElement(MediaArtBody.serializer(), message.body)
+            is Message.MediaCommand -> "media.command" to json.encodeToJsonElement(MediaCommandBody.serializer(), message.body)
             is Message.Unknown -> throw IllegalArgumentException("cannot encode unknown message type ${message.type}")
         }
         return buildJsonObject {
@@ -76,6 +82,12 @@ object MessageCodec {
                 "notification.mute" -> Message.NotificationMute(json.decodeFromJsonElement(NotificationMuteBody.serializer(), body))
                 "notification.error" -> Message.NotificationError(json.decodeFromJsonElement(NotificationErrorBody.serializer(), body))
                 "clipboard.set" -> Message.ClipboardSet(json.decodeFromJsonElement(ClipboardSetBody.serializer(), body))
+                "device.ring" -> Message.DeviceRing(json.decodeFromJsonElement(DeviceRingBody.serializer(), body))
+                "device.ringState" -> Message.RingState(json.decodeFromJsonElement(RingStateBody.serializer(), body))
+                "link.open" -> Message.LinkOpen(json.decodeFromJsonElement(LinkOpenBody.serializer(), body))
+                "media.state" -> Message.MediaState(json.decodeFromJsonElement(MediaStateBody.serializer(), body))
+                "media.art" -> Message.MediaArt(json.decodeFromJsonElement(MediaArtBody.serializer(), body))
+                "media.command" -> Message.MediaCommand(json.decodeFromJsonElement(MediaCommandBody.serializer(), body))
                 else -> Message.Unknown(type)
             }
         } catch (e: IllegalArgumentException) { // includes SerializationException
