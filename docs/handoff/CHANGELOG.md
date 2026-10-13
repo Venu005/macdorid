@@ -7,6 +7,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 ## 2026-10-13 — Plan 2a: file transfer engine (in progress on feat/file-transfer)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md` (engine); Plan 2b (UI and platform glue) follows.
 - Task 1: `TrustedPeerMiddleware` is global; every route except `POST /v1/pair` (and the not-found responder) requires the paired phone. Verified: `swift test`, including `strangerIsForbiddenEverywhereExceptPair`.
+- Task 2: `transfer.*` messages in both codecs with 7 fixtures; `PROTOCOL.md` documents them and the `/v1/files` routes. Verified: both suites.
 
 ## 2026-10-13 — File transfer review points resolved; Plan 2a (engine) written
 - **What:**

@@ -12,7 +12,7 @@ Android (client)                                  Mac (server, advertised as _ma
 ```
 - Transport: HTTPS + WebSocket over **TLS 1.3, mutual authentication**.
 - Messages: WebSocket text frames shaped `{"v":1,"type":…,"id":…,"body":{…}}`.
-  - Current types: `hello` (both directions) and `device.status` (phone → Mac: battery %, charging).
+  - Current types: `hello` (both directions), `device.status` (phone → Mac: battery %, charging), `transfer.offer`, `transfer.accept`, `transfer.reject`, `transfer.finish`, `transfer.result`, `transfer.cancel` (Plan 2a).
   - Unknown types are ignored. Malformed frames are dropped, and the connection stays up.
 - Liveness: pings every 15 s from both sides.
 - Reconnect: backoff 1 s → 30 s cap. It resets on a network change, on NSD finding the Mac at a new address, or on "Retry now".

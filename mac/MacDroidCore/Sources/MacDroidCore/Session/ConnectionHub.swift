@@ -118,6 +118,8 @@ public actor ConnectionHub {
                 peer.charging = update.charging
                 status = .connected(peer)
             }
+        case .transferOffer, .transferAccept, .transferReject, .transferFinish, .transferResult, .transferCancel:
+            logger.debug("transfer message received before the transfer manager exists")
         case .unknown(let type):
             logger.debug("ignoring message type \(type)")
         }
