@@ -72,6 +72,7 @@ Mac app (`mac/MacDroid/`):
   - `ui/main/`: 5-tab bottom navigation: Home, Notifications, Clipboard, Files, Settings. Notifications and Clipboard are coming-soon placeholders. Files is live (`ui/files/`: `FilesScreen`, `TransferRow`, `SendPickers`). Home has a Send FAB and the last 3 transfers.
   - `ui/presentation/`: pure status text shared by Home and the notification.
   - `ui/theme/`: Material You, with a fallback palette.
+  - `ui/share/ShareActivity`: the "Send to Mac" share target (ACTION_SEND / SEND_MULTIPLE, `*/*`). It has no UI: it hands the URIs to `ConnectionService` with a read grant and shows a toast, or says "Connect to your Mac first" and opens the app.
 
 ## Branding
 - **App icon:** the peeking droid.

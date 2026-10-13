@@ -16,6 +16,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 8: Android save targets (MediaStore Download/MacDroid by default, a chosen SAF folder, or ask each time via a notification and CreateDocument), content-URI sources, and the `TransferEngine` running in `AppGraph`; version 0.3.0. Verified: Android gates.
 - Task 9: Android `SendFiles` (persistable grant, or a cache copy up to 100 MB), a progress notification with Cancel, a "Received <name> from Mac" notification with Open, and `ConnectionService` actions for sending and cancelling. Verified: Android gates.
 - Task 10: Android Files tab (Send to Mac card with Photos/Files, In progress with cancel, Recent with open/retry, folder-problem banner) and Home's Send FAB plus Recent activity (last 3). Verified: Android gates.
+- Task 11: Android share target ("Send to Mac" for one or many files of any type): queues silently with a toast when connected, otherwise "Connect to your Mac first" and opens the app. Verified: Android gates.
 
 ## 2026-10-13 — Plan 2b written (file transfer UI and platform glue)
 - **What:** wrote `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`. It has 13 tasks:
