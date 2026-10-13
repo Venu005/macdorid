@@ -1,7 +1,7 @@
 # MacDroid — Photos (Plan 6): Browse and Transfer the Phone's Photos
 
 **Date:** 2026-10-13
-**Status:** approved in brainstorming on 2026-10-13; awaiting the owner's review of this written spec.
+**Status:** approved in brainstorming on 2026-10-13; self-reviewed against the code on 2026-10-13 (fixes in §9, which win over earlier sections); the owner asked for the plan next.
 
 **Builds on:**
 - the connection core
@@ -175,3 +175,29 @@ Every message gets a fixture, and `PROTOCOL.md` is updated.
 | The Mac chooses the `transferId`; unknown `photo` offers are rejected | The Mac knows where each file goes; the phone can't push unasked | A separate request-id field |
 | Save ignores "Ask where to save" | Save is an explicit action from the Mac | Prompting for every saved photo |
 | Cursor = (`takenAt`, `id`), strictly older | New photos don't shift pages | Offset paging |
+
+## 9. Self-review fixes (2026-10-13)
+
+1. **Drag-out is one item at a time.**
+   - SwiftUI grids hand the system one item provider per drag, so dragging out moves the photo under the pointer.
+   - Several items go through **Save to Mac**.
+   - The provider uses `NSItemProvider.registerFileRepresentation(…)`. Its load handler fetches the original into the photo cache and hands over that URL; the system then copies it to the drop location.
+   - MacDroid never writes into the drop folder itself, so there's no sandbox file-promise handoff.
+2. **Two fetch destinations only:**
+   - `save`: the receive folder, shown in Files history.
+   - `cache`: `Caches/PhotoCache/`, hidden from Files, used for preview and drag.
+
+   The cache is emptied at each launch.
+3. **Quick Look** uses SwiftUI's `.quickLookPreview($url)`, not `QLPreviewPanel`.
+4. **Hidden transfers are generalised:**
+   - `TransferRecord` gains `hidden: Bool?`.
+   - `isHidden = isClipboard || hidden == true` replaces the clipboard-only checks (archive drop, snapshot filter).
+   - Cache fetches are hidden; saves are not.
+   - The Mac event `photoReceived(transferId, url)` fires for every completed `photo` transfer; saves also fire `received` (the usual notification).
+5. **Phone side:**
+   - Photo transfers (`purpose = photo`) are hidden from the phone's Files UI and notifications: `TransferSnapshot.files()` filters them too.
+   - `TransferEngine.enqueueWithId(id, file, purpose)` enqueues with the Mac's id. A repeated id that's already active is ignored.
+6. **Fetch timeout:** if no offer arrives within 30 s of `photos.fetch`, the Mac shows "Your phone didn't respond" and forgets the request.
+7. **Thumbnails:** the Mac never re-requests a thumbnail it has cached or already has in flight. In-flight requests are forgotten after 20 s, so a lost reply can be retried.
+8. **Setup:** existing users (setup already done) don't see the new step; Settings → Photos covers them.
+
