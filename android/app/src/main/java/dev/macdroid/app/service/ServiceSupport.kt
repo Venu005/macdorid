@@ -27,14 +27,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 object StatusText {
     const val LOCAL_NETWORK_NEEDED = "Local network permission needed — open MacDroid"
 
-    fun title(state: ConnectionState): String = when (state) {
-        ConnectionState.Stopped -> "Disconnected"
-        ConnectionState.NotPaired -> "Not paired"
-        ConnectionState.Connecting -> "Connecting…"
-        is ConnectionState.Connected -> "Connected to ${state.macName}"
-        is ConnectionState.Waiting -> "Mac not reachable — retrying in ${(state.retryInMs + 999) / 1000}s"
-        is ConnectionState.TrustFailure -> "Pairing problem — open MacDroid to re-pair"
-    }
+    fun title(state: ConnectionState): String = dev.macdroid.app.ui.presentation.StatusPresentation.notificationTitle(state)
 }
 
 object Notifications {
@@ -113,6 +106,7 @@ object BatteryMonitor {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED &&
+            context.graph.uiPrefs.keepConnected &&
             context.graph.pairingStore.paired.value != null &&
             Permissions.hasLocalNetwork(context)
         ) {

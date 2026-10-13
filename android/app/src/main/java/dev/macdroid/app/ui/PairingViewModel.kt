@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.macdroid.app.graph
 import dev.macdroid.app.platform.DeviceInfo
+import dev.macdroid.app.ui.setup.ManualEntry
 import dev.macdroid.core.pairing.PairResult
 import dev.macdroid.core.pairing.PairingClient
 import dev.macdroid.core.pairing.PairingInvite
@@ -59,6 +60,11 @@ class PairingViewModel(application: Application) : AndroidViewModel(application)
             _state.value = UiState.Error("Enter the address and port exactly as your Mac shows them.")
             return
         }
+        val code = ManualEntry.normalizedCodeOrNull(codeInput)
+        if (code == null) {
+            _state.value = UiState.Error("The code is 26 letters and numbers — check it against “Can't scan?” on your Mac.")
+            return
+        }
         _state.value = UiState.Working
         viewModelScope.launch {
             val fingerprint = try {
@@ -71,7 +77,7 @@ class PairingViewModel(application: Application) : AndroidViewModel(application)
             _state.value = if (fingerprint == null) {
                 UiState.Error("Couldn't reach a Mac at $host:$port. Check the address and that pairing is open on the Mac.")
             } else {
-                UiState.Confirm(host, port, PairingInvite.normalizeCode(codeInput), fingerprint)
+                UiState.Confirm(host, port, code, fingerprint)
             }
         }
     }

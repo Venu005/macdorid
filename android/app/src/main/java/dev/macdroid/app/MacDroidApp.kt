@@ -47,4 +47,13 @@ class UiPrefs(context: Context) {
     var setupDone: Boolean
         get() = prefs.getBoolean("setupDone", false)
         set(value) { prefs.edit().putBoolean("setupDone", value).apply() }
+
+    /** Off after the user taps Disconnect or turns off "Keep connected"; the app then shows a Connect button. */
+    var keepConnected: Boolean
+        get() = prefs.getBoolean("keepConnected", true)
+        set(value) { prefs.edit().putBoolean("keepConnected", value).apply() }
+
+    var notificationsSkipped: Boolean
+        get() = prefs.getBoolean("notificationsSkipped", false)
+        set(value) { prefs.edit().putBoolean("notificationsSkipped", value).apply() }
 }
