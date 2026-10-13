@@ -161,7 +161,10 @@ public actor TransferManager {
     func handle(_ message: Message) async {
         switch message {
         case .transferOffer(let offer): await receiveOffer(offer)
+        case .transferAccept(let body): accepted(body.transferId)
+        case .transferReject(let body): await rejected(body)
         case .transferFinish(let body): await receiveFinish(body)
+        case .transferResult(let body): await resulted(body)
         case .transferCancel(let body): await peerCancelled(body.transferId)
         default: break
         }
@@ -183,6 +186,7 @@ public actor TransferManager {
         let queued = outbox
         outbox.removeAll()
         for message in queued { await sendOrQueue(message) }
+        await resumeOutgoing()
     }
 
     /// Local cancel from the UI.
@@ -190,6 +194,7 @@ public actor TransferManager {
         guard let record = active.first(where: { $0.id == id }) else { return }
         await discard(record, as: .cancelled(byPeer: false))
         if record.phase != .queued { await sendOrQueue(.transferCancel(TransferID(transferId: id))) }
+        await pump()
     }
 
     // MARK: Receiving (phone → Mac)
@@ -420,6 +425,7 @@ public actor TransferManager {
         }
         guard let record = active.first(where: { $0.id == id }) else { return }
         await discard(record, as: .cancelled(byPeer: true))
+        await pump()
     }
 
     /// Drops a record without an outcome, so a re-offer of its id starts over.
