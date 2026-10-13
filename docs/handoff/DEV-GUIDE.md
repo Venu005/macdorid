@@ -20,6 +20,9 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
 # Swift server ↔ Kotlin client end to end
 ./scripts/cross-platform-test.sh
+
+# App icon: edit design/icon/*.svg, then regenerate the Mac PNGs (Android uses vector drawables directly)
+./scripts/render-icons.sh
 ```
 
 ## Phone (wireless debugging)
@@ -30,6 +33,10 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 5. Don't `pm clear`, grant permissions or tap on the owner's phone from automation.
 
 ## Gotchas
+- **App icon sources:** the source art is `design/icon/`.
+  - Mac PNGs are generated, so don't hand-edit `AppIcon.appiconset`.
+  - The Android vectors in `res/drawable/ic_launcher_*.xml` mirror the SVG paths (100-unit frame, scaled 0.72 and offset 18 into the 108dp canvas). Update both when the art changes.
+  - AppKit's SVG renderer ignores filters such as drop shadows, so keep the art flat.
 - **Hummingbird + tracing pin:** Hummingbird 2.27 imports `ServiceContextModule`, which swift-distributed-tracing 1.6 removed. `Package.swift` pins tracing `"1.3.0"..<"1.6.0"` and links the `Tracing` product to silence an unused-dependency warning. Keep both.
 - **Shutdown log noise:** Hummingbird logs `Server shutdown error: Already closed` when its task is cancelled (tests, quit). It's harmless.
 - **No client certs with macOS `curl`:** `/usr/bin/curl` (SecureTransport) can't present PEM client certificates. Use `openssl s_client -cert … -key …` or the Swift/Kotlin tests.
