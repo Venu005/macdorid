@@ -64,6 +64,7 @@ Mac app (`mac/MacDroid/`):
 - **Glue:**
   - `MacDroidApp.kt`: `AppGraph` singletons; `UiPrefs` with `setupDone`, `keepConnected` (observable flow) and `notificationsSkipped`.
   - `platform/`: Keystore identity, prefs pairing store, NSD locator (IPv4 only), permissions.
+  - `platform/` (files): `SaveTargets` picks a `SaveTarget`: MediaStore Download/MacDroid by default, a chosen SAF tree, or ask-each-time via `SavePrompter` → notification → `ui/files/SaveAsActivity` (CreateDocument). It reopens part files by handle prefix `media:`/`tree:`/`doc:`. Also `FilesPrefs` and `ContentSourceOpener`. `AppGraph.transferEngine` starts with the process.
   - `service/`: foreground `ConnectionService` (type connectedDevice), notifications, boot receiver, battery and network watchers.
 - **UI:**
   - `ui/navigation/AppNavHost.kt`: switches setup ⇄ main via `SetupFlow`.

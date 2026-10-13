@@ -28,6 +28,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.files.SaveAsActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <service
             android:name=".service.ConnectionService"
             android:exported="false"
