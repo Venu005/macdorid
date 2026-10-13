@@ -10,6 +10,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 2: Mac `TransferManager` handles `purpose: clipboard` (fixed clipboard folder, never asks, hidden from snapshots, dropped not archived, `clipboardImageReceived` event, `sendClipboardImage`). Also commits the regenerated `Info.plist` (0.4.0 / 4). Verified: `swift test` 186, Mac app build.
 - Task 3: Android `TransferEngine` handles `purpose: clipboard` (clipboard target, never archived, `ClipboardReceived` event, `enqueueClipboard`, `TransferSnapshot.files()`). Verified: Android core tests.
 - Task 4: Mac core `ClipboardRules` (private/transient/file types never sent, frame-size limit), `ClipboardHistory` (10/20/50, JSON + image files), `ClipboardSync` actor (echo prevention by change count), `ClipboardPresentation`. Verified: `swift test` 207.
+- Task 5: Android core `ClipboardHub` (send results, frame-size limit, received items, recent 10). Verified: 8 new tests.
 
 ## 2026-10-13 — Plan 3: notifications (done on feat/notifications-clipboard)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md` (spec: `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md`). Executed inline (the owner chose "native").

@@ -61,6 +61,7 @@ Mac app (`mac/MacDroid/`):
 | tls | `Fingerprint.kt`, `TrustManagers.kt` (pinned/capturing), `TlsClientFactory.kt`, `TrustFailures.kt` | Pinned mTLS OkHttp, classifying "wrong Mac / rejected" errors |
 | pairing | `PairingInvite.kt`, `PairingStore.kt`, `PairingClient.kt` | QR parse, pair POST, fingerprint probe |
 | connection | `ConnectionManager.kt`, `Backoff.kt`, `MacLocator.kt` | WS loop, reconnect, nudges, generation-guarded state, `Waiting.retryAtNanos` deadline |
+| clipboard | `ClipboardHub.kt` | Explicit sends (always sent), frame-size and image limits, received items, the in-memory recent 10 |
 | notifications | `NotificationModel.kt`, `NotificationRules.kt`, `NotificationForwarder.kt` | Which notifications go to the Mac (exclusions, de-dupe, mutes, apps seen, sync, icons); the phone owns these settings |
 | transfer | `TransferClient.kt`, `FileEndpoint.kt`, `TransferEngine.kt`, `TransferModel.kt`, `TransferStore.kt`, `SaveTarget.kt`, `FolderSaveTarget.kt` | File bytes over pinned mTLS HTTPS (HTTP/1.1, resume headers, running SHA-256); `TransferEngine` is the confined-dispatcher state machine; `SaveTarget`/`PartFile`/`SourceOpener` are the platform seams Plan 2b implements |
 
