@@ -301,6 +301,7 @@ final class AppModel {
     private func handle(_ event: TransferEvent) async {
         switch event {
         case .received(let record): await notifier.notifyReceived(record, from: pairedDevice?.name ?? "your phone")
+        case .clipboardImageReceived: break // Task 6 hands it to ClipboardSync
         }
     }
 

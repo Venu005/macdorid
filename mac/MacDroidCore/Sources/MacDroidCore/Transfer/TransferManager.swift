@@ -91,6 +91,7 @@ public actor TransferManager {
     private let activeStore: JSONFileStore<[TransferRecord]>
     private let historyStore: JSONFileStore<[TransferRecord]>
     private let location: any ReceiveLocationProvider
+    private let clipboardDirectory: URL?
     let sourceAccess: any SourceAccess
     private let freeSpace: @Sendable (URL) -> Int64?
     let now: @Sendable () -> Date
@@ -113,6 +114,7 @@ public actor TransferManager {
         location: any ReceiveLocationProvider,
         sourceAccess: any SourceAccess = PlainSourceAccess(),
         freeSpace: @escaping @Sendable (URL) -> Int64? = TransferManager.volumeFreeSpace,
+        clipboardDirectory: URL? = nil,
         now: @escaping @Sendable () -> Date = { Date() },
         send: @escaping @Sendable (Message) async throws -> Void
     ) {
@@ -126,6 +128,8 @@ public actor TransferManager {
         self.activeStore = activeStore
         self.historyStore = historyStore
         self.location = location
+        if let clipboardDirectory { try? FileManager.default.createDirectory(at: clipboardDirectory, withIntermediateDirectories: true) }
+        self.clipboardDirectory = clipboardDirectory
         self.sourceAccess = sourceAccess
         self.freeSpace = freeSpace
         self.now = now
@@ -232,24 +236,27 @@ public actor TransferManager {
             await replayOutcome(of: past)
             return
         }
-        guard offer.size >= 0 else {
+        let isClipboard = offer.purpose == .clipboard
+        guard offer.size >= 0, !isClipboard || (offer.size <= Int64(ClipboardLimits.maxImageBytes) && clipboardDirectory != nil) else {
             await sendOrDrop(.transferReject(TransferReject(transferId: id, reason: .invalid)))
             return
         }
         let name = FileNaming.sanitize(offer.name)
         active.append(TransferRecord(
             id: id, direction: .fromPhone, name: name, size: offer.size, mime: offer.mime, phase: .offered,
-            createdAt: now(), updatedAt: now()
+            createdAt: now(), updatedAt: now(), purpose: offer.purpose
         ))
         persist()
         publish(force: true)
-        // Deciding may wait on a save panel, so it runs on its own and must not hold up other control messages.
-        decisions[id] = Task { await self.decide(IncomingOffer(id: id, name: name, size: offer.size, mime: offer.mime)) }
+        // Clipboard images never ask (spec §2.3); files may wait on a save panel, so deciding runs on its own.
+        let fixed: SaveLocation? = isClipboard ? clipboardDirectory.map(SaveLocation.folder) : nil
+        decisions[id] = Task { await self.decide(IncomingOffer(id: id, name: name, size: offer.size, mime: offer.mime), fixed: fixed) }
     }
 
-    private func decide(_ offer: IncomingOffer) async {
+    private func decide(_ offer: IncomingOffer, fixed: SaveLocation? = nil) async {
         let id = offer.id
-        let decision = await location.saveLocation(for: offer)
+        let decision: SaveLocation?
+        if let fixed { decision = fixed } else { decision = await location.saveLocation(for: offer) }
         decisions[id] = nil
         // Cancelled meanwhile (by the phone or locally): the record is already gone.
         guard !Task.isCancelled, active.contains(where: { $0.id == id && $0.phase == .offered }) else { return }
@@ -439,7 +446,7 @@ public actor TransferManager {
         done.bytesDone = done.size
         done.savedURL = folder.appending(path: name)
         archive(done)
-        eventBroadcast.yield(.received(done))
+        eventBroadcast.yield(done.isClipboard ? .clipboardImageReceived(folder.appending(path: name)) : .received(done))
         await sendOrDrop(.transferResult(TransferResult(transferId: id, ok: true)))
     }
 
@@ -488,6 +495,13 @@ public actor TransferManager {
 
     /// Moves a finished record from active to the front of history.
     func archive(_ record: TransferRecord) {
+        if record.isClipboard {
+            active.removeAll { $0.id == record.id }
+            rates[record.id] = nil
+            persist()
+            publish(force: true)
+            return
+        }
         var ended = record
         ended.updatedAt = now()
         active.removeAll { $0.id == record.id }
@@ -509,7 +523,10 @@ public actor TransferManager {
         let time = now()
         guard force || time.timeIntervalSince(lastPublish) >= 0.25 else { return }
         lastPublish = time
-        snapshot = TransferSnapshot(active: active, history: history, rates: rates.compactMapValues(\.bytesPerSecond))
+        snapshot = TransferSnapshot(
+            active: active.filter { !$0.isClipboard }, history: history,
+            rates: rates.filter { id, _ in active.contains { $0.id == id && !$0.isClipboard } }.compactMapValues(\.bytesPerSecond)
+        )
         snapshotBroadcast.yield(snapshot)
     }
 

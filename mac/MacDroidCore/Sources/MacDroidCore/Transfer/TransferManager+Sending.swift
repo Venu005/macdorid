@@ -44,6 +44,22 @@ extension TransferManager {
         return SendReport(ids: ids, skipped: skipped)
     }
 
+    /// Queues a clipboard image (a PNG the app wrote to its clipboard folder) for the phone (spec §2.3).
+    /// Returns false if it can't be read or is over the 10 MB limit.
+    public func sendClipboardImage(_ url: URL) async -> Bool {
+        guard let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize,
+              size <= ClipboardLimits.maxImageBytes,
+              let bookmark = try? sourceAccess.bookmark(for: url) else { return false }
+        active.append(TransferRecord(
+            id: Self.newID(), direction: .toPhone, name: "clipboard.png", size: Int64(size), mime: "image/png",
+            phase: .queued, sourceBookmark: bookmark, createdAt: now(), updatedAt: now(), purpose: .clipboard
+        ))
+        persist()
+        publish(force: true)
+        await pump()
+        return true
+    }
+
     /// Sends a failed or cancelled outgoing file again, as a new transfer.
     public func retry(id: String) async {
         guard let old = history.first(where: { $0.id == id && $0.direction == .toPhone }), let bookmark = old.sourceBookmark else { return }
@@ -77,7 +93,7 @@ extension TransferManager {
 
     private func offer(_ record: TransferRecord) async {
         do {
-            try await send(.transferOffer(TransferOffer(transferId: record.id, name: record.name, size: record.size, mime: record.mime)))
+            try await send(.transferOffer(TransferOffer(transferId: record.id, name: record.name, size: record.size, mime: record.mime, purpose: record.purpose)))
         } catch {
             update(record.id) { $0.phase = .paused }
         }

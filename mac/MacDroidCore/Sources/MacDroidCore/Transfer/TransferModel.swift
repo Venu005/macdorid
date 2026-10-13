@@ -82,13 +82,15 @@ public struct TransferRecord: Codable, Equatable, Sendable, Identifiable {
     public var replacesExisting: Bool
     /// Incoming: the finished file.
     public var savedURL: URL?
+    /// nil for files; `.clipboard` for clipboard images (spec §2.3).
+    public var purpose: TransferPurpose?
     public var createdAt: Date
     public var updatedAt: Date
 
     public init(
         id: String, direction: TransferDirection, name: String, size: Int64, mime: String, phase: TransferPhase,
         bytesDone: Int64 = 0, expectedSHA256: String? = nil, sourceBookmark: Data? = nil, folder: URL? = nil,
-        replacesExisting: Bool = false, savedURL: URL? = nil, createdAt: Date, updatedAt: Date
+        replacesExisting: Bool = false, savedURL: URL? = nil, createdAt: Date, updatedAt: Date, purpose: TransferPurpose? = nil
     ) {
         self.id = id
         self.direction = direction
@@ -104,7 +106,11 @@ public struct TransferRecord: Codable, Equatable, Sendable, Identifiable {
         self.savedURL = savedURL
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.purpose = purpose
     }
+
+    /// A clipboard image (spec §2.3): never shown in Files, dropped instead of archived.
+    public var isClipboard: Bool { purpose == .clipboard }
 
     /// Incoming: where bytes land until the checksum is verified. A file chosen in a save panel is written in place:
     /// the sandbox grants access to that exact file only, not to a sibling part file.
@@ -127,6 +133,8 @@ public struct TransferSnapshot: Equatable, Sendable {
 public enum TransferEvent: Equatable, Sendable {
     /// A file from the phone was verified and saved (`savedURL` is set).
     case received(TransferRecord)
+    /// A clipboard image from the phone was verified; the file is in the clipboard folder.
+    case clipboardImageReceived(URL)
 }
 
 /// What `TransferManager.sendReporting(files:)` queued, and what it couldn't.
