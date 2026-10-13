@@ -4,7 +4,7 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
-## 2026-10-13 — Plan 5: small wins (in progress on feat/small-wins)
+## 2026-10-13 — Plan 5: small wins (done on feat/small-wins)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md` (executed inline).
 - Task 1: `device.ring`, `device.ringState`, `link.open`, `media.state`, `media.art` and `media.command` in both codecs (7 fixtures); features `ring`, `links`, `media`. Verified: `swift test` 218, Android gates.
 - Task 2: mirrored link rules, Swift `LinkRules` and Kotlin `LinkExtractor` (first http/https link, trailing punctuation trimmed, ≤ 8 KB). Verified: 4 tests on each side.
@@ -15,6 +15,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 7: Android `MediaWatcher` (media sessions via the notification listener; artwork encoded off the main thread; Mac commands applied to the shown app). Verified: Android gates.
 - Task 8: Mac Services "Open on Phone" (`ServicesProvider` + `NSServices` in project.yml), ring button (popover + Phone page), Now Playing card with seek, incoming links open in the default browser. Verified: Mac app build; NSServices present in the built Info.plist.
 - Task 9: the cross-platform run covers a ring round trip, a link each way, and media state → a pause command. Verified: `./scripts/cross-platform-test.sh` passed.
+- Task 10: all gates pass from scratch (`swift test` 232, Mac app build, Android with `--rerun-tasks`, cross-platform). Owner checklist: `docs/superpowers/plans/2026-10-13-macdroid-small-wins-followups.md`.
 
 ## 2026-10-13 — Plan 5 (small wins) written
 - **What:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md`, 10 tasks:
