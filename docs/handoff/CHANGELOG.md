@@ -4,6 +4,12 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Notifications and clipboard merged to main
+- **What:** merged `feat/notifications-clipboard` into `main` (merge commit `db85323`): Plan 3 (notifications), Plan 4 (clipboard), the final-review fixes and the owner's UI feedback fixes.
+- **Verified on the merged `main`:** `swift test` 212, Mac app build with no warnings, Android gates. The owner verified the hands-on checks and asked for the merge.
+- **Deferred:** 9 minors, listed in `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
+- **Next:** the Finder Share extension (small round), or a short planning session to rank the later rounds.
+
 ## 2026-10-13 — Owner feedback: Mac window layout, notification cards, toolbar buttons
 - **Fix: window content slid under the title bar** (the sidebar was behind the traffic lights and banners over the title) until a restart. Cause: the Dock icon was turned on (`setActivationPolicy(.regular)`) after the window was already showing, and AppKit's re-layout lost the split view's title-bar insets. Now `DockPolicy.prepareToShowWindow()` switches first, then opens the window.
 - **Fix: clicking a notification banner opened the Phone page.** The click also sends a "reopen", which always showed Phone. Reopen now shows the page last asked for (`selectedSection`), so the Notifications page stays.

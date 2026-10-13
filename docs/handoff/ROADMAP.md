@@ -36,7 +36,7 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
   - auto-save with a notification; resumable, checksummed transfers, 3 in parallel
 - **Deferred:** the Finder Share extension (a small round after this).
 
-## Next: Plans 3 and 4 — Notifications and Clipboard (one spec)
+## Done: Plans 3 and 4 — Notifications and Clipboard (merged 2026-10-13)
 - **Spec:** `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md` (approved in brainstorming 2026-10-13; awaiting the owner's review of the written spec). It refines round-1 §5.1/§5.2 and wins where they differ.
 - **Next steps for a new session:**
   1. ~~Owner reviews the spec~~. The owner asked for a self-review instead: done 2026-10-13, fixes in spec §8.
@@ -45,7 +45,7 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
 - **Plan 3 scope:** tolerant `hello.features` and peer features on both sides; `notification.*` messages (phone owns the mute list, `notification.sync` on reconnect); Android `NotificationListenerService`; Mac `UserNotifications` with reply/actions/dismiss; Mac Notifications page (grouped by app) and Settings; Android Notifications tab as a control panel; notification access in the existing setup step.
 - **Plan 4 scope:** `clipboard.set`; `transfer.offer.purpose = clipboard` for images ≤ 10 MB; Mac pasteboard watcher (concealed/transient items never sent) and history page; Android Quick Settings tile, notification action, "Send now" and a "Copy to Mac" share target; Android Clipboard tab.
 
-## Small round: Finder Share extension
+## Next: small round — Finder Share extension
 "Share → Send to phone" in Finder. It needs an app-extension target that hands files to the main app via an app group (the extension never opens network connections).
 
 ## Later rounds (not specced)
