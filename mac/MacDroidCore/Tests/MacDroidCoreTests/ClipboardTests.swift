@@ -12,7 +12,10 @@ import Testing
 
     @Test func filesAreIgnoredImagesBeatTextAndUnknownIsIgnored() {
         #expect(ClipboardRules.kind(of: ["public.file-url", "public.utf8-plain-text"]) == .ignored)
-        #expect(ClipboardRules.kind(of: ["public.tiff", "public.utf8-plain-text"]) == .image)
+        // Review minor 4: apps that put a rendered picture beside the text (Office/iWork tables) mean the text.
+        #expect(ClipboardRules.kind(of: ["public.tiff", "public.utf8-plain-text"]) == .text)
+        // "Copy Image" in a browser carries the image and its link: the image wins.
+        #expect(ClipboardRules.kind(of: ["public.tiff", "public.png", "public.url"]) == .image)
         #expect(ClipboardRules.kind(of: ["public.png"]) == .image)
         #expect(ClipboardRules.kind(of: ["public.html", "public.utf8-plain-text"]) == .text)
         #expect(ClipboardRules.kind(of: ["public.url"]) == .text)

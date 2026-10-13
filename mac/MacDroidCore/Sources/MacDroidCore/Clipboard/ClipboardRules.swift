@@ -18,12 +18,16 @@ public enum ClipboardRules {
     ]
     public static let fileURLType = "public.file-url"
     public static let imageTypes: Set<String> = ["public.png", "public.tiff"]
-    public static let textTypes: Set<String> = ["public.utf8-plain-text", "public.url"]
+    public static let plainTextType = "public.utf8-plain-text"
+    public static let textTypes: Set<String> = [plainTextType, "public.url"]
     private static let zeroID = "00000000-0000-0000-0000-000000000000"
 
     public static func kind(of types: [String]) -> PasteboardKind {
         let set = Set(types)
         if !set.isDisjoint(with: privateTypes) || set.contains(fileURLType) { return .ignored }
+        // Plain text beside a picture (Office/iWork tables, rich text) means the text; a picture with only its
+        // link ("Copy Image" in a browser) means the picture.
+        if set.contains(plainTextType) { return .text }
         if !set.isDisjoint(with: imageTypes) { return .image }
         if !set.isDisjoint(with: textTypes) { return .text }
         return .ignored

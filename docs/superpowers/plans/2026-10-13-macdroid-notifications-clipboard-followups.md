@@ -45,7 +45,7 @@ Both plans ran inline ("native"), with one final whole-branch review on Opus. It
 - [x] (fixed) Echo prevention can be outrun: the watcher's task can reach `ClipboardSync` before `apply`'s change count is recorded, so a phone item bounces back. Fix: let `PasteboardWatcher.write` update `lastChangeCount` on the MainActor.
 - [x] (fixed) History "Send" uses the history image file itself as the transfer source; Clear History or a trim mid-transfer fails it silently. Fix: send a temporary copy.
 - Android main-thread work: `refreshAccess`/`setForwarding`/`setMuted` can render app icons under the forwarder lock; `ClipboardImages.prune` runs on Main. Fix: move them to the bridge worker or IO.
-- The pasteboard rule prefers an image over text when an app puts both (Office/iWork tables).
+- [x] (fixed) The pasteboard rule prefers an image over text when an app puts both (Office/iWork tables).
 - The first banner in a new notification category may show without its buttons, because `setNotificationCategories` applies asynchronously. Fix: await `notificationCategories()` before `add`.
 - [x] (fixed) History "Send" skips `fitsInAFrame`.
 - An update the flood gate suppresses leaves an already-delivered banner with the old text.
