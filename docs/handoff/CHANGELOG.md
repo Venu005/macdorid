@@ -4,6 +4,14 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Photos spec (Plan 6)
+- **What:** brainstormed and wrote `docs/superpowers/specs/2026-10-13-macdroid-photos-design.md`: browse the phone's photos and videos on the Mac and transfer them. It covers:
+  - full or limited Android access, with the Mac showing what's granted
+  - an album column and a day-grouped grid (layout B)
+  - thumbnails over the WebSocket; originals over the transfer engine (`purpose: photo`, the Mac chooses the transfer id, unasked offers rejected)
+  - cursor paging; Save to Mac, Quick Look, drag-out with file promises; live updates
+- **Branch:** `main` (no code). Implementation goes on `feat/photos`.
+
 ## 2026-10-13 — Small wins merged to main
 - **What:** merged `feat/small-wins` into `main` (`c9d202d`): ring my phone, links both ways, media controls, the final-review fixes and the owner's play/pause and previous fixes.
 - **Verified on the merged `main`:** `swift test` 233, Mac app build with no warnings, Android gates. The owner tested on device.

@@ -57,7 +57,7 @@ Brainstorming started 2026-10-13, then the owner parked it. Resume at the first 
 ## Agreed order (2026-10-13)
 1. ~~**The 9 deferred minors**~~ (done, merged 2026-10-13) from the Plans 3–4 final review (`docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`), one by one.
 2. **Small wins (Plan 5):** ring my phone; open a link on the other device; media controls. Spec approved 2026-10-13 (`docs/superpowers/specs/2026-10-13-macdroid-small-wins-design.md`); plan written: `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md` (10 tasks). Done, merged to `main` 2026-10-13.
-3. **Photo browsing and transfer.**
+3. **Photo browsing and transfer (Plan 6).** Spec written 2026-10-13 (`docs/superpowers/specs/2026-10-13-macdroid-photos-design.md`), awaiting the owner's review; then plan → `feat/photos`.
 4. **Screen mirroring (low latency)**, view-only first; then **remote control**.
 5. The rest of the owner's list, below.
 
@@ -76,6 +76,7 @@ The owner's planned features, with status:
 Also noted earlier: SMS (personal build only, Play-restricted), USB transport via `adb reverse`, Wi-Fi Direct, and the parked Finder Share extension.
 
 ## Before publishing
+- Play declaration for photo/video access (`READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO`) as core functionality (Plan 6).
 - **Signing:** proper signing with a Team ID, and the data-protection keychain.
 - **Android hardening:** Gradle wrapper checksum; backup exclusions for pairing prefs; restart on `MY_PACKAGE_REPLACED`.
 - **Mac hardening:** Bonjour name-conflict handling; keychain write via `SecItemUpdate`.

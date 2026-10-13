@@ -44,3 +44,6 @@ The full per-plan rulings are in the `docs/superpowers/plans/*-followups.md` fil
 | Ring like Find My (full alarm volume, even on silent) plus a flashing torch; heads-up notification with Stop | Findable on silent and in the dark; Play restricts full-screen intents | Current volume only; full-screen alert |
 | Media controls: a popover Now Playing card with seek; position projected from timestamped updates | Everyday need without taking over the Mac's media keys | macOS Now Playing / media keys; streaming the position |
 | The Mac projects the media position from its own receive time | Phone and Mac clocks can differ by seconds | Using the phone's `positionAt` |
+| Photos: support full and limited Android access; the Mac shows what's granted | Personal use plus the cleanest Play story | Full only; selected only |
+| Photos: thumbnails over the WebSocket; originals over the transfer engine (`purpose: photo`); the Mac picks the transfer id and rejects unasked offers | The phone can't serve HTTP; originals get resume and checksums; no unasked pushes | A new HTTP route on the phone |
+| Photos page layout B: album column plus a day-grouped grid | Mirrors Photos.app | Album menu in the toolbar |
