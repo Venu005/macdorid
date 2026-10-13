@@ -43,3 +43,4 @@ The full per-plan rulings are in the `docs/superpowers/plans/*-followups.md` fil
 | Small wins: Mac → phone links via the macOS Services menu ("Open on Phone") | No extension and no sandbox file handoff; works in most apps | Popover link field; offering to open every copied link |
 | Ring like Find My (full alarm volume, even on silent) plus a flashing torch; heads-up notification with Stop | Findable on silent and in the dark; Play restricts full-screen intents | Current volume only; full-screen alert |
 | Media controls: a popover Now Playing card with seek; position projected from timestamped updates | Everyday need without taking over the Mac's media keys | macOS Now Playing / media keys; streaming the position |
+| The Mac projects the media position from its own receive time | Phone and Mac clocks can differ by seconds | Using the phone's `positionAt` |
