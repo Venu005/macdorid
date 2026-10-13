@@ -4,6 +4,14 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Handoff check after the file-transfer merge
+- **What:** re-checked `main` against the handoff and fixed stale lines left from before the merge:
+  - README: the spec and Plan 2a were still marked "next up", and Plan 2b "will be" written. They now link the 2a and 2b plans and the follow-ups file.
+  - ROADMAP: 2b was marked "not written yet", the step numbers skipped 2, the groundwork read as still to do, and Plan 3 said the hub hook "arrives in Plan 2".
+  - STATUS: added the file-transfer follow-ups file to the follow-up lists.
+- **Verified:** `swift test` (144 tests), the Mac app build and the Android gates all pass on `main`.
+- **Branch:** `main`.
+
 ## 2026-10-13 — Repository README
 - **What:** added a root `README.md` for the GitHub repo. It covers:
   - what MacDroid is and its feature status

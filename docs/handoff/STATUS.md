@@ -37,3 +37,4 @@
 ## Follow-up lists
 - [Plan 1 follow-ups](../superpowers/plans/2026-10-12-macdroid-plan1-followups.md)
 - [UI/UX redesign follow-ups](../superpowers/plans/2026-10-13-macdroid-ui-ux-redesign-followups.md)
+- [File transfer follow-ups](../superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md) (includes the open hands-on checklist)

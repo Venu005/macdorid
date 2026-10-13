@@ -36,11 +36,11 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 - [CHANGELOG.md](CHANGELOG.md): a dated log of every change; read the newest entries first.
 
 ## Source-of-truth documents
-- **File transfer spec (next up):** [../superpowers/specs/2026-10-13-macdroid-file-transfer-design.md](../superpowers/specs/2026-10-13-macdroid-file-transfer-design.md)
+- **File transfer spec:** [../superpowers/specs/2026-10-13-macdroid-file-transfer-design.md](../superpowers/specs/2026-10-13-macdroid-file-transfer-design.md)
 - Round-1 spec: [../superpowers/specs/2026-10-12-macdroid-round1-design.md](../superpowers/specs/2026-10-12-macdroid-round1-design.md). It covers all of round 1: connection, notifications, clipboard and files.
 - UI redesign spec: [../superpowers/specs/2026-10-13-macdroid-ui-ux-redesign-design.md](../superpowers/specs/2026-10-13-macdroid-ui-ux-redesign-design.md)
 - Protocol: [../../protocol/PROTOCOL.md](../../protocol/PROTOCOL.md) plus `protocol/fixtures/`
-- **File transfer Plan 2a, engine (next up):** [../superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md](../superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md). Plan 2b (UI and platform glue) will be `…-2b-ui.md`.
+- **File transfer plans (done):** [2a, engine](../superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md), [2b, UI and platform glue](../superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md), and [follow-ups with the open hands-on checklist](../superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md).
 - Implementation plans: `docs/superpowers/plans/`. Each has a `*-followups.md` listing rulings and deferred items.
 
 ## Owner context
