@@ -123,7 +123,9 @@ public actor ConnectionHub {
                 peer.charging = update.charging
                 status = .connected(peer)
             }
-        case .transferOffer, .transferAccept, .transferReject, .transferFinish, .transferResult, .transferCancel:
+        case .transferOffer, .transferAccept, .transferReject, .transferFinish, .transferResult, .transferCancel,
+             .notificationPosted, .notificationRemoved, .notificationSync, .notificationIcon, .notificationApps,
+             .notificationReply, .notificationAction, .notificationDismiss, .notificationMute, .notificationError:
             messageBroadcast.yield(message)
         case .unknown(let type):
             logger.debug("ignoring message type \(type)")

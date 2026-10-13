@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "type": "notification.sync",
+  "id": "6f1c2a0e-0000-4000-8000-000000000012",
+  "body": {
+    "keys": [
+      "0|com.whatsapp|1|chat|10123",
+      "0|com.google.android.gm|7|null|10140"
+    ]
+  }
+}

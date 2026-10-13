@@ -115,7 +115,8 @@ class TransferEngineDecisionTest {
     }
 
     @Test fun pausedUploadIsRetriedWhileConnected() {
-        val harness = EngineHarness(dir = dir, resumeIntervalMs = 300)
+        // The periodic resume must not fire before the Paused check below (it raced a 300 ms interval).
+        val harness = EngineHarness(dir = dir, resumeIntervalMs = 1_000)
         try {
             harness.start()
             harness.mac.headStatus = 500 // every attempt fails, until the retries run out

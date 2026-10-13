@@ -29,7 +29,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 
 | Type | Direction | Body |
 |---|---|---|
-| `hello` | both | `protocol`, `app`, `device`, `features[]` |
+| `hello` | both | `protocol`, `app`, `device`, `features[]` (may be missing → none) |
 | `device.status` | phone → Mac | `battery` (0–100), `charging` |
 | `transfer.offer` | sender → receiver | `transferId` (lowercase UUID), `name`, `size` (bytes), `mime` |
 | `transfer.accept` | receiver → sender | `transferId` |
@@ -37,6 +37,16 @@ malformed frames are dropped without closing the connection. Both sides send `he
 | `transfer.finish` | sender → receiver | `transferId`, `sha256` (lowercase hex of the whole file) |
 | `transfer.result` | receiver → sender | `transferId`, `ok`, `error` (omitted when ok; `checksum_mismatch` \| `no_space` \| `io`) |
 | `transfer.cancel` | either | `transferId` |
+| `notification.posted` | phone → Mac | `key`, `package`, `appName`, `title` (≤ 200), `text` (≤ 2000), `postedAt` (epoch ms), `actions` [`{index, title}`] (≤ 3), `canReply`, `iconHash` (16 lowercase hex or empty), `isUpdate` |
+| `notification.removed` | phone → Mac | `key` |
+| `notification.sync` | phone → Mac | `keys` — forwarded notifications still showing on the phone; sent after every `hello` |
+| `notification.icon` | phone → Mac | `hash`, `png` (base64, ≤ 96×96) — once per hash per connection, before it's referenced |
+| `notification.apps` | phone → Mac | `forwarding`, `access`, `apps` [`{package, appName, iconHash, muted}`] |
+| `notification.reply` | Mac → phone | `key`, `text` |
+| `notification.action` | Mac → phone | `key`, `actionIndex` (index in the Android notification's actions) |
+| `notification.dismiss` | Mac → phone | `key` |
+| `notification.mute` | Mac → phone | `package`, `muted` |
+| `notification.error` | phone → Mac | `key`, `reason` (`gone` \| `failed`) |
 
 ### Transfer rules
 - The phone always makes the HTTP request: `PUT` for phone → Mac, `GET` for Mac → phone. Bytes go over HTTPS, never the WebSocket.
@@ -45,3 +55,13 @@ malformed frames are dropped without closing the connection. Both sides send `he
 - **Downloads:** the phone always sends `GET`. After every `GET` that reaches the end of the file, the Mac sends `finish`. The phone verifies once it has every byte and the `finish`, in either order.
 - Partial files are `<name>.macdroid-part` until verified. At most 3 outgoing transfers per side are active; the rest wait in a FIFO queue.
 - File names from the other side are sanitised; see `fixtures/file-naming.json`.
+
+### Features
+`hello.features` lists what each side implements: `files` and `notifications` (and `clipboard` once Plan 4 lands). A feature is used only when both sides list it. A missing `features` means none.
+
+### Notification rules
+- The phone owns the mute list. `notification.mute` is a request; the phone answers with a fresh `notification.apps`.
+- The phone sends `notification.apps` and then `notification.sync` after every `hello`, and sends `notification.apps` again whenever mutes, the "Show on your Mac" switch or notification access change.
+- A repost with unchanged title, text, buttons and reply ability isn't sent again. A changed one is sent with `isUpdate: true`.
+- Nothing is queued while disconnected, and nothing is replayed on reconnect.
+- `iconHash` is exactly 16 lowercase hex characters. The Mac ignores any other value, because it becomes a file name.

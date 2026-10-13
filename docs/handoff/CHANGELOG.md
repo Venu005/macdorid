@@ -4,6 +4,13 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Plan 3: notifications (in progress on feat/notifications-clipboard)
+- **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md` (spec: `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md`). Executed inline (the owner chose "native").
+- Task 1:
+  - `notification.*` messages (10 fixtures) in both codecs; `hello` without `features` decodes as none; `ProtocolInfo.features` / `Features.SUPPORTED` = files, notifications.
+  - Also fixed a flaky Android test: `pausedUploadIsRetriedWhileConnected` raced its 300 ms periodic resume. That interval is now 1 s; the test failed 1 in 5 on `main`.
+  - Verified: `swift test`, `./gradlew :core:test`.
+
 ## 2026-10-13 — Spec self-review and Plans 3 and 4 written
 - **What:**
   - Self-reviewed the notifications + clipboard spec against the code and added §8 with 11 fixes, among them:

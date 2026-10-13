@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "type": "notification.mute",
+  "id": "6f1c2a0e-0000-4000-8000-000000000018",
+  "body": {
+    "package": "com.discord",
+    "muted": true
+  }
+}
