@@ -11,6 +11,8 @@ The 9 minors from the Plans 3–4 final review, fixed one by one on `fix/review-
 - Minor 6: history Send applies the same 1 MB frame check and note as a fresh copy. Verified: `oversizedHistoryTextIsNotResent` RED→GREEN.
 - Minor 9: a Mac image that couldn't be queued is removed from the history instead of showing "→ phone"; the empty Clipboard page now says "Items you sync between your Mac and phone appear here." Verified: `failedImageSendIsNotRecorded` RED→GREEN, `swift test` 217, Mac app build.
 - Minor 4: a copy that includes plain text sends the text (Office/iWork tables, rich text); image-only copies and "Copy Image" (image + link) still send the image. Verified: updated `filesAreIgnoredImagesBeatTextAndUnknownIsIgnored` RED→GREEN, `swift test` 217.
+- Minor 5: the first banner in a new notification category waits (≤ 0.5 s) until macOS has registered the category, so its buttons and reply field show. Verified: Mac app build (no harness for UserNotifications).
+- Minor 7: an update held back by the flood gate quietly refreshes a banner that is still in Notification Center (passive, no sound), so it never shows stale text. Verified: Mac app build.
 
 ## 2026-10-13 — Owner's feature list and agreed order
 - **What:** recorded the owner's planned features (iPad file transfer, photo browsing, low-latency mirroring, remote control, contact sync, webcam and mic over Wi-Fi and USB) and the agreed order in ROADMAP. The order: the 9 deferred minors one by one, small wins, photo browsing, mirroring then remote control.

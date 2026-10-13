@@ -29,18 +29,22 @@ final class PhoneNotifier {
         self.icons = icons
     }
 
-    /// `banner == false` (the flood gate said no) posts nothing; the entry is still on the page.
+    /// `banner == false` (the flood gate said no) shows no new banner: the entry is on the page, and a banner
+    /// already delivered for this key is quietly updated in place (no sound, passive) so it never shows stale text.
     func show(_ posted: NotificationPosted, banner: Bool, phoneName: String) async {
-        guard banner, await router.ensureAuthorized() else { return }
+        let quietUpdate = !banner
+        if quietUpdate, !(await NotificationRouter.isDelivered(posted.key)) { return }
+        guard await router.ensureAuthorized() else { return }
         let spec = NotificationCategories.spec(for: posted)
-        router.register(Self.category(for: spec))
+        await router.register(Self.category(for: spec))
         let content = UNMutableNotificationContent()
         content.title = NotificationPresentation.bannerTitle(posted)
         content.subtitle = NotificationPresentation.subtitle(appName: posted.appName, phoneName: phoneName)
         content.body = posted.text
         content.threadIdentifier = posted.packageName
         content.categoryIdentifier = spec.identifier
-        content.sound = .default
+        content.sound = quietUpdate ? nil : .default
+        if quietUpdate { content.interruptionLevel = .passive }
         content.userInfo = [Self.keyInfo: posted.key, Self.indicesInfo: NotificationCategories.actionIndices(for: posted)]
         if let attachment = iconAttachment(posted.iconHash) { content.attachments = [attachment] }
         // Same identifier as before: an update replaces the delivered notification.

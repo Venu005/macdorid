@@ -12,14 +12,32 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
 
     func setUp() {
         UNUserNotificationCenter.current().delegate = self
-        register(ReceivedNotifier.makeCategory())
+        let category = ReceivedNotifier.makeCategory()
+        categories[category.identifier] = category
+        UNUserNotificationCenter.current().setNotificationCategories(Set(categories.values))
     }
 
     /// Adds a category. macOS replaces the whole set on every call, so the full set is always sent.
-    func register(_ category: UNNotificationCategory) {
-        guard categories[category.identifier] == nil else { return }
-        categories[category.identifier] = category
+    /// `setNotificationCategories` applies asynchronously: wait (briefly) until macOS has it, or the first banner
+    /// in a new category shows without its buttons or reply field.
+    func register(_ category: UNNotificationCategory) async {
+        let identifier = category.identifier
+        guard categories[identifier] == nil else { return }
+        categories[identifier] = category
         UNUserNotificationCenter.current().setNotificationCategories(Set(categories.values))
+        for _ in 0..<20 { // at most ~0.5 s
+            if await Self.hasCategory(identifier) { return }
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+    }
+
+    nonisolated private static func hasCategory(_ identifier: String) async -> Bool {
+        await UNUserNotificationCenter.current().notificationCategories().contains { $0.identifier == identifier }
+    }
+
+    /// A notification with this identifier is still in Notification Center.
+    nonisolated static func isDelivered(_ identifier: String) async -> Bool {
+        await UNUserNotificationCenter.current().deliveredNotifications().contains { $0.request.identifier == identifier }
     }
 
     /// Asks for permission the first time anything needs to notify.
