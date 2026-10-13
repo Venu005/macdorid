@@ -14,6 +14,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 6: Android "Open on Mac" share target (`OpenOnMacActivity` + pure `OpenOnMacDecision`) and tap-to-open "Link from your Mac" notifications. Verified: `OpenOnMacDecisionTest`, Android gates.
 - Task 7: Android `MediaWatcher` (media sessions via the notification listener; artwork encoded off the main thread; Mac commands applied to the shown app). Verified: Android gates.
 - Task 8: Mac Services "Open on Phone" (`ServicesProvider` + `NSServices` in project.yml), ring button (popover + Phone page), Now Playing card with seek, incoming links open in the default browser. Verified: Mac app build; NSServices present in the built Info.plist.
+- Task 9: the cross-platform run covers a ring round trip, a link each way, and media state → a pause command. Verified: `./scripts/cross-platform-test.sh` passed.
 
 ## 2026-10-13 — Plan 5 (small wins) written
 - **What:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md`, 10 tasks:
