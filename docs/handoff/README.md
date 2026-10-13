@@ -2,7 +2,8 @@
 
 > **Picking up?** The next action is in [ROADMAP.md](ROADMAP.md) under "Next":
 > 1. File transfer (Plans 2a and 2b) is **merged to `main`**.
-> 2. Next: finish the remaining hands-on checks (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`), then Plan 3 (notifications): brainstorm → spec → plan.
+> 2. The owner verified the hands-on checklist except a 2 GB+ file (they'll check it later).
+> 3. Next: Plan 3 (notifications): brainstorm → spec → plan.
 
 Read this first if you're picking the project up, whether you're a person, a Claude Code session or a Claude Desktop session.
 
@@ -22,7 +23,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 | Plan 1 | Protocol + connection core: pairing, encrypted link, auto-reconnect, battery on Mac | **Done, merged to `main`** |
 | UI/UX redesign | Native Mac (menu-bar popover + sidebar window) and Material 3 Android (setup wizard + 5 tabs) | **Done, merged to `main`** (verified by the owner) |
 | App icons | Peeking-droid icon for both apps | **Done, merged to `main`** |
-| Plan 2 | File transfer both ways (drag-drop, share sheet, resume, checksums) | **Done, merged to `main`**; a few hands-on checks remain (see the follow-ups file) |
+| Plan 2 | File transfer both ways (drag-drop, share sheet, resume, checksums) | **Done, merged to `main`** (owner-verified; the 2 GB+ check is still to do) |
 | Plan 3 | Android notifications mirrored to the Mac (reply, dismiss) | Not started |
 | Plan 4 | Clipboard sync (Mac→phone automatic, phone→Mac on demand) | Not started |
 | Later | Photo gallery, SMS, screen mirroring, webcam/mic, USB transport | Out of scope so far |

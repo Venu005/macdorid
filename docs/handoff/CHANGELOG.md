@@ -4,6 +4,11 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — File transfer hands-on checklist passed
+- **What:** the owner ran the file-transfer hands-on checklist and everything passed except one item they haven't run yet: a 2 GB+ file in each direction, which they'll check later. The checklist is ticked in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`; STATUS and README are updated.
+- **Next:** Plan 3 (notifications).
+- **Branch:** `main`.
+
 ## 2026-10-13 — Handoff check after the file-transfer merge
 - **What:** re-checked `main` against the handoff and fixed stale lines left from before the merge:
   - README: the spec and Plan 2a were still marked "next up", and Plan 2b "will be" written. They now link the 2a and 2b plans and the follow-ups file.
