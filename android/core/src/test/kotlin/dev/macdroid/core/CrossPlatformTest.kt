@@ -12,6 +12,10 @@ import dev.macdroid.core.protocol.DeviceStatusBody
 import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.HelloBody
 import dev.macdroid.core.protocol.Message
+import dev.macdroid.core.notifications.InMemoryNotificationSettingsStore
+import dev.macdroid.core.notifications.NotificationCommand
+import dev.macdroid.core.notifications.NotificationForwarder
+import dev.macdroid.core.notifications.PhoneNotification
 import dev.macdroid.core.tls.ClientIdentity
 import dev.macdroid.core.transfer.*
 import java.io.File
@@ -28,6 +32,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import okhttp3.tls.HeldCertificate
@@ -81,6 +86,8 @@ class CrossPlatformTest {
             parts = { FolderSaveTarget.reopen(it) }, send = manager::send, retryDelayMs = 200,
         )
         engine.start(manager.incoming, manager.state.map { it is ConnectionState.Connected }) // before connecting: incoming has no replay
+        val received = CopyOnWriteArrayList<Message>()
+        val collector = scope.launch { manager.incoming.collect { received.add(it) } }
         manager.start()
         try {
             val connected = withTimeout(10_000) { manager.state.first { it is ConnectionState.Connected } } as ConnectionState.Connected
@@ -88,11 +95,30 @@ class CrossPlatformTest {
             assertTrue(connected.macSupports(Features.NOTIFICATIONS))
             assertTrue(manager.send(Message.DeviceStatus(DeviceStatusBody(77, false))))
             delay(500)
+            exchangeANotification(manager, received)
             if (phoneFile != null && receiveDir != null) sendFilesBothWaysWithADrop(manager, engine, transport, File(phoneFile))
         } finally {
+            collector.cancel()
             manager.stop()
             scope.cancel()
         }
+    }
+
+    /** The phone forwards a chat notification; the dev server replies "On my way"; then the phone removes it. */
+    private suspend fun exchangeANotification(manager: ConnectionManager, received: List<Message>) {
+        val forwarder = NotificationForwarder("dev.macdroid.test", InMemoryNotificationSettingsStore(), manager::send, { null })
+        forwarder.accessChanged(true)
+        forwarder.connected(emptySet())
+        forwarder.posted(PhoneNotification("k1", "com.example.chat", "Chat", "Mom", "Did you eat?", System.currentTimeMillis(), emptyList(), canReply = true))
+        withTimeout(10_000) {
+            while (received.none { it is Message.NotificationReply }) delay(50)
+        }
+        val reply = received.filterIsInstance<Message.NotificationReply>().single().body
+        assertEquals("k1", reply.key)
+        assertEquals("On my way", reply.text)
+        assertEquals(NotificationCommand.Reply("k1", "On my way"), forwarder.handle(Message.NotificationReply(reply)))
+        forwarder.removed("k1")
+        delay(300)
     }
 
     /** The dev server sends its file when the phone connects; the phone sends one back. Cut the link mid-file and expect both to resume. */

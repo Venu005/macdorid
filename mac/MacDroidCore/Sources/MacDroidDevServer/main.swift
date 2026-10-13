@@ -33,6 +33,38 @@ let transfers = TransferManager(
 )
 await transfers.attach(to: hub)
 
+let notifications = PhoneNotifications(
+    icons: IconCache(directory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-icons-\(UUID().uuidString)")),
+    send: { try await hub.send($0) }
+)
+await notifications.attach(to: hub)
+
+// Replies "On my way" to the first notification that can be replied to (exercises Mac → phone).
+let notificationPrinter = Task {
+    var replied = false
+    for await event in notifications.events {
+        switch event {
+        case .show(let posted, let banner):
+            print("NOTIFICATION posted key=\(posted.key) title=\(posted.title) banner=\(banner)")
+            if posted.canReply, !replied {
+                replied = true
+                await notifications.reply(key: posted.key, text: "On my way")
+                print("NOTIFICATION replied key=\(posted.key)")
+            }
+        case .remove(let keys):
+            for key in keys { print("NOTIFICATION removed key=\(key)") }
+        case .problem(let text):
+            print("NOTIFICATION problem \(text)")
+        }
+    }
+}
+
+let appsPrinter = Task {
+    for await state in notifications.states where state.phoneAccess != nil {
+        print("NOTIFICATION apps count=\(state.apps.count) access=\(state.phoneAccess ?? false)")
+    }
+}
+
 let window = await pairing.openWindow()
 print("PAIRING_URI \(PairingInvite(host: host, port: port, fingerprint: identity.fingerprint, code: window.code, name: macName).uri)")
 
@@ -74,3 +106,5 @@ try await server.run { boundPort in print("LISTENING \(boundPort)") }
 statusPrinter.cancel()
 transferPrinter.cancel()
 sentPrinter.cancel()
+notificationPrinter.cancel()
+appsPrinter.cancel()
