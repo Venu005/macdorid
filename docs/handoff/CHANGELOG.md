@@ -13,6 +13,7 @@ The 9 minors from the Plans 3–4 final review, fixed one by one on `fix/review-
 - Minor 4: a copy that includes plain text sends the text (Office/iWork tables, rich text); image-only copies and "Copy Image" (image + link) still send the image. Verified: updated `filesAreIgnoredImagesBeatTextAndUnknownIsIgnored` RED→GREEN, `swift test` 217.
 - Minor 5: the first banner in a new notification category waits (≤ 0.5 s) until macOS has registered the category, so its buttons and reply field show. Verified: Mac app build (no harness for UserNotifications).
 - Minor 7: an update held back by the flood gate quietly refreshes a banner that is still in Notification Center (passive, no sound), so it never shows stale text. Verified: Mac app build.
+- Minor 8: the Mac converts copied TIFF images to PNG off the main thread (PNG copies are used as they are). Verified: Mac app build.
 
 ## 2026-10-13 — Owner's feature list and agreed order
 - **What:** recorded the owner's planned features (iPad file transfer, photo browsing, low-latency mirroring, remote control, contact sync, webcam and mic over Wi-Fi and USB) and the agreed order in ROADMAP. The order: the 9 deferred minors one by one, small wins, photo browsing, mirroring then remote control.

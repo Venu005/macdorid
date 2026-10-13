@@ -49,5 +49,5 @@ Both plans ran inline ("native"), with one final whole-branch review on Opus. It
 - [x] (fixed) The first banner in a new notification category may show without its buttons, because `setNotificationCategories` applies asynchronously. Fix: await `notificationCategories()` before `add`.
 - [x] (fixed) History "Send" skips `fitsInAFrame`.
 - [x] (fixed) An update the flood gate suppresses leaves an already-delivered banner with the old text.
-- Mac TIFF→PNG conversion runs on the main thread.
+- [x] (fixed) Mac TIFF→PNG conversion runs on the main thread.
 - [x] (fixed) A failed Mac image send is still recorded "→ phone"; the empty-state text overstates what's recorded.

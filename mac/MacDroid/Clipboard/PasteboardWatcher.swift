@@ -27,14 +27,20 @@ final class PasteboardWatcher {
         case .text:
             if let text = pasteboard.string(forType: .string) ?? pasteboard.string(forType: .URL) { onChange?(.text(text), count) }
         case .image:
-            if let png = Self.png(from: pasteboard) { onChange?(.image(png), count) }
+            if let png = pasteboard.data(forType: .png) {
+                onChange?(.image(png), count)
+            } else if let tiff = pasteboard.data(forType: .tiff) {
+                // Converting a large TIFF can take a while: do it off the main thread, then report.
+                Task { [weak self] in
+                    guard let png = await Task.detached(priority: .userInitiated, operation: { Self.png(fromTIFF: tiff) }).value else { return }
+                    self?.onChange?(.image(png), count)
+                }
+            }
         }
     }
 
-    static func png(from pasteboard: NSPasteboard) -> Data? {
-        if let png = pasteboard.data(forType: .png) { return png }
-        guard let tiff = pasteboard.data(forType: .tiff), let rep = NSBitmapImageRep(data: tiff) else { return nil }
-        return rep.representation(using: .png, properties: [:])
+    nonisolated static func png(fromTIFF tiff: Data) -> Data? {
+        NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:])
     }
 
     /// Puts an item on the pasteboard and returns the change count it produced (echo prevention, spec §8.2).
