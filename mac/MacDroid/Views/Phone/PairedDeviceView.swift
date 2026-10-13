@@ -27,6 +27,9 @@ struct PairedDeviceView: View {
             }
             Section("Details") {
                 LabeledContent("Battery", value: StatusPresentation.batteryText(model.status))
+                if let line = NotificationPresentation.phonePageLine(model.notifications) {
+                    LabeledContent("Notifications", value: line)
+                }
                 if let device = model.pairedDevice {
                     LabeledContent("Model", value: device.model)
                     LabeledContent("Paired", value: device.pairedAt.formatted(date: .abbreviated, time: .omitted))

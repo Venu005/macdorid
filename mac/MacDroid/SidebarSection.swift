@@ -35,7 +35,6 @@ enum SidebarSection: String, Hashable, CaseIterable, Identifiable {
 
     var comingSoonDescription: String? {
         switch self {
-        case .notifications: "See your Android notifications on your Mac, reply to messages, and dismiss them on both devices."
         case .clipboard: "Copy on your Mac and paste on your phone — and send your phone's clipboard back with one tap."
         default: nil
         }

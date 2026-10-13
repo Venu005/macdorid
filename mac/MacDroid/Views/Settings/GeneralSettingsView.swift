@@ -6,9 +6,11 @@ struct GeneralSettingsView: View {
     @State private var loginMessage: String?
     @State private var reverting = false
     @AppStorage(DockPolicy.showInDockKey) private var showInDock = true
-    @Bindable var files: FilesSettings
+    let model: AppModel
+    @State private var showingMutedApps = false
 
     var body: some View {
+        @Bindable var files = model.files
         Form {
             Section {
                 Toggle("Launch at login", isOn: $launchAtLogin)
@@ -50,8 +52,20 @@ struct GeneralSettingsView: View {
                 Text("Files from your phone save automatically. Partly received files end in “.macdroid-part” until they're checked.")
                     .foregroundStyle(.secondary)
             }
+            Section {
+                Toggle("Show phone notifications", isOn: Binding(get: { model.showPhoneNotifications }, set: { model.setShowPhoneNotifications($0) }))
+                LabeledContent("Apps") {
+                    Button("Muted apps…") { showingMutedApps = true }
+                }
+            } header: {
+                Text("Notifications")
+            } footer: {
+                Text("Notifications from your phone appear in Notification Center. Android hides one-time codes from apps like MacDroid.")
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
+        .sheet(isPresented: $showingMutedApps) { MutedAppsSheet(model: model) }
     }
 
     /// Applies the toggle; if the system refuses, shows why and puts the toggle back to the real state.
