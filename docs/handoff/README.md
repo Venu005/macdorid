@@ -3,7 +3,7 @@
 > **Picking up?** The next action is in [ROADMAP.md](ROADMAP.md) under "Next":
 > 1. File transfer (Plan 2), notifications (Plan 3) and clipboard (Plan 4) are all **merged to `main`** (version 0.4.0).
 > 2. Still open: the 2 GB+ file-transfer check, and the 9 deferred minors in `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
-> 3. Next: the Finder Share extension (small round), or a planning session to rank the later rounds (photo gallery, screen mirroring, SMS, webcam, USB).
+> 3. The Finder Share extension is parked (see ROADMAP; one open question). Next options: a planning session to rank the later rounds (photo gallery, screen mirroring, SMS, webcam, USB), or the deferred minors.
 
 Read this first if you're picking the project up, whether you're a person, a Claude Code session or a Claude Desktop session.
 

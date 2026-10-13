@@ -45,8 +45,14 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
 - **Plan 3 scope:** tolerant `hello.features` and peer features on both sides; `notification.*` messages (phone owns the mute list, `notification.sync` on reconnect); Android `NotificationListenerService`; Mac `UserNotifications` with reply/actions/dismiss; Mac Notifications page (grouped by app) and Settings; Android Notifications tab as a control panel; notification access in the existing setup step.
 - **Plan 4 scope:** `clipboard.set`; `transfer.offer.purpose = clipboard` for images ≤ 10 MB; Mac pasteboard watcher (concealed/transient items never sent) and history page; Android Quick Settings tile, notification action, "Send now" and a "Copy to Mac" share target; Android Clipboard tab.
 
-## Next: small round — Finder Share extension
-"Share → Send to phone" in Finder. It needs an app-extension target that hands files to the main app via an app group (the extension never opens network connections).
+## Parked: small round — Finder Share extension
+Brainstorming started 2026-10-13, then the owner parked it. Resume at the first open question.
+- **Constraint found:** a Share extension is a separate sandboxed process. It can read the shared files only while it runs, and it can't use the network, so it must hand the files to the main app with read access.
+- **Approaches on the table:**
+  1. Copy the files into an app-group folder. Reliable, but slow for multi-GB files and doubles the disk use.
+  2. Pass security-scoped bookmarks through the app group. Instant, but whether an extension's bookmark resolves in the main app needs a spike first.
+  3. Use Finder's right-click Quick Actions / Services. Handled by the main app itself (like drag and drop), so it's instant at any size, but it isn't in other apps' Share menus.
+- **Open question for the owner:** where should "Send to phone" appear: (A) the Share menu, (B) Finder's right-click only, or (C) both?
 
 ## Later rounds (not specced)
 Photo gallery, SMS (Play-restricted permissions), screen mirroring/remote control (scrcpy-style, needs debugging mode), phone as webcam/mic (CoreMediaIO extension), USB transport via `adb reverse`, Wi-Fi Direct.

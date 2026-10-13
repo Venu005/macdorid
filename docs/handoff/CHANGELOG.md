@@ -4,6 +4,10 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Finder Share extension parked
+- **What:** brainstorming for the Finder Share extension started, then the owner parked it. The sandbox constraint, the three approaches and the open question ("where should Send to phone appear?") are recorded in ROADMAP so a later session can resume.
+- **Branch:** `main`. No code changed.
+
 ## 2026-10-13 — Notifications and clipboard merged to main
 - **What:** merged `feat/notifications-clipboard` into `main` (merge commit `db85323`): Plan 3 (notifications), Plan 4 (clipboard), the final-review fixes and the owner's UI feedback fixes.
 - **Verified on the merged `main`:** `swift test` 212, Mac app build with no warnings, Android gates. The owner verified the hands-on checks and asked for the merge.
