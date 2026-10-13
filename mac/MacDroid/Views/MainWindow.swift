@@ -39,7 +39,7 @@ struct MainWindow: View {
         case .phone: PhoneView(model: model)
         case .notifications: NotificationsView(model: model)
         case .files: FilesView(model: model)
-        case .clipboard: ComingSoonView(section: section)
+        case .clipboard: ClipboardView(model: model)
         case .general: GeneralSettingsView(model: model)
         case .security: SecuritySettingsView(fingerprint: model.fingerprint)
         case .about: AboutView()

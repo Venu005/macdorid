@@ -52,7 +52,7 @@ Mac app (`mac/MacDroid/`):
 - `Clipboard/`: `PasteboardWatcher` (polls and writes `NSPasteboard`; returns the change count it produced for echo prevention), `ClipboardNotifier` ("Clipboard from <phone>").
 - `Notifications/`: `NotificationRouter` is the only `UNUserNotificationCenter` delegate (macOS allows one); it owns the category set and routes responses. `PhoneNotifier` posts mirrored phone notifications. `ReceivedNotifier` posts received-file notifications through the router.
 - `Files/`: `FilesSettings` (save folder bookmark, ask-each-time, cancellable save panel; `MacReceiveLocation`), `SecurityScopedSourceAccess` (read-only bookmarks for outgoing files), `ReceivedNotifier` (UserNotifications with Show in Finder / Open). `AppModel` owns the `TransferManager` and exposes `transfers` plus the file actions.
-- Views live in `Views/`: the design-A popover (`MenuBarPopover` + `Popover/`: battery ring, tiles, whole-popover drop target), `MainWindow` (sidebar), Phone (pairing/paired), Files (`Files/FilesView`, `TransferRow`), Notifications (`Notifications/NotificationsView`, `NotificationCard`, `MutedAppsSheet`), Settings (General with Received files and Notifications, Security, About), and Shared (incl. `AppIconView`).
+- Views live in `Views/`: the design-A popover (`MenuBarPopover` + `Popover/`: battery ring, tiles, whole-popover drop target), `MainWindow` (sidebar), Phone (pairing/paired), Files (`Files/FilesView`, `TransferRow`), Notifications (`Notifications/NotificationsView`, `NotificationCard`, `MutedAppsSheet`), Clipboard (`Clipboard/ClipboardView`), Settings (General with Received files, Notifications and Clipboard, Security, About), and Shared (incl. `AppIconView`).
 
 ## Android components
 `android/core` (pure JVM, tested):

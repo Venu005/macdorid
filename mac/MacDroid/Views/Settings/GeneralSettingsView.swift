@@ -1,3 +1,4 @@
+import MacDroidCore
 import ServiceManagement
 import SwiftUI
 
@@ -61,6 +62,21 @@ struct GeneralSettingsView: View {
                 Text("Notifications")
             } footer: {
                 Text("Notifications from your phone appear in Notification Center. Android hides one-time codes from apps like MacDroid.")
+                    .foregroundStyle(.secondary)
+            }
+            Section {
+                Toggle("Send to phone", isOn: Binding(get: { model.clipboard.sendToPhone }, set: { model.setClipboardSendToPhone($0) }))
+                Toggle("Receive from phone", isOn: Binding(get: { model.clipboard.receiveFromPhone }, set: { model.setClipboardReceiveFromPhone($0) }))
+                Picker("Keep history", selection: Binding(get: { model.clipboard.capacity }, set: { model.setClipboardHistorySize($0) })) {
+                    ForEach(ClipboardHistory.capacities, id: \.self) { Text("\($0) items").tag($0) }
+                }
+                LabeledContent("History") {
+                    Button("Clear History") { model.clearClipboardHistory() }
+                }
+            } header: {
+                Text("Clipboard")
+            } footer: {
+                Text("What you copy on this Mac goes to your phone automatically. Password-manager copies are never sent.")
                     .foregroundStyle(.secondary)
             }
         }
