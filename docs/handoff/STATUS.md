@@ -1,7 +1,7 @@
 # Status (as of 2026-10-13, after the redesign merge)
 
 ## Branches
-- `main`: Plan 1 (protocol and connection core) plus the UI/UX redesign. Both are merged and were verified by hand by the owner.
+- `main`: Plan 1 (protocol and connection core), the UI/UX redesign and the app icons. All are merged and were verified by hand by the owner.
 
 ## Working and verified
 - Pairing by QR code and by manual entry, with a fingerprint check.
