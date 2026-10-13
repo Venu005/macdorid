@@ -5,9 +5,9 @@
 - `feat/file-transfer`: Plan 2a (transfer engine) done and verified. Nothing user-visible yet, so it isn't merged; Plan 2b continues on the same branch.
 
 ## In flight
-- **File transfer (Plan 2):** the spec was written and approved on 2026-10-13 (`docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`). The 8 review points were resolved the same day (spec §8).
-  - **Plan 2a (engine):** done on `feat/file-transfer`. It covers protocol messages, the global middleware, hub streams, the Mac `TransferManager` and `/v1/files` routes, and the Android `TransferClient` and `TransferEngine`. The cross-platform test sends files both ways with a mid-file disconnect.
-  - **Plan 2b (UI and platform glue):** written (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`); next to run.
+- **File transfer (Plan 2):** the 2a engine and the 2b UI are complete on `feat/file-transfer`. It's waiting for the owner's hands-on checklist (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`); merge after it passes.
+  - Spec: `docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`.
+  - Android 0.3.0 is installed on the phone. Build and open the Mac app with the commands in DEV-GUIDE.md.
 
 ## Working and verified
 - Pairing by QR code and by manual entry, with a fingerprint check.
@@ -17,13 +17,14 @@
 - Android 17 `ACCESS_LOCAL_NETWORK` flow.
 - Keystore-backed TLS client authentication on the real phone (instrumented test).
 - Automated tests:
-  - Swift: 127 tests (on `feat/file-transfer`; 59 on `main`).
+  - Swift: 140 tests (on `feat/file-transfer`; 59 on `main`).
   - Android core: protocol, TLS, pairing, connection manager.
   - Android app: status/setup logic.
   - Cross-platform script (Swift server ↔ Kotlin client).
   - Cross-platform file transfer both ways (24 MiB each), with resume after a dropped connection (`feat/file-transfer`).
 
 ## Pending or unverified
+- **File transfer hands-on checklist** (owner): see the follow-ups file above. That includes the Mac app's first launch with the new entitlements: a fresh build asks for keychain access again.
 - **Login-item launch.** With a phone paired, MacDroid should start quietly with no window. Not verified. If macOS restores the window at login, disable window restoration.
 - Real login items need a properly signed build. Dev builds are ad-hoc signed (expect a keychain prompt after each rebuild).
 

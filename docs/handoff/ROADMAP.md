@@ -24,7 +24,8 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
      - Then the Mac app: wiring, Files page, design-A popover.
      - Then Android: helpers, save targets, notifications, Files tab, share target, settings and setup step.
      - It ends with a hands-on checklist for the owner.
-  4. Run 2b, then the owner's hands-on checklist (spec §6), then merge.
+  4. ~~Run 2b~~. Done on 2026-10-13.
+  5. **Next:** the owner's hands-on checklist (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`), then merge `feat/file-transfer`, then Plan 3 (notifications).
 - **Groundwork tasks the plan must start with:**
   - a global `TrustedPeerMiddleware` (only `/v1/pair` exempt)
   - a `ConnectionHub` incoming-message hook

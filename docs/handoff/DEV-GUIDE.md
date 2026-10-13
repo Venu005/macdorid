@@ -54,6 +54,8 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 - **Sandbox file access:** received files go to `~/Downloads/MacDroid` (Downloads entitlement) or a folder chosen in Settings (a security-scoped bookmark, kept open while the app runs). Outgoing files are remembered as read-only security-scoped bookmarks, so a resume survives a relaunch.
 - **xcodebuild noise:** lines about CoreSimulator being out of date, `DVTCoreDeviceCore`, and `appintentsmetadataprocessor` are environment logs, not compiler output. Judge a build by `** BUILD SUCCEEDED **` and by `.swift:line:col: warning|error` lines.
 
+- **Share target and URI grants:** shared URIs are handed to `ConnectionService` in an intent with `FLAG_GRANT_READ_URI_PERMISSION`. Files without a persistable grant are copied to `cache/outgoing/` only up to 100 MB, and the copies are deleted when the transfer finishes.
+
 ## Conventions
 - Swift Testing (`@Test`, `#expect`) on the Mac and JUnit4 on Android; TDD for logic.
 - Pure presentation and state logic lives in testable types; views stay thin.

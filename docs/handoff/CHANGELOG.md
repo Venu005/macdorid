@@ -4,8 +4,15 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
-## 2026-10-13 — Plan 2b: file transfer UI (in progress on feat/file-transfer)
+## 2026-10-13 — Plan 2b: file transfer UI (done on feat/file-transfer; waiting for the owner's check)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`.
+- **Verified:**
+  - `swift test`: 140 tests.
+  - The Mac app build succeeds with no compiler warnings.
+  - The Android gates pass with no warnings.
+  - `./scripts/cross-platform-test.sh` passes.
+  - Version 0.3.0 is installed on the Nothing Phone (3).
+  - The owner's hands-on checklist is `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`.
 - Task 1: Mac `TransferManager` shows undecided incoming offers as `.offered` rows, passes `IncomingOffer` (id, name, size, mime) to the save-location provider, and cancels the question when either side cancels; undecided offers are forgotten at relaunch. Verified: `swift test`.
 - Task 2: `TransferPresentation` (row text, popover items, drop summary) in `MacDroidCore`. Verified: `TransferPresentationTests`.
 - Task 3: Android `TransferEngine` shows undecided offers as `Offered`, cancels the save question on either side's cancel, creates parts on IO, forgets undecided offers on restart, and retries paused transfers every 30 s while connected. Verified: `TransferEngineDecisionTest` (stable over 3 reruns).
