@@ -36,6 +36,7 @@ class EngineHarness(
     val dir: File = Files.createTempDirectory("engine").toFile(),
     target: SaveTarget? = null,
     var now: Long = 1_000_000_000L,
+    resumeIntervalMs: Long = 60_000,
 ) {
     val mac = FakeMacFiles()
     val sent = CopyOnWriteArrayList<Message>()
@@ -49,7 +50,7 @@ class EngineHarness(
         scope = scope, store = store, files = mac, sources = FileSourceOpener(),
         saveTarget = { saveTarget }, parts = { FolderSaveTarget.reopen(it) },
         send = { message -> if (online) sent.add(message) else false },
-        clock = { now }, retryDelayMs = 20, maxRetries = 3,
+        clock = { now }, retryDelayMs = 20, maxRetries = 3, resumeIntervalMs = resumeIntervalMs,
     )
 
     fun start() {
@@ -273,7 +274,8 @@ class TransferEngineReceiveTest {
 
     @Test fun interruptedStateComesBackPaused() {
         val store = InMemoryTransferStore(StoredTransfers(active = listOf(
-            TransferRecord(id = "t1", direction = Direction.FromMac, name = "a", size = 5, mime = "x", phase = Phase.Active, createdAt = 0, updatedAt = 0),
+            TransferRecord(id = "t1", direction = Direction.FromMac, name = "a", size = 5, mime = "x", phase = Phase.Active,
+                part = "/tmp/a.macdroid-part", createdAt = 0, updatedAt = 0),
         )))
         val harness = EngineHarness(store = store, now = 3_600_000)
         try {

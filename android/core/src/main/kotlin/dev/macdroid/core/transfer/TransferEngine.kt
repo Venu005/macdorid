@@ -50,6 +50,7 @@ class TransferEngine(
     private val clock: () -> Long = System::currentTimeMillis,
     private val retryDelayMs: Long = 3_000,
     private val maxRetries: Int = 5,
+    private val resumeIntervalMs: Long = 30_000,
 ) {
     companion object {
         const val MAX_ACTIVE_OUTGOING = 3
@@ -85,6 +86,12 @@ class TransferEngine(
             load()
             launch { incoming.collect { onMessage(it) } }
             launch { connected.distinctUntilChanged().collect { onConnectionChanged(it) } }
+            launch {
+                while (true) {
+                    delay(resumeIntervalMs)
+                    resumePaused()
+                }
+            }
         }
     }
 
@@ -149,6 +156,8 @@ class TransferEngine(
         val restored = mutableListOf<TransferRecord>()
         for (record in stored.active) {
             when {
+                // An offer still waiting for "where to save" when the app died was never accepted; the Mac's re-offer starts fresh.
+                record.direction == Direction.FromMac && record.part == null -> Unit
                 record.updatedAt < cutoff -> {
                     record.part?.let { handle -> withContext(Dispatchers.IO) { runCatching { parts(handle)?.delete() } } }
                     history.add(0, record.copy(phase = Phase.Failed, failure = Failure.Expired, updatedAt = clock()))
@@ -189,7 +198,8 @@ class TransferEngine(
             // Keep the handles: the next start of each transfer joins its cancelled job before touching the same files.
             jobs.values.forEach { it.cancel() }
             for (record in active) {
-                if (record.phase == Phase.Active || record.phase == Phase.Offered) update(record.id) { it.copy(phase = Phase.Paused) }
+                val moving = record.phase == Phase.Active || (record.phase == Phase.Offered && record.direction == Direction.ToMac)
+                if (moving) update(record.id) { it.copy(phase = Phase.Paused) }
                 clearRate(record.id)
             }
             persist()
@@ -212,6 +222,7 @@ class TransferEngine(
     }
 
     private suspend fun cancelLocally(id: String) {
+        deciding.remove(id)?.cancel()
         val record = record(id) ?: return
         jobs.remove(id)?.cancelAndJoin()
         if (record.direction == Direction.FromMac) deletePart(record)
@@ -235,7 +246,7 @@ class TransferEngine(
         val id = offer.transferId
         val known = record(id)
         if (known != null) {
-            if (known.direction != Direction.FromMac) return
+            if (known.direction != Direction.FromMac || known.part == null) return // undecided: the question is still open
             // A re-offer after a reconnect: accept again and resume from the part file's length.
             update(id) { it.copy(phase = Phase.Active) }
             send(Message.TransferAccept(TransferIdBody(id)))
@@ -247,30 +258,35 @@ class TransferEngine(
             send(Message.TransferReject(TransferRejectBody(id, TransferRejectReason.Invalid)))
             return
         }
-        if (id in deciding) return
-        // Deciding may wait for the user ("Ask where to save"), so it runs on its own.
+        val name = FileNaming.sanitize(offer.name)
+        add(TransferRecord(id = id, direction = Direction.FromMac, name = name, size = offer.size, mime = offer.mime,
+            phase = Phase.Offered, createdAt = clock(), updatedAt = clock()))
+        persist()
+        // Deciding may wait for the user ("Ask where to save"), so it runs on its own and can be cancelled.
         deciding[id] = scope.launch(control) {
             try {
-                decide(offer)
+                decide(offer, name)
             } finally {
                 deciding.remove(id)
             }
         }
     }
 
-    private suspend fun decide(offer: TransferOfferBody) {
+    private suspend fun decide(offer: TransferOfferBody, name: String) {
         val id = offer.transferId
-        val name = FileNaming.sanitize(offer.name)
         val target = saveTarget()
         val free = withContext(Dispatchers.IO) { runCatching { target.freeBytes() }.getOrNull() }
         if (free != null && free < offer.size) return reject(offer, name, TransferRejectReason.NoSpace)
         val part = try {
-            target.createPart(name, offer.mime, id)
+            withContext(Dispatchers.IO) { target.createPart(name, offer.mime, id) } // MediaStore/SAF work, or a user prompt
         } catch (e: IOException) {
             null
         } ?: return reject(offer, name, TransferRejectReason.Declined)
-        add(TransferRecord(id = id, direction = Direction.FromMac, name = name, size = offer.size, mime = offer.mime,
-            phase = Phase.Active, part = part.handle, createdAt = clock(), updatedAt = clock()))
+        if (record(id)?.phase != Phase.Offered) { // cancelled while the part was being created
+            withContext(Dispatchers.IO) { runCatching { part.delete() } }
+            return
+        }
+        update(id) { it.copy(phase = Phase.Active, part = part.handle) }
         persist()
         send(Message.TransferAccept(TransferIdBody(id)))
         startDownload(id)
@@ -546,6 +562,23 @@ class TransferEngine(
     }
 
     // endregion
+
+    /** While connected, try paused transfers again, so nothing sits "Paused" while the Mac is reachable (spec §5). */
+    private fun resumePaused() {
+        if (!connected) return
+        for (record in active.filter { it.phase == Phase.Paused && jobs[it.id]?.isActive != true }) {
+            when (record.direction) {
+                Direction.ToMac -> {
+                    update(record.id) { it.copy(phase = Phase.Offered) }
+                    offer(record)
+                }
+                Direction.FromMac -> if (record.part != null) {
+                    update(record.id) { it.copy(phase = Phase.Active) }
+                    startDownload(record.id)
+                }
+            }
+        }
+    }
 
     /** Marks [id] paused. Returns true when it's worth trying again now (still connected, retries left). */
     private suspend fun pauseForRetry(id: String, attempts: Int): Boolean {
