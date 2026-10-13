@@ -17,8 +17,8 @@ targets:
       path: MacDroid/Info.plist
       properties:
         CFBundleDisplayName: MacDroid
-        CFBundleShortVersionString: "0.3.0"
-        CFBundleVersion: "3"
+        CFBundleShortVersionString: "0.4.0"
+        CFBundleVersion: "4"
         LSUIElement: true
         NSLocalNetworkUsageDescription: MacDroid connects to your Android phone over your local network.
         NSBonjourServices: [_macdroid._tcp]

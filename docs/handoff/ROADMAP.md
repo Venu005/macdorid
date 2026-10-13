@@ -41,7 +41,7 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
 - **Next steps for a new session:**
   1. ~~Owner reviews the spec~~. The owner asked for a self-review instead: done 2026-10-13, fixes in spec §8.
   2. ~~Write the plans~~. Done: `docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md` (11 tasks) and `docs/superpowers/plans/2026-10-13-macdroid-clipboard-4.md` (11 tasks). Execution ledgers go under `.superpowers/sdd/`.
-  3. Run both subagent-driven on `feat/notifications-clipboard`, then one final review, the owner's hands-on checklist (spec §6) and one merge.
+  3. Run both on `feat/notifications-clipboard` (the owner chose inline/"native" execution). Plan 3 done 2026-10-13; Plan 4 next. Then one final whole-branch review, the owner's hands-on checklist (spec §6) and one merge.
 - **Plan 3 scope:** tolerant `hello.features` and peer features on both sides; `notification.*` messages (phone owns the mute list, `notification.sync` on reconnect); Android `NotificationListenerService`; Mac `UserNotifications` with reply/actions/dismiss; Mac Notifications page (grouped by app) and Settings; Android Notifications tab as a control panel; notification access in the existing setup step.
 - **Plan 4 scope:** `clipboard.set`; `transfer.offer.purpose = clipboard` for images ≤ 10 MB; Mac pasteboard watcher (concealed/transient items never sent) and history page; Android Quick Settings tile, notification action, "Send now" and a "Copy to Mac" share target; Android Clipboard tab.
 

@@ -25,7 +25,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 | UI/UX redesign | Native Mac (menu-bar popover + sidebar window) and Material 3 Android (setup wizard + 5 tabs) | **Done, merged to `main`** (verified by the owner) |
 | App icons | Peeking-droid icon for both apps | **Done, merged to `main`** |
 | Plan 2 | File transfer both ways (drag-drop, share sheet, resume, checksums) | **Done, merged to `main`** (owner-verified; the 2 GB+ check is still to do) |
-| Plan 3 | Android notifications mirrored to the Mac (reply, buttons, dismiss both ways, mutes) | Spec + plan written; not started |
+| Plan 3 | Android notifications mirrored to the Mac (reply, buttons, dismiss both ways, mutes) | Done on `feat/notifications-clipboard`; owner check after Plan 4 |
 | Plan 4 | Clipboard sync (Mac→phone automatic, phone→Mac on demand, Mac history) | Spec + plan written; not started |
 | Later | Photo gallery, SMS, screen mirroring, webcam/mic, USB transport | Out of scope so far |
 

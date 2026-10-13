@@ -4,7 +4,7 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
-## 2026-10-13 — Plan 3: notifications (in progress on feat/notifications-clipboard)
+## 2026-10-13 — Plan 3: notifications (done on feat/notifications-clipboard)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md` (spec: `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md`). Executed inline (the owner chose "native").
 - Task 1:
   - `notification.*` messages (10 fixtures) in both codecs; `hello` without `features` decodes as none; `ProtocolInfo.features` / `Features.SUPPORTED` = files, notifications.
@@ -19,6 +19,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 8: Android `MacDroidNotificationListener` + `NotificationBridge` (reads notifications, carries out reply/action/dismiss, reports `gone`/`failed`), icons, settings persistence, launcher `<queries>` for app names and icons. Verified: Android gates, `NotificationTextTest`.
 - Task 9: Android Notifications tab (master switch, apps with switches and daily counts, access card), and the setup Notifications step now also asks for notification access (still 6 steps). Verified: Android gates (`NotificationsPresentationTest`, `SetupFlowTest`).
 - Task 10: the cross-platform script now forwards a notification, gets a reply from the Swift server, and removes it. Verified: `./scripts/cross-platform-test.sh` passed.
+- Task 11: versions 0.4.0 / 4 on both sides; all gates and the cross-platform run pass (`swift test` 179). The owner's notification checklist is in `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
 
 ## 2026-10-13 — Spec self-review and Plans 3 and 4 written
 - **What:**
