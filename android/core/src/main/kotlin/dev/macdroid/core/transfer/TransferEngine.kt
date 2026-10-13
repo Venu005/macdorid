@@ -8,9 +8,11 @@ import dev.macdroid.core.protocol.TransferRejectBody
 import dev.macdroid.core.protocol.TransferRejectReason
 import dev.macdroid.core.protocol.TransferResultBody
 import dev.macdroid.core.protocol.TransferResultError
+import java.io.EOFException
 import java.io.IOException
 import java.io.InputStream
 import java.security.MessageDigest
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -166,6 +168,9 @@ class TransferEngine(
             is Message.TransferOffer -> onOffer(message.body)
             is Message.TransferFinish -> onFinish(message.body)
             is Message.TransferCancel -> onPeerCancel(message.body.transferId)
+            is Message.TransferAccept -> onAccept(message.body.transferId)
+            is Message.TransferReject -> onReject(message.body)
+            is Message.TransferResult -> onResult(message.body)
             else -> Unit
         }
     }
@@ -186,6 +191,13 @@ class TransferEngine(
         val queued = outbox.toList()
         outbox.clear()
         queued.forEach(::sendOrQueue)
+        // Offer every unfinished outgoing transfer again under its id (spec §2.2), then fill free slots.
+        for (record in active.filter { it.direction == Direction.ToMac && it.occupiesSlot }) {
+            jobs.remove(record.id)?.cancel()
+            update(record.id) { it.copy(phase = Phase.Offered) }
+            offer(record)
+        }
+        pump()
     }
 
     private fun sendOrQueue(message: Message) {
@@ -198,6 +210,7 @@ class TransferEngine(
         if (record.direction == Direction.FromMac) deletePart(record)
         archive(record.copy(phase = Phase.Cancelled, cancelledByPeer = false))
         if (record.phase != Phase.Queued) sendOrQueue(Message.TransferCancel(TransferIdBody(id)))
+        pump()
     }
 
     private suspend fun onPeerCancel(id: String) {
@@ -206,6 +219,7 @@ class TransferEngine(
         jobs.remove(id)?.cancelAndJoin()
         if (record.direction == Direction.FromMac) deletePart(record)
         archive(record.copy(phase = Phase.Cancelled, cancelledByPeer = true))
+        pump()
     }
 
     // region Receiving (Mac → phone)
@@ -371,6 +385,157 @@ class TransferEngine(
     private suspend fun deletePart(record: TransferRecord) {
         val handle = record.part ?: return
         withContext(Dispatchers.IO) { runCatching { parts(handle)?.delete() } }
+    }
+
+    // endregion
+
+    // region Sending (phone → Mac)
+
+    /** Queues files to send to the Mac. Returns their transfer ids right away. */
+    fun enqueue(files: List<OutgoingFile>): List<String> {
+        val now = clock()
+        val records = files.map {
+            TransferRecord(id = UUID.randomUUID().toString(), direction = Direction.ToMac, name = it.name, size = it.size, mime = it.mime,
+                phase = Phase.Queued, source = it.source, createdAt = now, updatedAt = now)
+        }
+        scope.launch(control) {
+            records.forEach(::add)
+            persist()
+            pump()
+        }
+        return records.map { it.id }
+    }
+
+    /** Sends a failed or cancelled outgoing file again as a new transfer; null if there's nothing to retry. */
+    fun retry(id: String): String? {
+        val old = _snapshot.value.history.firstOrNull {
+            it.id == id && it.direction == Direction.ToMac && it.source != null && (it.phase == Phase.Failed || it.phase == Phase.Cancelled)
+        } ?: return null
+        return enqueue(listOf(OutgoingFile(old.source!!, old.name, old.size, old.mime))).single()
+    }
+
+    /** Offers queued files while fewer than 3 outgoing transfers hold a slot (spec §2.3). */
+    private fun pump() {
+        if (!connected) return
+        while (active.count { it.direction == Direction.ToMac && it.occupiesSlot } < MAX_ACTIVE_OUTGOING) {
+            val next = active.firstOrNull { it.direction == Direction.ToMac && it.phase == Phase.Queued } ?: break
+            update(next.id) { it.copy(phase = Phase.Offered) }
+            offer(next)
+        }
+        persist()
+    }
+
+    private fun offer(record: TransferRecord) {
+        val sent = send(Message.TransferOffer(TransferOfferBody(record.id, record.name, record.size, record.mime)))
+        if (!sent) update(record.id) { it.copy(phase = Phase.Paused) }
+    }
+
+    private fun onAccept(id: String) {
+        val record = record(id)?.takeIf { it.direction == Direction.ToMac && !it.isFinished } ?: return
+        update(record.id) { it.copy(phase = Phase.Active) }
+        val previous = jobs.remove(id)
+        jobs[id] = scope.launch(control) {
+            previous?.cancelAndJoin()
+            runUpload(id)
+        }
+    }
+
+    private suspend fun runUpload(id: String) {
+        var attempts = 0
+        while (true) {
+            val record = record(id) ?: return
+            when (val outcome = withContext(Dispatchers.IO) { uploadOnce(record) }) {
+                is Outcome.Complete -> {
+                    update(id) { it.copy(phase = Phase.Verifying, bytesDone = it.size) }
+                    clearRate(id)
+                    persist()
+                    jobs.remove(id)
+                    send(Message.TransferFinish(TransferFinishBody(id, outcome.sha256)))
+                    return
+                }
+                is Outcome.Local -> return failOutgoing(id, Failure.SourceUnavailable)
+                Outcome.Gone -> {
+                    // The Mac forgot this id (e.g. its 24 h cleanup): offer again, which starts over (spec §2.2).
+                    jobs.remove(id)
+                    update(id) { it.copy(phase = Phase.Offered) }
+                    offer(record)
+                    return
+                }
+                // 409: the Mac's offset moved (a stale request). Re-HEAD right away, a few times at most.
+                Outcome.Conflict -> if (++attempts > maxRetries) {
+                    pauseForRetry(id, attempts) // gives up until the next reconnect's re-offer
+                    return
+                }
+                Outcome.Network -> if (!pauseForRetry(id, ++attempts)) return
+            }
+        }
+    }
+
+    private suspend fun uploadOnce(record: TransferRecord): Outcome = try {
+        val offset = files.uploadOffset(record.id)
+        if (offset > record.size) {
+            Outcome.Gone
+        } else {
+            val digest = MessageDigest.getInstance("SHA-256")
+            local { sources.open(record.source ?: throw IOException("no source")) }.use { input ->
+                val hashed = local { digestAll(input, digest, limit = offset) } // re-hash the bytes the Mac already has
+                if (hashed < offset) throw LocalIoException(EOFException("the file got shorter"))
+                if (offset < record.size) {
+                    val macHas = files.upload(record.id, record.size, offset, input, digest) { progress(record.id, it) }
+                    if (macHas < record.size) return Outcome.Network
+                }
+            }
+            Outcome.Complete(digest.hex())
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: LocalIoException) {
+        Outcome.Local(Failure.SourceUnavailable)
+    } catch (e: TransferHttpException) {
+        when (e.code) {
+            404 -> Outcome.Gone
+            409 -> Outcome.Conflict
+            else -> Outcome.Network
+        }
+    } catch (e: IOException) {
+        Outcome.Network
+    }
+
+    private fun failOutgoing(id: String, failure: Failure) {
+        val record = record(id) ?: return
+        jobs.remove(id)
+        archive(record.copy(phase = Phase.Failed, failure = failure))
+        sendOrQueue(Message.TransferCancel(TransferIdBody(id)))
+        pump()
+    }
+
+    private fun onReject(body: TransferRejectBody) {
+        val record = record(body.transferId)?.takeIf { it.direction == Direction.ToMac } ?: return
+        val failure = when (body.reason) {
+            TransferRejectReason.NoSpace -> Failure.NoSpace
+            TransferRejectReason.Declined -> Failure.Declined
+            TransferRejectReason.Invalid -> Failure.Invalid
+        }
+        jobs.remove(record.id)?.cancel()
+        archive(record.copy(phase = Phase.Failed, failure = failure))
+        pump()
+    }
+
+    private fun onResult(body: TransferResultBody) {
+        val record = record(body.transferId)?.takeIf { it.direction == Direction.ToMac } ?: return
+        jobs.remove(record.id)?.cancel()
+        archive(
+            if (body.ok) {
+                record.copy(phase = Phase.Done, bytesDone = record.size)
+            } else {
+                record.copy(phase = Phase.Failed, failure = when (body.error) {
+                    TransferResultError.ChecksumMismatch -> Failure.ChecksumMismatch
+                    TransferResultError.NoSpace -> Failure.NoSpace
+                    TransferResultError.Io, null -> Failure.Io
+                })
+            },
+        )
+        pump()
     }
 
     // endregion
