@@ -61,7 +61,11 @@ fun SetupScreen(viewModel: SetupViewModel, pairingViewModel: PairingViewModel = 
                 SetupStep.Welcome -> WelcomeStep(onContinue = viewModel::completeWelcome)
                 SetupStep.LocalNetwork -> LocalNetworkStep(onResult = viewModel::refresh)
                 SetupStep.PairMac -> PairStep(pairingViewModel, macName)
-                SetupStep.Notifications -> NotificationsStep(onResult = viewModel::refresh, onSkip = viewModel::skipNotifications)
+                SetupStep.Notifications -> NotificationsStep(
+                    needsPermission = Permissions.needsNotifications && !Permissions.hasNotifications(LocalContext.current),
+                    onResult = viewModel::refresh,
+                    onSkip = viewModel::skipNotifications,
+                )
                 SetupStep.Files -> FilesStep(onDone = viewModel::completeFiles)
                 SetupStep.Battery -> BatteryStep(onDone = viewModel::completeBattery)
                 null -> Box(Modifier.fillMaxSize())
@@ -97,15 +101,26 @@ private fun LocalNetworkStep(onResult: () -> Unit) {
 }
 
 @Composable
-private fun NotificationsStep(onResult: () -> Unit, onSkip: () -> Unit) {
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { onResult() }
+private fun NotificationsStep(needsPermission: Boolean, onResult: () -> Unit, onSkip: () -> Unit) {
+    val context = LocalContext.current
+    val openAccess = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        onResult()
+        if (!Permissions.hasNotificationAccess(context)) openAccess()
+    }
     StepLayout(
         icon = Icons.Rounded.NotificationsActive,
-        title = "Stay in the loop",
-        body = "Allow notifications so MacDroid can show whether your Mac is connected.",
-        primaryLabel = "Allow",
-        onPrimary = { launcher.launch(Manifest.permission.POST_NOTIFICATIONS) },
-        secondaryLabel = "Skip",
+        title = "See phone notifications on your Mac",
+        body = "Reply to messages and clear notifications from your Mac. MacDroid only sends them to your paired Mac — never to the internet.",
+        primaryLabel = "Allow notification access",
+        onPrimary = {
+            when {
+                needsPermission -> launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                !Permissions.hasNotificationAccess(context) -> openAccess()
+                else -> onResult()
+            }
+        },
+        secondaryLabel = "Not now",
         onSecondary = onSkip,
     )
 }

@@ -3,6 +3,15 @@ import Foundation
 public enum ProtocolInfo {
     public static let version = 1
     public static let serviceType = "_macdroid._tcp"
+    /// Features this app implements, sent in `hello` (spec §2.1).
+    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard]
+}
+
+/// Names used in `hello.features`. A feature is active only when both sides list it.
+public enum Feature {
+    public static let files = "files"
+    public static let notifications = "notifications"
+    public static let clipboard = "clipboard"
 }
 
 public struct Hello: Codable, Equatable, Sendable {
@@ -16,6 +25,15 @@ public struct Hello: Codable, Equatable, Sendable {
         self.app = app
         self.device = device
         self.features = features
+    }
+
+    /// Older apps may leave `features` out; that means none (spec §2.1).
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.protocol = try container.decode(Int.self, forKey: .`protocol`)
+        self.app = try container.decode(String.self, forKey: .app)
+        self.device = try container.decode(String.self, forKey: .device)
+        self.features = try container.decodeIfPresent([String].self, forKey: .features) ?? []
     }
 }
 
@@ -57,17 +75,26 @@ public struct ServerInfo: Codable, Equatable, Sendable {
     }
 }
 
+/// What a transfer is for. Absent on the wire means `.file` (spec §8.9).
+public enum TransferPurpose: String, Codable, Sendable {
+    case file
+    case clipboard
+}
+
 public struct TransferOffer: Codable, Equatable, Sendable {
     public var transferId: String
     public var name: String
     public var size: Int64
     public var mime: String
+    /// nil for files (kept off the wire); `.clipboard` for clipboard images (spec §2.3).
+    public var purpose: TransferPurpose?
 
-    public init(transferId: String, name: String, size: Int64, mime: String) {
+    public init(transferId: String, name: String, size: Int64, mime: String, purpose: TransferPurpose? = nil) {
         self.transferId = transferId
         self.name = name
         self.size = size
         self.mime = mime
+        self.purpose = purpose
     }
 }
 
@@ -123,7 +150,190 @@ public struct TransferResult: Codable, Equatable, Sendable {
     }
 }
 
-/// A control-channel message. Later plans add cases (notifications, clipboard, transfers).
+// MARK: Clipboard (spec §2.3)
+
+public enum ClipboardLimits {
+    /// A `clipboard.set` frame, encoded, must fit the WebSocket frame limit (spec §8.1).
+    public static let maxFrameBytes = 1 << 20
+    /// Clipboard images, as PNG.
+    public static let maxImageBytes = 10 * 1024 * 1024
+}
+
+public enum ClipboardKind: String, Codable, Sendable {
+    case text
+}
+
+public struct ClipboardSet: Codable, Equatable, Sendable {
+    public var itemId: String
+    public var kind: ClipboardKind
+    public var text: String
+
+    public init(itemId: String, kind: ClipboardKind = .text, text: String) {
+        self.itemId = itemId
+        self.kind = kind
+        self.text = text
+    }
+}
+
+// MARK: Notifications (spec §2.2)
+
+public struct NotificationButton: Codable, Equatable, Sendable {
+    /// Index in the Android notification's `actions`.
+    public var index: Int
+    public var title: String
+
+    public init(index: Int, title: String) {
+        self.index = index
+        self.title = title
+    }
+}
+
+public struct NotificationPosted: Codable, Equatable, Sendable {
+    /// Android's `StatusBarNotification.key`; opaque to the Mac.
+    public var key: String
+    public var packageName: String
+    public var appName: String
+    public var title: String
+    public var text: String
+    /// Epoch milliseconds on the phone.
+    public var postedAt: Int64
+    public var actions: [NotificationButton]
+    public var canReply: Bool
+    /// 16 lowercase hex characters, or empty when the phone had no icon.
+    public var iconHash: String
+    public var isUpdate: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case key, packageName = "package", appName, title, text, postedAt, actions, canReply, iconHash, isUpdate
+    }
+
+    public init(
+        key: String, packageName: String, appName: String, title: String, text: String, postedAt: Int64,
+        actions: [NotificationButton], canReply: Bool, iconHash: String, isUpdate: Bool
+    ) {
+        self.key = key
+        self.packageName = packageName
+        self.appName = appName
+        self.title = title
+        self.text = text
+        self.postedAt = postedAt
+        self.actions = actions
+        self.canReply = canReply
+        self.iconHash = iconHash
+        self.isUpdate = isUpdate
+    }
+}
+
+/// Body of `notification.removed` and `notification.dismiss`.
+public struct NotificationKey: Codable, Equatable, Sendable {
+    public var key: String
+
+    public init(key: String) { self.key = key }
+}
+
+public struct NotificationSync: Codable, Equatable, Sendable {
+    /// Every forwarded notification still showing on the phone.
+    public var keys: [String]
+
+    public init(keys: [String]) { self.keys = keys }
+}
+
+public struct NotificationIcon: Codable, Equatable, Sendable {
+    public var hash: String
+    /// Base64 PNG, at most 96×96.
+    public var png: String
+
+    public init(hash: String, png: String) {
+        self.hash = hash
+        self.png = png
+    }
+}
+
+public struct PhoneApp: Codable, Equatable, Sendable, Identifiable {
+    public var packageName: String
+    public var appName: String
+    public var iconHash: String
+    public var muted: Bool
+
+    public var id: String { packageName }
+
+    enum CodingKeys: String, CodingKey {
+        case packageName = "package", appName, iconHash, muted
+    }
+
+    public init(packageName: String, appName: String, iconHash: String, muted: Bool) {
+        self.packageName = packageName
+        self.appName = appName
+        self.iconHash = iconHash
+        self.muted = muted
+    }
+}
+
+public struct NotificationApps: Codable, Equatable, Sendable {
+    /// The phone's "Show on your Mac" switch.
+    public var forwarding: Bool
+    /// The phone has notification access.
+    public var access: Bool
+    public var apps: [PhoneApp]
+
+    public init(forwarding: Bool, access: Bool, apps: [PhoneApp]) {
+        self.forwarding = forwarding
+        self.access = access
+        self.apps = apps
+    }
+}
+
+public struct NotificationReply: Codable, Equatable, Sendable {
+    public var key: String
+    public var text: String
+
+    public init(key: String, text: String) {
+        self.key = key
+        self.text = text
+    }
+}
+
+/// Body of `notification.action`.
+public struct NotificationActionRequest: Codable, Equatable, Sendable {
+    public var key: String
+    public var actionIndex: Int
+
+    public init(key: String, actionIndex: Int) {
+        self.key = key
+        self.actionIndex = actionIndex
+    }
+}
+
+public struct NotificationMute: Codable, Equatable, Sendable {
+    public var packageName: String
+    public var muted: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case packageName = "package", muted
+    }
+
+    public init(packageName: String, muted: Bool) {
+        self.packageName = packageName
+        self.muted = muted
+    }
+}
+
+public enum NotificationErrorReason: String, Codable, Sendable {
+    case gone
+    case failed
+}
+
+public struct NotificationError: Codable, Equatable, Sendable {
+    public var key: String
+    public var reason: NotificationErrorReason
+
+    public init(key: String, reason: NotificationErrorReason) {
+        self.key = key
+        self.reason = reason
+    }
+}
+
+/// A control-channel message.
 public enum Message: Equatable, Sendable {
     case hello(Hello)
     case deviceStatus(DeviceStatus)
@@ -133,6 +343,17 @@ public enum Message: Equatable, Sendable {
     case transferFinish(TransferFinish)
     case transferResult(TransferResult)
     case transferCancel(TransferID)
+    case notificationPosted(NotificationPosted)
+    case notificationRemoved(NotificationKey)
+    case notificationSync(NotificationSync)
+    case notificationIcon(NotificationIcon)
+    case notificationApps(NotificationApps)
+    case notificationReply(NotificationReply)
+    case notificationAction(NotificationActionRequest)
+    case notificationDismiss(NotificationKey)
+    case notificationMute(NotificationMute)
+    case notificationError(NotificationError)
+    case clipboardSet(ClipboardSet)
     /// A type this version doesn't understand. Decoded so callers can ignore it; never encoded.
     case unknown(type: String)
 }

@@ -8,6 +8,7 @@ import dev.macdroid.app.graph
 import dev.macdroid.app.platform.ReceivedFiles
 import dev.macdroid.app.platform.SendFiles
 import dev.macdroid.core.connection.ConnectionState
+import dev.macdroid.core.transfer.files
 import dev.macdroid.core.transfer.Direction
 import dev.macdroid.core.transfer.Phase
 import dev.macdroid.core.transfer.TransferSnapshot
@@ -40,11 +41,11 @@ class FilesViewModel(application: Application) : AndroidViewModel(application) {
         .flowOn(Dispatchers.IO)
 
     val ui: StateFlow<FilesUi> = combine(graph.transferEngine.snapshot, graph.connectionManager.state, graph.saveTargets.folderProblem, deleted) { snapshot, state, problem, gone ->
-        FilesUi(snapshot, state is ConnectionState.Connected, problem, gone)
+        FilesUi(snapshot.files(), state is ConnectionState.Connected, problem, gone)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
-        FilesUi(graph.transferEngine.snapshot.value, graph.connectionManager.state.value is ConnectionState.Connected, graph.saveTargets.folderProblem.value),
+        FilesUi(graph.transferEngine.snapshot.value.files(), graph.connectionManager.state.value is ConnectionState.Connected, graph.saveTargets.folderProblem.value),
     )
 
     init {

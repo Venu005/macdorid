@@ -4,6 +4,59 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Owner feedback: Mac window layout, notification cards, toolbar buttons
+- **Fix: window content slid under the title bar** (the sidebar was behind the traffic lights and banners over the title) until a restart. Cause: the Dock icon was turned on (`setActivationPolicy(.regular)`) after the window was already showing, and AppKit's re-layout lost the split view's title-bar insets. Now `DockPolicy.prepareToShowWindow()` switches first, then opens the window.
+- **Fix: clicking a notification banner opened the Phone page.** The click also sends a "reopen", which always showed Phone. Reopen now shows the page last asked for (`selectedSection`), so the Notifications page stays.
+- **Notifications page redesign:**
+  - cards with the app icon, title, time and text
+  - bordered buttons for the app's actions
+  - an inline reply composer (Return sends, Esc cancels, "Reply sent" confirmation)
+  - ✕ on hover
+  - group headers with a count badge and a hover "Clear" for one app
+- **Toolbar buttons are icons with tooltips** (no more text pills): Notifications "Muted Apps…" and "Clear All"; the Clipboard page's "Sync to phone: On" is now a real "Send to Phone" toggle.
+- **Verified:** Mac app build with no warnings; `swift test` 212. The UI is checked by the owner (no UI test harness).
+- **Branch:** `feat/notifications-clipboard`.
+
+## 2026-10-13 — Final review fixes (feat/notifications-clipboard)
+- **Newer clipboard content always wins (both directions).** A clipboard image still queued or in flight is cancelled when newer content is sent (text or image), when the connection drops, and on relaunch (never restored). Before, an old screenshot could land after a newer copy and overwrite it.
+  - Mac: `TransferManager.cancelClipboardTransfers`, `ClipboardSync(cancelImages:)`.
+  - Android: `TransferEngine.cancelClipboard`, `ClipboardHub(cancelImages:)`.
+  - Verified: RED→GREEN `aNewClipboardImageCancelsTheOlderOne`, `cancellingClipboardTransfersLeavesFilesAlone`, `disconnectingCancelsOutgoingClipboardTransfers`, `clipboardTransfersAreNotRestoredAfterARelaunch`/`…Restart` (both sides) and `sendingTextCancelsPendingImages` (both sides). All gates pass.
+- **"Copy to Mac" only reads images other apps shared with it.** The share target is exported, so it now refuses `file:` URIs and MacDroid's own FileProvider (which serves its private clipboard files). Verified: `SharedImageSourceTest` RED→GREEN.
+- **Styled shared text works.** "Copy to Mac" reads `EXTRA_TEXT` as a `CharSequence`; before, styled text arrived as "Clipboard is empty". Verified: Android build only (no instrumentation harness).
+- **Deferred:** 9 minor findings, listed in `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`. All gates and the cross-platform run pass (`swift test` 212).
+
+## 2026-10-13 — Plan 4: clipboard (done on feat/notifications-clipboard)
+- **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-clipboard-4.md` (executed inline).
+- Task 1: `clipboard.set`, optional `transfer.offer.purpose`, `ClipboardLimits`; both sides now announce `clipboard`. Verified: `swift test` 181, Android gates.
+- Task 2: Mac `TransferManager` handles `purpose: clipboard` (fixed clipboard folder, never asks, hidden from snapshots, dropped not archived, `clipboardImageReceived` event, `sendClipboardImage`). Also commits the regenerated `Info.plist` (0.4.0 / 4). Verified: `swift test` 186, Mac app build.
+- Task 3: Android `TransferEngine` handles `purpose: clipboard` (clipboard target, never archived, `ClipboardReceived` event, `enqueueClipboard`, `TransferSnapshot.files()`). Verified: Android core tests.
+- Task 4: Mac core `ClipboardRules` (private/transient/file types never sent, frame-size limit), `ClipboardHistory` (10/20/50, JSON + image files), `ClipboardSync` actor (echo prevention by change count), `ClipboardPresentation`. Verified: `swift test` 207.
+- Task 5: Android core `ClipboardHub` (send results, frame-size limit, received items, recent 10). Verified: 8 new tests.
+- Task 6: Mac `PasteboardWatcher` (0.5 s change-count poll, PNG/TIFF → PNG), `ClipboardNotifier`, `ClipboardSync` wired to the hub, transfers (clipboard folder `ClipboardIncoming`) and settings. Verified: Mac app build.
+- Task 7: Mac Clipboard page (search, direction, Copy/Send on hover) and Settings → General → Clipboard (send, receive, history size, Clear History). No "coming soon" sections left on the Mac. Verified: Mac app build.
+- Task 8: Android clipboard: receive into `ClipboardManager` (images via a FileProvider), invisible `ClipboardSendActivity`, Quick Settings tile, "Send clipboard" notification action, "Copy to Mac" share target; clipboard transfers hidden from Files and the progress notification. Verified: Android gates (`ClipboardPresentationTest`).
+- Task 9: Android Clipboard tab (Send now, "Get Mac clipboard", Recent with tap to copy again). Verified: Android gates.
+- Task 10: the cross-platform run covers clipboard text both ways and a clipboard image to the Mac. Verified: `./scripts/cross-platform-test.sh` passed.
+- Task 11: all gates pass from scratch (`swift test` 207, Mac app build, Android with `--rerun-tasks`, the cross-platform run); the clipboard checklist is appended to the follow-ups file.
+
+## 2026-10-13 — Plan 3: notifications (done on feat/notifications-clipboard)
+- **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md` (spec: `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md`). Executed inline (the owner chose "native").
+- Task 1:
+  - `notification.*` messages (10 fixtures) in both codecs; `hello` without `features` decodes as none; `ProtocolInfo.features` / `Features.SUPPORTED` = files, notifications.
+  - Also fixed a flaky Android test: `pausedUploadIsRetriedWhileConnected` raced its 300 ms periodic resume. That interval is now 1 s; the test failed 1 in 5 on `main`.
+  - Verified: `swift test`, `./gradlew :core:test`.
+- Task 2: both sides announce `files`, `notifications`; the Mac hub forwards every feature message; Android `Connected` carries the Mac's features (`macSupports`). Verified: `swift test` 150, Android gates.
+- Task 3: Android core `NotificationForwarder`: exclusions, update de-dupe, mutes owned by the phone, apps seen with daily counts, sync of still-active keys, icons once per connection. Verified: 18 new tests.
+- Task 4: Mac core `NotificationStore` (50, grouped by app), `FloodGate` (10 per 5 s per app), `NotificationCategories`. Verified: `swift test` 158.
+- Task 5: Mac core `PhoneNotifications` actor (entries, apps, banners via the flood gate, sync, errors, mute requests), `IconCache` (hash-validated file names), `NotificationPresentation`. Verified: `swift test` 179.
+- Task 6: Mac `NotificationRouter` (the only notification delegate; received-file and phone categories together), `PhoneNotifier` (banners with reply/buttons/dismiss, icon attachment), `AppModel` wiring and the `showPhoneNotifications` setting. Verified: Mac app build, no compiler warnings.
+- Task 7: Mac Notifications page (grouped by app, hover Reply/buttons/✕, Clear all), Muted apps sheet, Settings → General → Notifications, Phone page line "Notifications off on phone". Verified: Mac app build.
+- Task 8: Android `MacDroidNotificationListener` + `NotificationBridge` (reads notifications, carries out reply/action/dismiss, reports `gone`/`failed`), icons, settings persistence, launcher `<queries>` for app names and icons. Verified: Android gates, `NotificationTextTest`.
+- Task 9: Android Notifications tab (master switch, apps with switches and daily counts, access card), and the setup Notifications step now also asks for notification access (still 6 steps). Verified: Android gates (`NotificationsPresentationTest`, `SetupFlowTest`).
+- Task 10: the cross-platform script now forwards a notification, gets a reply from the Swift server, and removes it. Verified: `./scripts/cross-platform-test.sh` passed.
+- Task 11: versions 0.4.0 / 4 on both sides; all gates and the cross-platform run pass (`swift test` 179). The owner's notification checklist is in `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
+
 ## 2026-10-13 — Spec self-review and Plans 3 and 4 written
 - **What:**
   - Self-reviewed the notifications + clipboard spec against the code and added §8 with 11 fixes, among them:

@@ -41,7 +41,7 @@ actor SlowCloseTransport: MessageTransport {
         let transport = FakeTransport()
         let task = start(hub, transport)
         try await eventually { await !transport.sent.isEmpty }
-        #expect(try MessageCodec.decode(await transport.sent[0]) == .hello(Hello(app: "0.1.0", device: "Test Mac", features: [])))
+        #expect(try MessageCodec.decode(await transport.sent[0]) == .hello(Hello(app: "0.1.0", device: "Test Mac", features: ProtocolInfo.features)))
         transport.hangUp(); await task.value
     }
 
@@ -120,7 +120,7 @@ actor SlowCloseTransport: MessageTransport {
             await Task.yield()
         }
         try await eventually { await !second.sent.isEmpty }
-        #expect(try MessageCodec.decode(await second.sent[0]) == .hello(Hello(app: "0.1.0", device: "Test Mac", features: [])))
+        #expect(try MessageCodec.decode(await second.sent[0]) == .hello(Hello(app: "0.1.0", device: "Test Mac", features: ProtocolInfo.features)))
         oldContinuation.finish(); await oldTask.value
         second.hangUp(); await secondTask.value
     }
@@ -213,6 +213,32 @@ actor SlowCloseTransport: MessageTransport {
         try await eventually { await received.items == [offer] } // hello and device.status are not forwarded
         transport.hangUp(); await task.value
         listener.cancel()
+    }
+
+    @Test func notificationMessagesReachTheMessagesStream() async throws {
+        let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
+        let received = Collector<Message>()
+        let stream = hub.messages
+        let listener = Task { for await message in stream { await received.append(message) } }
+        let transport = FakeTransport()
+        let task = start(hub, transport)
+        let posted = Message.notificationPosted(NotificationPosted(
+            key: "k1", packageName: "com.whatsapp", appName: "WhatsApp", title: "Mom", text: "Hi", postedAt: 1,
+            actions: [], canReply: true, iconHash: "", isUpdate: false
+        ))
+        let apps = Message.notificationApps(NotificationApps(forwarding: true, access: true, apps: []))
+        try transport.receive(phoneHello)
+        try transport.receive(posted)
+        try transport.receive(apps)
+        try await eventually { await received.items == [posted, apps] }
+        transport.hangUp(); await task.value
+        listener.cancel()
+    }
+
+    @Test func peerInfoSupportsListedFeaturesOnly() {
+        let peer = PeerInfo(device: "Phone", app: "0.4.0", features: [Feature.files, Feature.notifications])
+        #expect(peer.supports(Feature.notifications))
+        #expect(!peer.supports(Feature.clipboard))
     }
 }
 

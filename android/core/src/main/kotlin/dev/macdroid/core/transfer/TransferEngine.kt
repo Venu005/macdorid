@@ -3,7 +3,9 @@ package dev.macdroid.core.transfer
 import dev.macdroid.core.protocol.Message
 import dev.macdroid.core.protocol.TransferFinishBody
 import dev.macdroid.core.protocol.TransferIdBody
+import dev.macdroid.core.protocol.ClipboardLimits
 import dev.macdroid.core.protocol.TransferOfferBody
+import dev.macdroid.core.protocol.TransferPurpose
 import dev.macdroid.core.protocol.TransferRejectBody
 import dev.macdroid.core.protocol.TransferRejectReason
 import dev.macdroid.core.protocol.TransferResultBody
@@ -45,6 +47,8 @@ class TransferEngine(
     private val files: FileTransport,
     private val sources: SourceOpener,
     private val saveTarget: () -> SaveTarget,
+    /** Where clipboard images from the Mac go (app-private); null rejects clipboard offers. */
+    private val clipboardTarget: (() -> SaveTarget)? = null,
     private val parts: (String) -> PartFile?,
     private val send: (Message) -> Boolean,
     private val clock: () -> Long = System::currentTimeMillis,
@@ -99,6 +103,11 @@ class TransferEngine(
         scope.launch(control) { cancelLocally(id) }
     }
 
+    /** Newer clipboard content replaces older (spec §4.1): cancels clipboard images still on their way to the Mac. */
+    fun cancelClipboard() {
+        scope.launch(control) { cancelOutgoingClipboard() }
+    }
+
     fun cancelAll() {
         scope.launch(control) { active.map { it.id }.forEach { cancelLocally(it) } }
     }
@@ -117,6 +126,12 @@ class TransferEngine(
 
     /** Moves a finished record to the front of history. */
     private fun archive(record: TransferRecord) {
+        if (record.isClipboard) {
+            rates.remove(record.id)
+            _snapshot.update { s -> s.copy(active = s.active.filterNot { it.id == record.id }, rates = s.rates - record.id) }
+            persist()
+            return
+        }
         rates.remove(record.id)
         _snapshot.update { s ->
             s.copy(
@@ -158,6 +173,8 @@ class TransferEngine(
             when {
                 // An offer still waiting for "where to save" when the app died was never accepted; the Mac's re-offer starts fresh.
                 record.direction == Direction.FromMac && record.part == null -> Unit
+                // Clipboard content is never resumed later: by then it's stale (spec §4.1).
+                record.isClipboard -> record.part?.let { handle -> withContext(Dispatchers.IO) { runCatching { parts(handle)?.delete() } } }
                 record.updatedAt < cutoff -> {
                     record.part?.let { handle -> withContext(Dispatchers.IO) { runCatching { parts(handle)?.delete() } } }
                     history.add(0, record.copy(phase = Phase.Failed, failure = Failure.Expired, updatedAt = clock()))
@@ -191,9 +208,11 @@ class TransferEngine(
         }
     }
 
-    private fun onConnectionChanged(isConnected: Boolean) {
+    private suspend fun onConnectionChanged(isConnected: Boolean) {
         connected = isConnected
         if (!isConnected) {
+            // Clipboard content isn't queued while disconnected (spec §4.1); the Mac hears the cancel on reconnect.
+            cancelOutgoingClipboard()
             // Stop moving bytes; transfers resume after the reconnect (spec §5 "Paused — waiting for connection").
             // Keep the handles: the next start of each transfer joins its cancelled job before touching the same files.
             jobs.values.forEach { it.cancel() }
@@ -219,6 +238,10 @@ class TransferEngine(
 
     private fun sendOrQueue(message: Message) {
         if (!send(message)) outbox += message
+    }
+
+    private suspend fun cancelOutgoingClipboard() {
+        active.filter { it.isClipboard && it.direction == Direction.ToMac }.map { it.id }.forEach { cancelLocally(it) }
     }
 
     private suspend fun cancelLocally(id: String) {
@@ -254,13 +277,14 @@ class TransferEngine(
             return
         }
         past(id)?.let { replay(it); return }
-        if (offer.size < 0) {
+        val isClipboard = offer.purpose == TransferPurpose.Clipboard
+        if (offer.size < 0 || (isClipboard && (offer.size > ClipboardLimits.MAX_IMAGE_BYTES || clipboardTarget == null))) {
             send(Message.TransferReject(TransferRejectBody(id, TransferRejectReason.Invalid)))
             return
         }
         val name = FileNaming.sanitize(offer.name)
         add(TransferRecord(id = id, direction = Direction.FromMac, name = name, size = offer.size, mime = offer.mime,
-            phase = Phase.Offered, createdAt = clock(), updatedAt = clock()))
+            phase = Phase.Offered, createdAt = clock(), updatedAt = clock(), purpose = offer.purpose))
         persist()
         // Deciding may wait for the user ("Ask where to save"), so it runs on its own and can be cancelled.
         deciding[id] = scope.launch(control) {
@@ -274,7 +298,7 @@ class TransferEngine(
 
     private suspend fun decide(offer: TransferOfferBody, name: String) {
         val id = offer.transferId
-        val target = saveTarget()
+        val target = if (offer.purpose == TransferPurpose.Clipboard) clipboardTarget!!.invoke() else saveTarget()
         val free = withContext(Dispatchers.IO) { runCatching { target.freeBytes() }.getOrNull() }
         if (free != null && free < offer.size) return reject(offer, name, TransferRejectReason.NoSpace)
         val part = try {
@@ -392,7 +416,7 @@ class TransferEngine(
         }
         val done = record.copy(phase = Phase.Done, bytesDone = record.size, savedUri = saved)
         archive(done)
-        _events.tryEmit(TransferEvent.Received(done))
+        _events.tryEmit(if (done.isClipboard) TransferEvent.ClipboardReceived(saved, done.mime) else TransferEvent.Received(done))
         send(Message.TransferResult(TransferResultBody(id, ok = true)))
     }
 
@@ -429,6 +453,20 @@ class TransferEngine(
         return records.map { it.id }
     }
 
+    /** Queues a clipboard image (a PNG in app-private storage) for the Mac (spec §2.3). Returns its id. */
+    fun enqueueClipboard(file: OutgoingFile): String {
+        val now = clock()
+        val record = TransferRecord(id = UUID.randomUUID().toString(), direction = Direction.ToMac, name = file.name, size = file.size,
+            mime = file.mime, phase = Phase.Queued, source = file.source, purpose = TransferPurpose.Clipboard, createdAt = now, updatedAt = now)
+        scope.launch(control) {
+            cancelOutgoingClipboard()
+            add(record)
+            persist()
+            pump()
+        }
+        return record.id
+    }
+
     /** Sends a failed or cancelled outgoing file again as a new transfer; null if there's nothing to retry. */
     fun retry(id: String): String? {
         val old = _snapshot.value.history.firstOrNull {
@@ -449,7 +487,7 @@ class TransferEngine(
     }
 
     private fun offer(record: TransferRecord) {
-        val sent = send(Message.TransferOffer(TransferOfferBody(record.id, record.name, record.size, record.mime)))
+        val sent = send(Message.TransferOffer(TransferOfferBody(record.id, record.name, record.size, record.mime, record.purpose)))
         if (!sent) update(record.id) { it.copy(phase = Phase.Paused) }
     }
 

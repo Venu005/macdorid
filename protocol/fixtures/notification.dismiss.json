@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "type": "notification.dismiss",
+  "id": "6f1c2a0e-0000-4000-8000-000000000017",
+  "body": {
+    "key": "0|com.whatsapp|1|chat|10123"
+  }
+}

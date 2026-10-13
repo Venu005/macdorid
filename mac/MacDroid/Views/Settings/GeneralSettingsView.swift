@@ -1,3 +1,4 @@
+import MacDroidCore
 import ServiceManagement
 import SwiftUI
 
@@ -6,9 +7,11 @@ struct GeneralSettingsView: View {
     @State private var loginMessage: String?
     @State private var reverting = false
     @AppStorage(DockPolicy.showInDockKey) private var showInDock = true
-    @Bindable var files: FilesSettings
+    let model: AppModel
+    @State private var showingMutedApps = false
 
     var body: some View {
+        @Bindable var files = model.files
         Form {
             Section {
                 Toggle("Launch at login", isOn: $launchAtLogin)
@@ -50,8 +53,35 @@ struct GeneralSettingsView: View {
                 Text("Files from your phone save automatically. Partly received files end in “.macdroid-part” until they're checked.")
                     .foregroundStyle(.secondary)
             }
+            Section {
+                Toggle("Show phone notifications", isOn: Binding(get: { model.showPhoneNotifications }, set: { model.setShowPhoneNotifications($0) }))
+                LabeledContent("Apps") {
+                    Button("Muted Apps…") { showingMutedApps = true }
+                }
+            } header: {
+                Text("Notifications")
+            } footer: {
+                Text("Notifications from your phone appear in Notification Center. Android hides one-time codes from apps like MacDroid.")
+                    .foregroundStyle(.secondary)
+            }
+            Section {
+                Toggle("Send to phone", isOn: Binding(get: { model.clipboard.sendToPhone }, set: { model.setClipboardSendToPhone($0) }))
+                Toggle("Receive from phone", isOn: Binding(get: { model.clipboard.receiveFromPhone }, set: { model.setClipboardReceiveFromPhone($0) }))
+                Picker("Keep history", selection: Binding(get: { model.clipboard.capacity }, set: { model.setClipboardHistorySize($0) })) {
+                    ForEach(ClipboardHistory.capacities, id: \.self) { Text("\($0) items").tag($0) }
+                }
+                LabeledContent("History") {
+                    Button("Clear History") { model.clearClipboardHistory() }
+                }
+            } header: {
+                Text("Clipboard")
+            } footer: {
+                Text("What you copy on this Mac goes to your phone automatically. Password-manager copies are never sent.")
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
+        .sheet(isPresented: $showingMutedApps) { MutedAppsSheet(model: model) }
     }
 
     /// Applies the toggle; if the system refuses, shows why and puts the toggle back to the real state.

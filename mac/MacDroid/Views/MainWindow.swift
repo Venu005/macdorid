@@ -37,9 +37,10 @@ struct MainWindow: View {
     private func detail(for section: SidebarSection) -> some View {
         switch section {
         case .phone: PhoneView(model: model)
+        case .notifications: NotificationsView(model: model)
         case .files: FilesView(model: model)
-        case .notifications, .clipboard: ComingSoonView(section: section)
-        case .general: GeneralSettingsView(files: model.files)
+        case .clipboard: ClipboardView(model: model)
+        case .general: GeneralSettingsView(model: model)
         case .security: SecuritySettingsView(fingerprint: model.fingerprint)
         case .about: AboutView()
         }

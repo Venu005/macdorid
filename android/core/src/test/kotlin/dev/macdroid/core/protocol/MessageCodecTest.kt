@@ -3,6 +3,7 @@ package dev.macdroid.core.protocol
 import dev.macdroid.core.Fixtures
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
@@ -22,6 +23,10 @@ class MessageCodecTest {
         "hello.json", "device.status.json",
         "transfer.offer.json", "transfer.accept.json", "transfer.reject.json", "transfer.finish.json",
         "transfer.result.json", "transfer.result.failed.json", "transfer.cancel.json",
+        "notification.posted.json", "notification.removed.json", "notification.sync.json", "notification.icon.json",
+        "notification.apps.json", "notification.reply.json", "notification.action.json", "notification.dismiss.json",
+        "notification.mute.json", "notification.error.json",
+        "clipboard.set.json", "transfer.offer.clipboard.json",
     )
 
     @Test fun fixturesRoundTrip() {
@@ -69,5 +74,58 @@ class MessageCodecTest {
             MessageCodec.json.decodeFromString(PairRequest.serializer(), Fixtures.text("pair.request.json")),
         )
         assertEquals(PairResponse("MacBook Pro"), MessageCodec.json.decodeFromString(PairResponse.serializer(), Fixtures.text("pair.response.json")))
+    }
+    @Test fun notificationFixturesDecode() {
+        val key = "0|com.whatsapp|1|chat|10123"
+        assertEquals(
+            Message.NotificationPosted(NotificationPostedBody(key, "com.whatsapp", "WhatsApp", "Mom", "Did you eat?", 1_791_892_800_000,
+                listOf(NotificationButton(1, "Mark as read")), canReply = true, iconHash = "3f2a9c1d0b7e4f52", isUpdate = false)),
+            MessageCodec.decode(Fixtures.text("notification.posted.json")),
+        )
+        assertEquals(Message.NotificationRemoved(NotificationKeyBody(key)), MessageCodec.decode(Fixtures.text("notification.removed.json")))
+        assertEquals(Message.NotificationSync(NotificationSyncBody(listOf(key, "0|com.google.android.gm|7|null|10140"))), MessageCodec.decode(Fixtures.text("notification.sync.json")))
+        assertEquals(Message.NotificationIcon(NotificationIconBody("3f2a9c1d0b7e4f52", "iVBORw0KGgo=")), MessageCodec.decode(Fixtures.text("notification.icon.json")))
+        assertEquals(
+            Message.NotificationApps(NotificationAppsBody(forwarding = true, access = true, apps = listOf(
+                PhoneAppBody("com.whatsapp", "WhatsApp", "3f2a9c1d0b7e4f52", muted = false),
+                PhoneAppBody("com.discord", "Discord", "", muted = true),
+            ))),
+            MessageCodec.decode(Fixtures.text("notification.apps.json")),
+        )
+        assertEquals(Message.NotificationReply(NotificationReplyBody(key, "On my way")), MessageCodec.decode(Fixtures.text("notification.reply.json")))
+        assertEquals(Message.NotificationAction(NotificationActionBody(key, 1)), MessageCodec.decode(Fixtures.text("notification.action.json")))
+        assertEquals(Message.NotificationDismiss(NotificationKeyBody(key)), MessageCodec.decode(Fixtures.text("notification.dismiss.json")))
+        assertEquals(Message.NotificationMute(NotificationMuteBody("com.discord", muted = true)), MessageCodec.decode(Fixtures.text("notification.mute.json")))
+        assertEquals(Message.NotificationError(NotificationErrorBody(key, NotificationErrorReason.Gone)), MessageCodec.decode(Fixtures.text("notification.error.json")))
+    }
+
+    @Test fun helloWithoutFeaturesDecodesAsEmpty() {
+        assertEquals(
+            Message.Hello(HelloBody(protocol = 1, app = "0.3.0", device = "Nothing Phone (3)", features = emptyList())),
+            MessageCodec.decode(Fixtures.text("hello.no-features.json")),
+        )
+    }
+
+    @Test fun unknownNotificationErrorReasonIsMalformed() {
+        assertThrows(MalformedMessageException::class.java) {
+            MessageCodec.decode("""{"v":1,"type":"notification.error","id":"x","body":{"key":"k","reason":"bored"}}""")
+        }
+    }
+
+    @Test fun supportedFeaturesIncludeClipboard() {
+        assertEquals(listOf("files", "notifications", "clipboard"), Features.SUPPORTED)
+    }
+
+    @Test fun clipboardFixturesDecode() {
+        assertEquals(
+            Message.ClipboardSet(ClipboardSetBody("9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d", ClipboardKind.Text, "https://github.com/Venu005/macdroid")),
+            MessageCodec.decode(Fixtures.text("clipboard.set.json")),
+        )
+        assertEquals(
+            Message.TransferOffer(TransferOfferBody("5c1d9e2a-3b4f-4a6c-8d7e-0f1a2b3c4d5e", "clipboard.png", 48_213, "image/png", TransferPurpose.Clipboard)),
+            MessageCodec.decode(Fixtures.text("transfer.offer.clipboard.json")),
+        )
+        assertFalse(MessageCodec.encode(Message.TransferOffer(TransferOfferBody("t", "a", 1, "x/y"))).contains("purpose"))
+        assertEquals(1_048_576, ClipboardLimits.MAX_FRAME_BYTES)
     }
 }

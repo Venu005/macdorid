@@ -33,11 +33,5 @@ enum SidebarSection: String, Hashable, CaseIterable, Identifiable {
     /// Features not built yet show a "Coming in a later update" page.
     var isAvailable: Bool { comingSoonDescription == nil }
 
-    var comingSoonDescription: String? {
-        switch self {
-        case .notifications: "See your Android notifications on your Mac, reply to messages, and dismiss them on both devices."
-        case .clipboard: "Copy on your Mac and paste on your phone — and send your phone's clipboard back with one tap."
-        default: nil
-        }
-    }
+    var comingSoonDescription: String? { nil }
 }

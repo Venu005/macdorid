@@ -44,12 +44,16 @@ sealed interface ConnectionState {
     data object Stopped : ConnectionState
     data object NotPaired : ConnectionState
     data object Connecting : ConnectionState
-    data class Connected(val macName: String) : ConnectionState
+    /** [features] are what the Mac listed in its hello (spec §2.1). */
+    data class Connected(val macName: String, val features: Set<String> = emptySet()) : ConnectionState
     /** [retryAtNanos] is the monotonic `System.nanoTime()` deadline of the retry; 0 when unknown. */
     data class Waiting(val retryInMs: Long, val retryAtNanos: Long = 0) : ConnectionState
     /** The Mac's certificate isn't the pinned one, or the Mac rejected ours. The user must re-pair. */
     data class TrustFailure(val detail: String) : ConnectionState
 }
+
+/** Connected to a Mac that listed [feature] in its hello. */
+fun ConnectionState.macSupports(feature: String): Boolean = this is ConnectionState.Connected && feature in features
 
 /** Keeps one WebSocket to the paired Mac alive, reconnecting with backoff. */
 class ConnectionManager(
@@ -232,7 +236,7 @@ class ConnectionManager(
             return
         }
         if (message is Message.Hello) {
-            setState(gen, ConnectionState.Connected(message.body.device))
+            setState(gen, ConnectionState.Connected(message.body.device, message.body.features.toSet()))
             if (message.body.device != mac.name) saveIfCurrent(gen, mac.copy(name = message.body.device))
         }
         _incoming.emit(message)

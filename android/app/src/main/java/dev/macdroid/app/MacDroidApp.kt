@@ -10,13 +10,19 @@ import dev.macdroid.app.platform.NsdMacLocator
 import dev.macdroid.app.platform.PrefsPairingStore
 import dev.macdroid.app.platform.SavePrompter
 import dev.macdroid.app.platform.SaveTargets
+import dev.macdroid.app.platform.clipboard.ClipboardBridge
+import dev.macdroid.app.platform.clipboard.ClipboardImages
+import dev.macdroid.app.platform.clipboard.ClipboardPrefs
+import dev.macdroid.app.platform.notifications.NotificationBridge
 import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.pairing.PairingClient
 import dev.macdroid.core.pairing.PairingStore
+import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.HelloBody
 import dev.macdroid.core.tls.ClientIdentity
 import dev.macdroid.core.transfer.FileEndpoint
+import dev.macdroid.core.transfer.FolderSaveTarget
 import dev.macdroid.core.transfer.JsonFileTransferStore
 import dev.macdroid.core.transfer.TransferClient
 import dev.macdroid.core.transfer.TransferEngine
@@ -52,7 +58,7 @@ class AppGraph(private val context: Context) {
         store = pairingStore,
         identity = { identity },
         locator = NsdMacLocator(context),
-        hello = { HelloBody(app = BuildConfig.VERSION_NAME, device = DeviceInfo.name(context)) },
+        hello = { HelloBody(app = BuildConfig.VERSION_NAME, device = DeviceInfo.name(context), features = Features.SUPPORTED) },
         baseClient = httpClient,
     )
 
@@ -68,9 +74,17 @@ class AppGraph(private val context: Context) {
         files = TransferClient(FileEndpoint(pairingStore, { identity }, httpClient)::current),
         sources = ContentSourceOpener(context.contentResolver),
         saveTarget = saveTargets::current,
-        parts = saveTargets::reopen,
+        clipboardTarget = { FolderSaveTarget(ClipboardImages.receivedDir(context)) },
+        parts = { handle -> saveTargets.reopen(handle) ?: FolderSaveTarget.reopen(handle) },
         send = connectionManager::send,
     ).also { it.start(connectionManager.incoming, connectionManager.state.map { state -> state is ConnectionState.Connected }) }
+
+    /** Mirrors notifications to the Mac (spec §3.1); runs for the whole process like the transfer engine. */
+    val notificationBridge = NotificationBridge(context, connectionManager, appScope).also { it.start() }
+
+    val clipboardPrefs = ClipboardPrefs(context)
+    /** Clipboard sync (spec §4.2–4.3); runs for the whole process. */
+    val clipboardBridge = ClipboardBridge(context, connectionManager, transferEngine, clipboardPrefs, appScope).also { it.start() }
 
     fun pairingClient() = PairingClient(identity, httpClient)
 }

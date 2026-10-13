@@ -29,15 +29,69 @@ struct FolderLocation: ReceiveLocationProvider {
 let transfers = TransferManager(
     stateDirectory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-\(UUID().uuidString)"),
     location: FolderLocation(folder: receiveDir),
+    clipboardDirectory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-clipboard-\(UUID().uuidString)"),
     send: { try await hub.send($0) }
 )
 await transfers.attach(to: hub)
+
+let notifications = PhoneNotifications(
+    icons: IconCache(directory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-icons-\(UUID().uuidString)")),
+    send: { try await hub.send($0) }
+)
+await notifications.attach(to: hub)
+
+// Replies "On my way" to the first notification that can be replied to (exercises Mac → phone).
+let notificationPrinter = Task {
+    var replied = false
+    for await event in notifications.events {
+        switch event {
+        case .show(let posted, let banner):
+            print("NOTIFICATION posted key=\(posted.key) title=\(posted.title) banner=\(banner)")
+            if posted.canReply, !replied {
+                replied = true
+                await notifications.reply(key: posted.key, text: "On my way")
+                print("NOTIFICATION replied key=\(posted.key)")
+            }
+        case .remove(let keys):
+            for key in keys { print("NOTIFICATION removed key=\(key)") }
+        case .problem(let text):
+            print("NOTIFICATION problem \(text)")
+        }
+    }
+}
+
+let appsPrinter = Task {
+    for await state in notifications.states where state.phoneAccess != nil {
+        print("NOTIFICATION apps count=\(state.apps.count) access=\(state.phoneAccess ?? false)")
+    }
+}
+
+actor DevPasteboard {
+    private var count = 0
+    func apply(_ content: ClipboardContent) -> Int {
+        count += 1
+        switch content {
+        case .text(let text): print("CLIPBOARD applied text=\(text)")
+        case .image(let png): print("CLIPBOARD applied image bytes=\(png.count)")
+        }
+        return 1_000 + count
+    }
+}
+let devPasteboard = DevPasteboard()
+let clipboard = ClipboardSync(
+    history: ClipboardHistory(directory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-history-\(UUID().uuidString)")),
+    send: { try await hub.send($0) },
+    sendImage: { url in await transfers.sendClipboardImage(url) },
+    apply: { await devPasteboard.apply($0) }
+)
+await clipboard.attach(to: hub)
 
 let window = await pairing.openWindow()
 print("PAIRING_URI \(PairingInvite(host: host, port: port, fingerprint: identity.fingerprint, code: window.code, name: macName).uri)")
 
 let statusPrinter = Task {
     var sentFile = false
+    var sentClipboard = false
     for await status in hub.statusUpdates {
         switch status {
         case .disconnected:
@@ -48,13 +102,26 @@ let statusPrinter = Task {
                 sentFile = true
                 _ = await transfers.send(files: [sendOnConnect])
             }
+            if !sentClipboard {
+                sentClipboard = true
+                Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    await clipboard.localChange(.text("hello from mac"), changeCount: 1)
+                }
+            }
         }
     }
 }
 
 let transferPrinter = Task {
     for await event in transfers.events {
-        if case .received(let record) = event { print("RECEIVED \(record.name) size=\(record.size)") }
+        switch event {
+        case .received(let record): print("RECEIVED \(record.name) size=\(record.size)")
+        case .clipboardImageReceived(let url):
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? -1
+            print("CLIPBOARD image size=\(size)")
+            await clipboard.imageReceived(url)
+        }
     }
 }
 
@@ -74,3 +141,5 @@ try await server.run { boundPort in print("LISTENING \(boundPort)") }
 statusPrinter.cancel()
 transferPrinter.cancel()
 sentPrinter.cancel()
+notificationPrinter.cancel()
+appsPrinter.cancel()

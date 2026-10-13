@@ -269,4 +269,20 @@ class ConnectionManagerTest {
             }
         }
     }
+    @Test fun connectedStateCarriesTheMacsFeatures(): Unit = runBlocking {
+        MockMac(features = listOf("files", "notifications")).use { mac ->
+            mac.enqueueSession()
+            mac.start()
+            val manager = manager(mac, InMemoryPairingStore(mac.pairedMac()))
+            manager.start()
+            try {
+                val state = manager.awaitState { it is ConnectionState.Connected }
+                assertEquals(ConnectionState.Connected("Test Mac", setOf("files", "notifications")), state)
+                assertTrue(state.macSupports("notifications"))
+                assertFalse(state.macSupports("clipboard"))
+            } finally {
+                manager.stop()
+            }
+        }
+    }
 }

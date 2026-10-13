@@ -17,6 +17,7 @@ import dev.macdroid.app.ui.presentation.TransferPresentation
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.protocol.Message
 import dev.macdroid.core.transfer.TransferEvent
+import dev.macdroid.core.transfer.files
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -60,7 +61,7 @@ class ConnectionService : Service() {
         scope.launch {
             // At most one update a second; also clean up cache copies of finished transfers.
             engine.snapshot.collect { snapshot -> // a StateFlow: a slow collector always gets the latest value
-                val summary = TransferPresentation.progressSummary(snapshot)
+                val summary = TransferPresentation.progressSummary(snapshot.files())
                 if (summary == null) {
                     notifications.cancel(TransferNotifications.PROGRESS_ID)
                 } else {

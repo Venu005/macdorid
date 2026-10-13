@@ -1,5 +1,6 @@
 package dev.macdroid.core.transfer
 
+import dev.macdroid.core.protocol.TransferPurpose
 import kotlinx.serialization.Serializable
 
 @Serializable enum class Direction { ToMac, FromMac }
@@ -30,7 +31,11 @@ data class TransferRecord(
     val savedUri: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
+    /** null for files; Clipboard for clipboard images (spec §2.3). */
+    val purpose: TransferPurpose? = null,
 ) {
+    val isClipboard: Boolean get() = purpose == TransferPurpose.Clipboard
+
     val isFinished: Boolean get() = phase == Phase.Done || phase == Phase.Failed || phase == Phase.Cancelled
 
     /** Counts toward the 3-active-outgoing limit. */
@@ -48,7 +53,16 @@ data class TransferSnapshot(
 sealed interface TransferEvent {
     /** A file from the Mac was verified and saved ([TransferRecord.savedUri] is set). */
     data class Received(val record: TransferRecord) : TransferEvent
+    /** A clipboard image from the Mac was verified; [uri] is its file in the clipboard folder (spec §2.3). */
+    data class ClipboardReceived(val uri: String, val mime: String) : TransferEvent
 }
 
 /** A file the user chose to send. [source] is a content URI or an absolute path. */
 data class OutgoingFile(val source: String, val name: String, val size: Long, val mime: String)
+
+/** The transfers the Files UI and transfer notifications show: clipboard images are hidden (spec §8.10). */
+fun TransferSnapshot.files(): TransferSnapshot = TransferSnapshot(
+    active = active.filterNot { it.isClipboard },
+    history = history.filterNot { it.isClipboard },
+    rates = rates.filterKeys { id -> active.any { it.id == id && !it.isClipboard } },
+)

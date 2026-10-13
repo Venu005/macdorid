@@ -1,15 +1,23 @@
 package dev.macdroid.core
 
+import dev.macdroid.core.clipboard.ClipboardHub
+import dev.macdroid.core.clipboard.SendResult
 import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.connection.MacLocator
+import dev.macdroid.core.connection.macSupports
 import dev.macdroid.core.pairing.InMemoryPairingStore
 import dev.macdroid.core.pairing.PairResult
 import dev.macdroid.core.pairing.PairingClient
 import dev.macdroid.core.pairing.PairingInvite
 import dev.macdroid.core.protocol.DeviceStatusBody
+import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.HelloBody
 import dev.macdroid.core.protocol.Message
+import dev.macdroid.core.notifications.InMemoryNotificationSettingsStore
+import dev.macdroid.core.notifications.NotificationCommand
+import dev.macdroid.core.notifications.NotificationForwarder
+import dev.macdroid.core.notifications.PhoneNotification
 import dev.macdroid.core.tls.ClientIdentity
 import dev.macdroid.core.transfer.*
 import java.io.File
@@ -26,6 +34,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import okhttp3.tls.HeldCertificate
@@ -68,7 +77,7 @@ class CrossPlatformTest {
         }
 
         val store = InMemoryPairingStore(result.mac)
-        val manager = ConnectionManager(store, { phone }, MacLocator.None, { HelloBody(app = "test", device = "MacDroid Test Phone") })
+        val manager = ConnectionManager(store, { phone }, MacLocator.None, { HelloBody(app = "test", device = "MacDroid Test Phone", features = Features.SUPPORTED) })
         val phoneFile = System.getProperty("macdroidPhoneFile")
         val receiveDir = System.getProperty("macdroidPhoneReceiveDir")
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -79,16 +88,54 @@ class CrossPlatformTest {
             parts = { FolderSaveTarget.reopen(it) }, send = manager::send, retryDelayMs = 200,
         )
         engine.start(manager.incoming, manager.state.map { it is ConnectionState.Connected }) // before connecting: incoming has no replay
+        val received = CopyOnWriteArrayList<Message>()
+        val collector = scope.launch { manager.incoming.collect { received.add(it) } }
         manager.start()
         try {
-            assertEquals(ConnectionState.Connected("MacDroid Dev Server"), withTimeout(10_000) { manager.state.first { it is ConnectionState.Connected } })
+            val connected = withTimeout(10_000) { manager.state.first { it is ConnectionState.Connected } } as ConnectionState.Connected
+            assertEquals("MacDroid Dev Server", connected.macName)
+            assertTrue(connected.macSupports(Features.NOTIFICATIONS))
             assertTrue(manager.send(Message.DeviceStatus(DeviceStatusBody(77, false))))
             delay(500)
+            exchangeANotification(manager, received)
+            exchangeClipboard(manager, engine, received)
             if (phoneFile != null && receiveDir != null) sendFilesBothWaysWithADrop(manager, engine, transport, File(phoneFile))
         } finally {
+            collector.cancel()
             manager.stop()
             scope.cancel()
         }
+    }
+
+    /** The Mac's copy arrives; the phone sends text and a small image back. */
+    private suspend fun exchangeClipboard(manager: ConnectionManager, engine: TransferEngine, received: List<Message>) {
+        withTimeout(10_000) { while (received.none { it is Message.ClipboardSet }) delay(50) }
+        assertEquals("hello from mac", received.filterIsInstance<Message.ClipboardSet>().first().body.text)
+        val hub = ClipboardHub(manager::send, { engine.enqueueClipboard(it) }, { true })
+        assertEquals(SendResult.Sent, hub.sendText("hello from phone", manager.state.value))
+        val png = File.createTempFile("clip", ".png").apply { writeBytes(ByteArray(3_000) { it.toByte() }); deleteOnExit() }
+        assertEquals(SendResult.Sent, hub.sendImage(OutgoingFile(png.path, "clipboard.png", png.length(), "image/png"), manager.state.value))
+        // The phone only gets transfer.result for its own uploads, and the file section hasn't started yet.
+        withTimeout(20_000) {
+            while (received.none { it is Message.TransferResult && it.body.ok }) delay(100)
+        }
+    }
+
+    /** The phone forwards a chat notification; the dev server replies "On my way"; then the phone removes it. */
+    private suspend fun exchangeANotification(manager: ConnectionManager, received: List<Message>) {
+        val forwarder = NotificationForwarder("dev.macdroid.test", InMemoryNotificationSettingsStore(), manager::send, { null })
+        forwarder.accessChanged(true)
+        forwarder.connected(emptySet())
+        forwarder.posted(PhoneNotification("k1", "com.example.chat", "Chat", "Mom", "Did you eat?", System.currentTimeMillis(), emptyList(), canReply = true))
+        withTimeout(10_000) {
+            while (received.none { it is Message.NotificationReply }) delay(50)
+        }
+        val reply = received.filterIsInstance<Message.NotificationReply>().single().body
+        assertEquals("k1", reply.key)
+        assertEquals("On my way", reply.text)
+        assertEquals(NotificationCommand.Reply("k1", "On my way"), forwarder.handle(Message.NotificationReply(reply)))
+        forwarder.removed("k1")
+        delay(300)
     }
 
     /** The dev server sends its file when the phone connects; the phone sends one back. Cut the link mid-file and expect both to resume. */

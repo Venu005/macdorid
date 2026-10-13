@@ -11,12 +11,14 @@ struct MenuBarLabel: View {
             .task {
                 // A request made before this label appeared (at launch) must not be lost.
                 if model.windowRequest != nil {
+                    DockPolicy.prepareToShowWindow()
                     openWindow(id: MainWindow.id)
                     NSApp.activate()
                 }
             }
             .onChange(of: model.windowRequest) { _, request in
                 guard request != nil else { return }
+                DockPolicy.prepareToShowWindow()
                 openWindow(id: MainWindow.id)
                 NSApp.activate()
             }
