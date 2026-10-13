@@ -276,3 +276,25 @@ import Testing
         #expect(unchanged == false)
     }
 }
+
+@Suite struct ClipboardImageSourceTests {
+    // Review minor 2: the file being sent must survive Clear History / a trim while it's on its way.
+    @Test func sentImagesAreCopiesThatSurviveClearingHistory() async throws {
+        let sentURLs = Collector<URL>()
+        let sync = ClipboardSync(
+            history: ClipboardHistory(directory: try makeTemporaryDirectory()),
+            send: { _ in }, sendImage: { url in await sentURLs.append(url); return true }, apply: { _ in 1 }
+        )
+        await sync.connectionChanged(.connected(PeerInfo(device: "Phone", app: "0.4.0", features: ProtocolInfo.features)))
+        await sync.localChange(.image(testBytes(500)), changeCount: 5)
+        let id = try #require(await sync.state.items.first?.id)
+        await sync.sendToPhone(id: id)
+        await sync.clearHistory()
+        let urls = await sentURLs.items
+        #expect(urls.count == 2)
+        // The newest send's file survives; an older one may go, because a newer item cancels its transfer.
+        let newest = try #require(urls.last)
+        #expect(!newest.path(percentEncoded: false).contains("/images/"))
+        #expect(try Data(contentsOf: newest) == testBytes(500))
+    }
+}

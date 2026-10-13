@@ -88,6 +88,18 @@ public struct ClipboardHistory: Sendable {
         return FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) ? url : nil
     }
 
+    /// A copy of `item`'s image to send, so trimming or clearing the history can't pull the file from under a
+    /// transfer. Only the newest outgoing copy is kept: a newer clipboard item cancels the older transfer anyway.
+    public func outgoingCopy(of item: ClipboardItem) -> URL? {
+        guard let source = imageURL(item) else { return nil }
+        let folder = directory.appending(path: "outgoing", directoryHint: .isDirectory)
+        let fm = FileManager.default
+        try? fm.removeItem(at: folder)
+        try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        let copy = folder.appending(path: UUID().uuidString.lowercased() + ".png")
+        return (try? fm.copyItem(at: source, to: copy)) == nil ? nil : copy
+    }
+
     private mutating func trim() {
         while items.count > capacity { removeFiles(items.removeLast()) }
     }
