@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 data class HomeUi(val status: StatusModel, val macName: String?)
@@ -22,8 +21,6 @@ data class HomeUi(val status: StatusModel, val macName: String?)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val graph = application.graph
 
-    /** Each state with the moment it was entered, so "retrying in N s" can count down live. */
-    private val stateSince = graph.connectionManager.state.map { it to SystemClock.elapsedRealtime() }
     private val ticker = flow {
         while (true) {
             emit(SystemClock.elapsedRealtime())
@@ -31,9 +28,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    val ui: StateFlow<HomeUi> = combine(stateSince, graph.pairingStore.paired, ticker) { since, mac, now ->
-        val (state, enteredAt) = since
-        val remaining = (state as? ConnectionState.Waiting)?.let { it.retryInMs - (now - enteredAt) }
+    val ui: StateFlow<HomeUi> = combine(graph.connectionManager.state, graph.pairingStore.paired, ticker) { state, mac, _ ->
+        val remaining = (state as? ConnectionState.Waiting)
+            ?.takeIf { it.retryAtNanos > 0 }
+            ?.let { (it.retryAtNanos - System.nanoTime()) / 1_000_000 }
         HomeUi(StatusPresentation.home(state, mac?.name ?: "Your Mac", remaining), mac?.name)
     }.stateIn(
         viewModelScope,

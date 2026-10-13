@@ -165,7 +165,9 @@ class ConnectionManagerTest {
             val manager = manager(mac, InMemoryPairingStore(mac.pairedMac()), backoff = Backoff(10_000, 10_000))
             manager.start()
             try {
-                manager.awaitState { it is ConnectionState.Waiting }
+                val waiting = manager.awaitState { it is ConnectionState.Waiting } as ConnectionState.Waiting
+                val remainingMs = (waiting.retryAtNanos - System.nanoTime()) / 1_000_000
+                assertTrue("deadline $remainingMs ms", waiting.retryAtNanos > 0 && remainingMs in 1..waiting.retryInMs)
                 manager.nudge()
                 manager.awaitState(timeoutMs = 2_000) { it is ConnectionState.Connected }
             } finally {
