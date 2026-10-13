@@ -6,6 +6,7 @@ struct GeneralSettingsView: View {
     @State private var loginMessage: String?
     @State private var reverting = false
     @AppStorage(DockPolicy.showInDockKey) private var showInDock = true
+    @Bindable var files: FilesSettings
 
     var body: some View {
         Form {
@@ -28,6 +29,26 @@ struct GeneralSettingsView: View {
                     .onChange(of: showInDock) { _, _ in DockPolicy.windowDidAppear() }
             } footer: {
                 Text("MacDroid always keeps running in the menu bar.").foregroundStyle(.secondary)
+            }
+            Section {
+                LabeledContent("Save received files to") {
+                    HStack {
+                        Text(files.folder.lastPathComponent).foregroundStyle(.secondary)
+                        Button("Choose…") { files.chooseFolder() }
+                        if !files.usesDefaultFolder { Button("Use Downloads") { files.useDefaultFolder() } }
+                    }
+                }
+                Toggle("Ask where to save each time", isOn: $files.askEachTime)
+                if files.folderProblem {
+                    Label("MacDroid can't reach the folder you chose for received files. Choose it again in Settings.",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
+            } header: {
+                Text("Received files")
+            } footer: {
+                Text("Files from your phone save automatically. Partly received files end in “.macdroid-part” until they're checked.")
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

@@ -85,5 +85,5 @@ Mac app (`mac/MacDroid/`):
   - Android: `ConnectionManager.incoming` is a `SharedFlow`.
 - **New HTTP routes** (files): Routes registered after `router.add(middleware:)` in `makeRouter()` are automatically paired-phone-only.
 - **UI:**
-  - Mac: replace a `ComingSoonView` case in `MainWindow.detail(for:)`, and flip `SidebarSection.comingSoonDescription` to nil.
+  - Mac: replace a `ComingSoonView` case in `MainWindow.detail(for:)`, and flip `SidebarSection.comingSoonDescription` to nil. Files is already live (`Views/Files/FilesView`).
   - Android: replace the `ComingSoonScreen` composable for that tab in `MainScreen`.

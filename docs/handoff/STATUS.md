@@ -31,7 +31,7 @@
 - One paired phone per Mac.
 - IPv4 only for NSD rediscovery. After Mac sleep/wake the phone may take up to about 30 s to reconnect.
 - The Mac has no "reconnecting" state; it shows "Not connected — waiting for your phone".
-- The Notifications, Clipboard and Files tabs and sidebar items are placeholders.
+- The Notifications and Clipboard tabs and sidebar items are placeholders. Files is live on `feat/file-transfer` (Mac: Task 5; Android: Task 10 of Plan 2b).
 
 ## Follow-up lists
 - [Plan 1 follow-ups](../superpowers/plans/2026-10-12-macdroid-plan1-followups.md)
