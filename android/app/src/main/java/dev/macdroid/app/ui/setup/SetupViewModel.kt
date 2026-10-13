@@ -40,6 +40,8 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         .transformLatest { isPaired ->
             if (isPaired && sawUnpaired) delay(SUCCESS_PAUSE_MS)
             sawUnpaired = !isPaired
+            // Pairing can change prefs (keepConnected), so re-read them with each pairing change.
+            local.value = readLocal()
             emit(isPaired)
         }
 

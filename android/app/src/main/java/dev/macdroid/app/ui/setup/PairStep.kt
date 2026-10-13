@@ -61,6 +61,7 @@ fun PairStep(viewModel: PairingViewModel, macName: String?) {
         }
     }
     var showManual by rememberSaveable { mutableStateOf(false) }
+    var cameraAsked by rememberSaveable { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Pair with your Mac", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 24.dp))
@@ -80,7 +81,7 @@ fun PairStep(viewModel: PairingViewModel, macName: String?) {
                 is PairingViewModel.UiState.Error -> Message(Icons.Rounded.ErrorOutline, s.message, null, iconTint = MaterialTheme.colorScheme.error) {
                     Button(onClick = viewModel::reset) { Text("Try again") }
                 }
-                else -> CameraArea(enabled = s == PairingViewModel.UiState.Idle, onResult = viewModel::onScanned)
+                else -> CameraArea(enabled = s == PairingViewModel.UiState.Idle, asked = cameraAsked, onAsked = { cameraAsked = true }, onResult = viewModel::onScanned)
             }
         }
         TextButton(
@@ -116,14 +117,13 @@ fun PairStep(viewModel: PairingViewModel, macName: String?) {
 }
 
 @Composable
-private fun CameraArea(enabled: Boolean, onResult: (String) -> Unit) {
+private fun CameraArea(enabled: Boolean, asked: Boolean, onAsked: () -> Unit, onResult: (String) -> Unit) {
     val context = LocalContext.current
     var hasCamera by remember { mutableStateOf(Permissions.granted(context, Manifest.permission.CAMERA)) }
-    var asked by rememberSaveable { mutableStateOf(false) }
     var cameraError by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         hasCamera = it
-        asked = true
+        onAsked()
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { hasCamera = Permissions.granted(context, Manifest.permission.CAMERA) }
     LaunchedEffect(Unit) { if (!hasCamera && !asked) launcher.launch(Manifest.permission.CAMERA) }
