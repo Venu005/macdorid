@@ -4,6 +4,10 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Owner's feature list and agreed order
+- **What:** recorded the owner's planned features (iPad file transfer, photo browsing, low-latency mirroring, remote control, contact sync, webcam and mic over Wi-Fi and USB) and the agreed order in ROADMAP. The order: the 9 deferred minors one by one, small wins, photo browsing, mirroring then remote control.
+- **Branch:** `main`. No code changed.
+
 ## 2026-10-13 — Finder Share extension parked
 - **What:** brainstorming for the Finder Share extension started, then the owner parked it. The sandbox constraint, the three approaches and the open question ("where should Send to phone appear?") are recorded in ROADMAP so a later session can resume.
 - **Branch:** `main`. No code changed.

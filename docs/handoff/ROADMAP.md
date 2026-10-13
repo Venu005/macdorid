@@ -54,8 +54,26 @@ Brainstorming started 2026-10-13, then the owner parked it. Resume at the first 
   3. Use Finder's right-click Quick Actions / Services. Handled by the main app itself (like drag and drop), so it's instant at any size, but it isn't in other apps' Share menus.
 - **Open question for the owner:** where should "Send to phone" appear: (A) the Share menu, (B) Finder's right-click only, or (C) both?
 
-## Later rounds (not specced)
-Photo gallery, SMS (Play-restricted permissions), screen mirroring/remote control (scrcpy-style, needs debugging mode), phone as webcam/mic (CoreMediaIO extension), USB transport via `adb reverse`, Wi-Fi Direct.
+## Agreed order (2026-10-13)
+1. **The 9 deferred minors** from the Plans 3–4 final review (`docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`), one by one.
+2. **Small wins:** ring my phone; open a link on the other device; media controls.
+3. **Photo browsing and transfer.**
+4. **Screen mirroring (low latency)**, view-only first; then **remote control**.
+5. The rest of the owner's list, below.
+
+## Owner's feature list (2026-10-13)
+The owner's planned features, with status:
+- File transfer (Android ↔ Mac / **iPad**): Android ↔ Mac is done. iPad is a new platform (an iPadOS app), not specced.
+- Clipboard sync (text, images, links): done.
+- Notifications on the Mac with reply: done.
+- Photo browsing and transfer: next large round.
+- Screen mirroring (low latency): not specced. View-only works without debugging mode (MediaProjection consent per session).
+- Remote control of Android from the Mac: not specced. It needs debugging mode (scrcpy-style) or an Accessibility service (Play-restricted).
+- Contact sync: not specced. Android `READ_CONTACTS`; Mac Contacts framework plus the sandbox address-book entitlement.
+- Use the phone as a webcam (Wi-Fi + USB): not specced. Needs a macOS CoreMediaIO camera extension; USB means adb.
+- Mic support (Wi-Fi + USB): not specced. Needs a macOS audio driver/extension; USB means adb.
+
+Also noted earlier: SMS (personal build only, Play-restricted), USB transport via `adb reverse`, Wi-Fi Direct, and the parked Finder Share extension.
 
 ## Before publishing
 - **Signing:** proper signing with a Team ID, and the data-protection keychain.
