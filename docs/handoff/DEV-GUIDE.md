@@ -18,8 +18,10 @@ open mac/build/Build/Products/Debug/MacDroid.app
 cd android && ./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug
 ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
-# Swift server ↔ Kotlin client end to end
+# Swift server ↔ Kotlin client end to end (pairing, battery, and 24 MiB files both ways with a mid-file disconnect; ~1 min)
 ./scripts/cross-platform-test.sh
+# The dev server alone: --receive-dir <dir> saves files from the phone there; --send-on-connect <file> sends that file when a phone connects
+#   mac/MacDroidCore/.build/debug/macdroid-devserver --host 127.0.0.1 --port 47999 --receive-dir /tmp/in --send-on-connect /tmp/out.bin
 
 # App icon: edit design/icon/*.svg, then regenerate the Mac PNGs (Android uses vector drawables directly)
 ./scripts/render-icons.sh

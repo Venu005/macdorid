@@ -19,6 +19,7 @@
   - Android core: protocol, TLS, pairing, connection manager.
   - Android app: status/setup logic.
   - Cross-platform script (Swift server ↔ Kotlin client).
+  - Cross-platform file transfer both ways (24 MiB each), with resume after a dropped connection (`feat/file-transfer`).
 
 ## Pending or unverified
 - **Login-item launch.** With a phone paired, MacDroid should start quietly with no window. Not verified. If macOS restores the window at login, disable window restoration.
