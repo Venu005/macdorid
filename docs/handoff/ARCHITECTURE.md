@@ -41,7 +41,8 @@ Android (client)                                  Mac (server, advertised as _ma
 | Session | `Session/Broadcast.swift` | Multi-subscriber stream fan-out |
 | Server | `Server/MacDroidServer.swift`, `Server/FileRoutes.swift` | Hummingbird 2 + mTLS callback, routes, WS bridge |
 | Transfer | `Transfer/TransferManager.swift` (actor), `PartFileWriter.swift`, `SourceReader.swift`, `FileNaming.swift`, `TransferModel.swift`, `JSONFileStore.swift` | File transfers: handshake, part files, checksums, resume, history. `ReceiveLocationProvider.saveLocation(for: IncomingOffer)` runs in a cancellable task (the app shows a save panel there) |
-| Presentation | `Presentation/StatusPresentation.swift`, `Presentation/TransferPresentation.swift` | Pure status → icon/text mapping for the UI |
+| Notifications | `Notifications/NotificationStore.swift`, `FloodGate.swift`, `NotificationCategories.swift`, `IconCache.swift`, `PhoneNotifications.swift` (actor) | Mirrored notifications: the page's entries, the phone's app list, banners (flood gate), reply/action/dismiss/mute requests; icons cached by validated hash |
+| Presentation | `Presentation/StatusPresentation.swift`, `Presentation/TransferPresentation.swift`, `Presentation/NotificationPresentation.swift` | Pure status → icon/text mapping for the UI |
 | Dev server | `Sources/MacDroidDevServer/main.swift` | Headless server for the cross-platform test |
 
 Mac app (`mac/MacDroid/`):
