@@ -75,7 +75,33 @@ actor FakePhoneLink {
 struct FixedLocation: ReceiveLocationProvider {
     let location: SaveLocation?
     init(_ location: SaveLocation?) { self.location = location }
-    func saveLocation(forName name: String, size: Int64) async -> SaveLocation? { location }
+    func saveLocation(for offer: IncomingOffer) async -> SaveLocation? { location }
+}
+
+/// A provider that waits until the test answers, like a save panel. Records the offers it was asked about and which were cancelled.
+actor GateLocation: ReceiveLocationProvider {
+    private(set) var asked: [IncomingOffer] = []
+    private(set) var cancelled: [String] = []
+    private var waiting: [String: CheckedContinuation<SaveLocation?, Never>] = [:]
+
+    func saveLocation(for offer: IncomingOffer) async -> SaveLocation? {
+        asked.append(offer)
+        let id = offer.id
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                if cancelled.contains(id) { continuation.resume(returning: nil) } else { waiting[id] = continuation }
+            }
+        } onCancel: {
+            Task { await self.cancelQuestion(id) }
+        }
+    }
+
+    func answer(_ id: String, with location: SaveLocation?) { waiting.removeValue(forKey: id)?.resume(returning: location) }
+
+    private func cancelQuestion(_ id: String) {
+        cancelled.append(id)
+        waiting.removeValue(forKey: id)?.resume(returning: nil)
+    }
 }
 
 /// Fresh state and Downloads folders, a fake phone link and a fake clock for TransferManager tests.
@@ -122,4 +148,10 @@ extension Message {
     var offerBody: TransferOffer? { if case .transferOffer(let body) = self { return body }; return nil }
     var finishBody: TransferFinish? { if case .transferFinish(let body) = self { return body }; return nil }
     var cancelledID: String? { if case .transferCancel(let body) = self { return body.transferId }; return nil }
+}
+
+/// True once `count` transfers are active and every incoming one has been decided (it's no longer waiting for a save location).
+func decided(_ manager: TransferManager, count: Int = 1) async -> Bool {
+    let active = await manager.snapshot.active
+    return active.count == count && active.allSatisfy { $0.phase != .offered || $0.direction == .toPhone }
 }

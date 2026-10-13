@@ -14,7 +14,7 @@ import Testing
         let manager = f.manager()
         let data = testBytes(300_000)
         await manager.handle(makeOffer("t1", name: "up.bin", size: Int64(data.count)))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         try await ServerHarness.run(pairedPhone: phone, transfers: manager) { harness in
             let client = try harness.client(phone)
             let first = try await client.put("/v1/files/t1", body: ByteBuffer(bytes: data.prefix(100_000)))
@@ -91,7 +91,7 @@ import Testing
         let manager = f.manager()
         await manager.connectionChanged(true)
         await manager.handle(makeOffer("incoming", size: 3))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         let source = f.state.deletingLastPathComponent().appending(path: "o.bin")
         try testBytes(3).write(to: source)
         let outgoing = try #require(await manager.send(files: [source]).first)
@@ -110,7 +110,7 @@ import Testing
         let f = try TransferFixture()
         let manager = f.manager()
         await manager.handle(makeOffer("t1", size: 10))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         try await ServerHarness.run(pairedPhone: phone, transfers: manager) { harness in
             let client = try harness.client(phone)
             #expect(try await client.put("/v1/files/t1", headers: [.contentRange: "nonsense"], body: ByteBuffer(string: "x")).status == .badRequest)

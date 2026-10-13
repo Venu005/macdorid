@@ -9,9 +9,26 @@ public enum SaveLocation: Equatable, Sendable {
     case file(URL)
 }
 
-/// Decides where incoming files are saved. Nil declines the file.
+/// An offer from the phone that needs a place to be saved.
+public struct IncomingOffer: Equatable, Sendable {
+    public let id: String
+    /// Already sanitised (spec §2.3).
+    public let name: String
+    public let size: Int64
+    public let mime: String
+
+    public init(id: String, name: String, size: Int64, mime: String) {
+        self.id = id
+        self.name = name
+        self.size = size
+        self.mime = mime
+    }
+}
+
+/// Decides where incoming files are saved; nil declines the file.
+/// Called inside a Task that is cancelled if the offer is cancelled, so a save panel should close on cancellation.
 public protocol ReceiveLocationProvider: Sendable {
-    func saveLocation(forName name: String, size: Int64) async -> SaveLocation?
+    func saveLocation(for offer: IncomingOffer) async -> SaveLocation?
 }
 
 /// A resolved source file plus the call that ends access to it (security scope in the sandboxed app).
@@ -86,8 +103,8 @@ public actor TransferManager {
     var outbox: [Message] = []
     private var writers: [String: PartFileWriter] = [:]
     private var rates: [String: TransferRate] = [:]
-    private var pendingOffers: Set<String> = []
-    private var cancelledOffers: Set<String> = []
+    /// Undecided incoming offers: the task asking where to save, cancelled if the offer is cancelled.
+    private var decisions: [String: Task<Void, Never>] = [:]
     private var lastPublish = Date.distantPast
     private var tasks: [Task<Void, Never>] = []
 
@@ -130,6 +147,8 @@ public actor TransferManager {
         var history = storedHistory
         let cutoff = now.addingTimeInterval(-stateLifetime)
         for var record in stored {
+            // An offer still waiting for "where to save" when MacDroid quit was never accepted; the phone's re-offer starts fresh.
+            if record.direction == .fromPhone && record.folder == nil { continue }
             if record.updatedAt < cutoff {
                 if let part = record.partURL { try? FileManager.default.removeItem(at: part) }
                 record.phase = .failed(.expired)
@@ -191,6 +210,7 @@ public actor TransferManager {
 
     /// Local cancel from the UI.
     public func cancel(id: String) async {
+        decisions.removeValue(forKey: id)?.cancel()
         guard let record = active.first(where: { $0.id == id }) else { return }
         await discard(record, as: .cancelled(byPeer: false))
         if record.phase != .queued { await sendOrQueue(.transferCancel(TransferID(transferId: id))) }
@@ -202,7 +222,7 @@ public actor TransferManager {
     private func receiveOffer(_ offer: TransferOffer) async {
         let id = offer.transferId
         if let record = active.first(where: { $0.id == id }) {
-            guard record.direction == .fromPhone else { return }
+            guard record.direction == .fromPhone, record.folder != nil else { return } // undecided: the question is still open
             // A re-offer after a reconnect: accept again; the phone resumes from what's on disk (HEAD).
             update(id) { $0.phase = .active }
             await sendOrDrop(.transferAccept(TransferID(transferId: id)))
@@ -216,20 +236,25 @@ public actor TransferManager {
             await sendOrDrop(.transferReject(TransferReject(transferId: id, reason: .invalid)))
             return
         }
-        guard !pendingOffers.contains(id) else { return }
-        pendingOffers.insert(id)
-        // Deciding may wait on a save panel, so it must not hold up other control messages.
-        Task { await self.decide(offer) }
+        let name = FileNaming.sanitize(offer.name)
+        active.append(TransferRecord(
+            id: id, direction: .fromPhone, name: name, size: offer.size, mime: offer.mime, phase: .offered,
+            createdAt: now(), updatedAt: now()
+        ))
+        persist()
+        publish(force: true)
+        // Deciding may wait on a save panel, so it runs on its own and must not hold up other control messages.
+        decisions[id] = Task { await self.decide(IncomingOffer(id: id, name: name, size: offer.size, mime: offer.mime)) }
     }
 
-    private func decide(_ offer: TransferOffer) async {
-        let id = offer.transferId
-        let name = FileNaming.sanitize(offer.name)
-        let decision = await location.saveLocation(forName: name, size: offer.size)
-        pendingOffers.remove(id)
-        if cancelledOffers.remove(id) != nil { return } // the phone cancelled while we were asking
+    private func decide(_ offer: IncomingOffer) async {
+        let id = offer.id
+        let decision = await location.saveLocation(for: offer)
+        decisions[id] = nil
+        // Cancelled meanwhile (by the phone or locally): the record is already gone.
+        guard !Task.isCancelled, active.contains(where: { $0.id == id && $0.phase == .offered }) else { return }
         guard let decision else {
-            await reject(offer, name: name, reason: .declined)
+            await reject(offer, name: offer.name, reason: .declined)
             return
         }
         let folder: URL
@@ -238,7 +263,7 @@ public actor TransferManager {
         switch decision {
         case .folder(let url):
             folder = url
-            finalName = FileNaming.unique(name) { isTaken($0, in: url) }
+            finalName = FileNaming.unique(offer.name) { isTaken($0, in: url) }
             replaces = false
         case .file(let url):
             folder = url.deletingLastPathComponent()
@@ -255,23 +280,22 @@ public actor TransferManager {
             await reject(offer, name: finalName, reason: .noSpace)
             return
         }
-        // Claim the name before any await, so a concurrent offer with the same name picks another.
-        active.append(TransferRecord(
-            id: id, direction: .fromPhone, name: finalName, size: offer.size, mime: offer.mime, phase: .active,
-            folder: folder, replacesExisting: replaces, createdAt: now(), updatedAt: now()
-        ))
+        // Claim the name before any await, so a concurrent decision picks another.
+        update(id) {
+            $0.name = finalName
+            $0.folder = folder
+            $0.replacesExisting = replaces
+            $0.phase = .active
+        }
         guard let writer = incomingWriter(id) else { return }
         do {
             try await writer.open()
         } catch {
             logger.warning("can't create part file in \(folder.path(percentEncoded: false)): \(error)")
-            active.removeAll { $0.id == id }
             writers[id] = nil
             await reject(offer, name: finalName, reason: .declined)
             return
         }
-        persist()
-        publish(force: true)
         await sendOrDrop(.transferAccept(TransferID(transferId: id)))
     }
 
@@ -287,12 +311,12 @@ public actor TransferManager {
         active.contains { $0.direction == .fromPhone && $0.folder == folder && $0.name.caseInsensitiveCompare(name) == .orderedSame }
     }
 
-    private func reject(_ offer: TransferOffer, name: String, reason: TransferRejectReason) async {
+    private func reject(_ offer: IncomingOffer, name: String, reason: TransferRejectReason) async {
         archive(TransferRecord(
-            id: offer.transferId, direction: .fromPhone, name: name, size: offer.size, mime: offer.mime,
+            id: offer.id, direction: .fromPhone, name: name, size: offer.size, mime: offer.mime,
             phase: .failed(TransferFailure(reason)), createdAt: now(), updatedAt: now()
         ))
-        await sendOrDrop(.transferReject(TransferReject(transferId: offer.transferId, reason: reason)))
+        await sendOrDrop(.transferReject(TransferReject(transferId: offer.id, reason: reason)))
     }
 
     /// The sender re-offered an id we already finished (its result got lost): tell it the outcome again.
@@ -430,10 +454,7 @@ public actor TransferManager {
     }
 
     private func peerCancelled(_ id: String) async {
-        if pendingOffers.contains(id) {
-            cancelledOffers.insert(id)
-            return
-        }
+        decisions.removeValue(forKey: id)?.cancel() // closes a save panel that's still open
         guard let record = active.first(where: { $0.id == id }) else { return }
         await discard(record, as: .cancelled(byPeer: true))
         await pump()

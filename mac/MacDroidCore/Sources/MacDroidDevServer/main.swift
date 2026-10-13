@@ -23,7 +23,7 @@ try FileManager.default.createDirectory(at: receiveDir, withIntermediateDirector
 
 struct FolderLocation: ReceiveLocationProvider {
     let folder: URL
-    func saveLocation(forName name: String, size: Int64) async -> SaveLocation? { .folder(folder) }
+    func saveLocation(for offer: IncomingOffer) async -> SaveLocation? { .folder(folder) }
 }
 
 let transfers = TransferManager(

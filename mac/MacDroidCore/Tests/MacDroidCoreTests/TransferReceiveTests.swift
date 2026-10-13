@@ -20,7 +20,7 @@ import Testing
         let listener = Task { for await event in stream { await events.append(event) } }
         let data = testBytes(300_000)
         await manager.handle(makeOffer("t1", name: "a.bin", size: Int64(data.count)))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         try await upload(data, to: manager, id: "t1")
         await manager.handle(.transferFinish(TransferFinish(transferId: "t1", sha256: Checksum.sha256Hex(data))))
         #expect(try Data(contentsOf: f.file("a.bin")) == data)
@@ -36,7 +36,7 @@ import Testing
         let f = try TransferFixture()
         let manager = f.manager()
         await manager.handle(makeOffer("t1", size: 4))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         try await upload(Data([1, 2, 3, 4]), to: manager, id: "t1")
         await manager.handle(.transferFinish(TransferFinish(transferId: "t1", sha256: String(repeating: "0", count: 64))))
         #expect(!f.exists("a.txt.macdroid-part") && !f.exists("a.txt"))
@@ -76,7 +76,7 @@ import Testing
         let manager = f.manager()
         await manager.handle(makeOffer("t1", name: "same.txt", size: 1))
         await manager.handle(makeOffer("t2", name: "same.txt", size: 1))
-        try await eventually { await manager.snapshot.active.count == 2 }
+        try await eventually { await decided(manager, count: 2) }
         #expect(Set(await manager.snapshot.active.map(\.name)) == ["same.txt", "same (1).txt"])
     }
 
@@ -87,7 +87,7 @@ import Testing
             let manager = f.manager()
             await manager.handle(makeOffer("t1", name: "IMG_1.JPG", size: 1))
             await manager.handle(makeOffer("t2", name: "img_1.jpg", size: 1))
-            try await eventually { await manager.snapshot.active.count == 2 }
+            try await eventually { await decided(manager, count: 2) }
             let names = await manager.snapshot.active.map { $0.name.lowercased() }
             #expect(Set(names).count == 2, "names: \(names)")
         }
@@ -98,7 +98,7 @@ import Testing
         let manager = f.manager(location: FixedLocation(.file(f.file("same.txt"))))
         await manager.handle(makeOffer("t1", name: "a.txt", size: 1))
         await manager.handle(makeOffer("t2", name: "b.txt", size: 1))
-        try await eventually { await manager.snapshot.active.count == 2 }
+        try await eventually { await decided(manager, count: 2) }
         #expect(Set(await manager.snapshot.active.map(\.name)) == ["same.txt", "same (1).txt"])
     }
 
@@ -108,7 +108,7 @@ import Testing
         let manager = f.manager(location: FixedLocation(.file(f.file("chosen.txt"))))
         let data = Data("new".utf8)
         await manager.handle(makeOffer("t1", name: "whatever.txt", size: 3))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         try await upload(data, to: manager, id: "t1")
         await manager.handle(.transferFinish(TransferFinish(transferId: "t1", sha256: Checksum.sha256Hex(data))))
         #expect(try Data(contentsOf: f.file("chosen.txt")) == data)
@@ -118,7 +118,7 @@ import Testing
         let f = try TransferFixture()
         let manager = f.manager()
         await manager.handle(makeOffer("t1", size: 200))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         try await upload(testBytes(100), to: manager, id: "t1")
         #expect(await manager.uploadOffset(id: "t1") == 100)
         await #expect(throws: TransferManager.RouteError.offsetMismatch(100)) { _ = try await manager.beginUpload(id: "t1", start: 50) }
@@ -129,7 +129,7 @@ import Testing
         let f = try TransferFixture()
         let manager = f.manager()
         await manager.handle(makeOffer("t1", size: 10))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         let stale = try await manager.beginUpload(id: "t1", start: 0)
         _ = await manager.uploadOffset(id: "t1")
         await #expect(throws: PartFileError.superseded) { try await stale.writer.append(Data([1]), session: stale.session) }
@@ -140,7 +140,7 @@ import Testing
         let manager = f.manager()
         await manager.connectionChanged(true)
         await manager.handle(makeOffer("t1", size: 200))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         try await upload(testBytes(120), to: manager, id: "t1")
         await manager.connectionChanged(false)
         #expect(await manager.snapshot.active.first?.phase == .paused)
@@ -157,7 +157,7 @@ import Testing
         let manager = f.manager()
         let data = Data("hi".utf8)
         await manager.handle(makeOffer("t1", size: 2))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         try await upload(data, to: manager, id: "t1")
         await manager.handle(.transferFinish(TransferFinish(transferId: "t1", sha256: Checksum.sha256Hex(data))))
         await manager.handle(makeOffer("t1", size: 2))
@@ -170,7 +170,7 @@ import Testing
         let f = try TransferFixture()
         let manager = f.manager()
         await manager.handle(makeOffer("t1", size: 10))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         await manager.handle(.transferCancel(TransferID(transferId: "t1")))
         #expect(!f.exists("a.txt.macdroid-part"))
         #expect(await manager.snapshot.history.first?.phase == .cancelled(byPeer: true))
@@ -181,7 +181,7 @@ import Testing
         let manager = f.manager()
         await manager.connectionChanged(true)
         await manager.handle(makeOffer("t1", size: 10))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         await f.phone.setOnline(false)
         await manager.connectionChanged(false)
         await manager.cancel(id: "t1")
@@ -195,7 +195,7 @@ import Testing
         let f = try TransferFixture()
         let manager = f.manager()
         await manager.handle(makeOffer("t1", size: 10))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         await manager.uploadFailed(id: "t1", .noSpace)
         #expect(await f.phone.sent.contains { $0.result == TransferResult(transferId: "t1", ok: false, error: .noSpace) })
         #expect(!f.exists("a.txt.macdroid-part"))
@@ -206,7 +206,7 @@ import Testing
         let f = try TransferFixture()
         let manager = f.manager()
         await manager.handle(makeOffer("t1", name: "empty.txt", size: 0))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         await manager.handle(.transferFinish(TransferFinish(transferId: "t1", sha256: Checksum.sha256Hex(Data()))))
         #expect(f.exists("empty.txt"))
         #expect(await manager.snapshot.history.first?.phase == .done)
@@ -219,7 +219,7 @@ import Testing
         do {
             let first = f.manager()
             await first.handle(makeOffer("t1", name: "big.bin", size: Int64(data.count)))
-            try await eventually { await first.snapshot.active.count == 1 }
+            try await eventually { await decided(first) }
             try await upload(data.prefix(200_000), to: first, id: "t1")
         }
         f.clock.advance(3600)
@@ -238,7 +238,7 @@ import Testing
         do {
             let first = f.manager()
             await first.handle(makeOffer("t1", size: 10))
-            try await eventually { await first.snapshot.active.count == 1 }
+            try await eventually { await decided(first) }
         }
         f.clock.advance(25 * 3600)
         let second = f.manager()
@@ -252,5 +252,71 @@ import Testing
         let manager = f.manager(location: FixedLocation(nil))
         for index in 0..<105 { await manager.handle(makeOffer("t\(index)", size: 1)) }
         try await eventually { await manager.snapshot.history.count == 100 } // 105 declined; the oldest 5 dropped
+    }
+
+    @Test func undecidedOfferIsVisibleAndTheProviderGetsItsDetails() async throws {
+        let f = try TransferFixture()
+        let gate = GateLocation()
+        let manager = f.manager(location: gate)
+        await manager.handle(makeOffer("t1", name: "../IMG.jpg", size: 42, mime: "image/jpeg"))
+        try await eventually { await gate.asked.count == 1 }
+        #expect(await gate.asked == [IncomingOffer(id: "t1", name: "IMG.jpg", size: 42, mime: "image/jpeg")])
+        let pending = try #require(await manager.snapshot.active.first)
+        #expect(pending.phase == .offered && pending.direction == .fromPhone && pending.folder == nil && pending.name == "IMG.jpg")
+        await gate.answer("t1", with: .folder(f.downloads))
+        try await eventually { await manager.snapshot.active.first?.phase == .active }
+        #expect(await f.phone.sent.contains { $0.acceptedID == "t1" })
+        #expect(await manager.snapshot.active.count == 1) // the pending record became the transfer, not a second row
+    }
+
+    // Review Focus #1
+    @Test func peerCancelWhileDecidingCancelsTheQuestion() async throws {
+        let f = try TransferFixture()
+        let gate = GateLocation()
+        let manager = f.manager(location: gate)
+        await manager.handle(makeOffer("t1", size: 1))
+        try await eventually { await gate.asked.count == 1 }
+        await manager.handle(.transferCancel(TransferID(transferId: "t1")))
+        try await eventually { await gate.cancelled == ["t1"] }
+        #expect(await manager.snapshot.history.first?.phase == .cancelled(byPeer: true))
+        #expect(await manager.snapshot.active.isEmpty)
+        #expect(await !f.phone.sent.contains { $0.acceptedID == "t1" || $0.rejection != nil })
+    }
+
+    @Test func localCancelWhileDecidingTellsThePhone() async throws {
+        let f = try TransferFixture()
+        let gate = GateLocation()
+        let manager = f.manager(location: gate)
+        await manager.handle(makeOffer("t1", size: 1))
+        try await eventually { await gate.asked.count == 1 }
+        await manager.cancel(id: "t1")
+        try await eventually { await gate.cancelled == ["t1"] }
+        #expect(await f.phone.sent.contains { $0.cancelledID == "t1" })
+        #expect(await manager.snapshot.history.first?.phase == .cancelled(byPeer: false))
+    }
+
+    @Test func reofferWhileDecidingIsIgnored() async throws {
+        let f = try TransferFixture()
+        let gate = GateLocation()
+        let manager = f.manager(location: gate)
+        await manager.handle(makeOffer("t1", size: 1))
+        try await eventually { await gate.asked.count == 1 }
+        await manager.handle(makeOffer("t1", size: 1))
+        #expect(await gate.asked.count == 1)
+        #expect(await f.phone.sent.isEmpty)
+    }
+
+    // Review Focus #5
+    @Test func relaunchForgetsUndecidedOffers() async throws {
+        let f = try TransferFixture()
+        do {
+            let first = f.manager(location: GateLocation())
+            await first.handle(makeOffer("t1", size: 1))
+            try await eventually { await first.snapshot.active.count == 1 } // undecided on purpose
+        }
+        let second = f.manager()
+        #expect(await second.snapshot.active.isEmpty)
+        await second.handle(makeOffer("t1", size: 1)) // the phone re-offers after reconnecting: a fresh decision
+        try await eventually { await f.phone.sent.contains { $0.acceptedID == "t1" } }
     }
 }

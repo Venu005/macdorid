@@ -95,7 +95,7 @@ import Testing
         let f = try TransferFixture()
         let manager = f.manager()
         await manager.handle(makeOffer("incoming", size: 5))
-        try await eventually { await manager.snapshot.active.count == 1 }
+        try await eventually { await decided(manager) }
         await #expect(throws: TransferManager.RouteError.notFound) { _ = try await manager.beginDownload(id: "incoming", from: 0) }
         await #expect(throws: TransferManager.RouteError.notFound) { _ = try await manager.beginDownload(id: "nope", from: 0) }
     }
