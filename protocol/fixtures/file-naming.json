@@ -1,0 +1,24 @@
+{
+  "sanitize": [
+    { "in": "photo.jpg", "out": "photo.jpg" },
+    { "in": "../../etc/passwd", "out": "passwd" },
+    { "in": "C:\\Users\\me\\report.pdf", "out": "report.pdf" },
+    { "in": "dir/", "out": "file" },
+    { "in": ".hidden", "out": "hidden" },
+    { "in": "  .profile", "out": "profile" },
+    { "in": "...", "out": "file" },
+    { "in": "", "out": "file" },
+    { "in": "a\u0000b.txt", "out": "ab.txt" },
+    { "in": "tab\tname\n.txt", "out": "tabname.txt" },
+    { "in": "what?*:<>|\".txt", "out": "what.txt" },
+    { "in": "  spaced  .txt ", "out": "spaced  .txt" },
+    { "in": "résumé 2026.pdf", "out": "résumé 2026.pdf" }
+  ],
+  "unique": [
+    { "name": "a.txt", "taken": [], "out": "a.txt" },
+    { "name": "a.txt", "taken": ["a.txt"], "out": "a (1).txt" },
+    { "name": "a.txt", "taken": ["a.txt", "a (1).txt"], "out": "a (2).txt" },
+    { "name": "README", "taken": ["README"], "out": "README (1)" },
+    { "name": "archive.tar.gz", "taken": ["archive.tar.gz"], "out": "archive.tar (1).gz" }
+  ]
+}

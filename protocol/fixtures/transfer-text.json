@@ -1,0 +1,19 @@
+{
+  "bytes": [
+    { "in": 0, "out": "0 bytes" },
+    { "in": 512, "out": "512 bytes" },
+    { "in": 1500, "out": "1.5 KB" },
+    { "in": 3145728, "out": "3.1 MB" },
+    { "in": 2100000000, "out": "2.1 GB" }
+  ],
+  "lines": [
+    { "done": 1300000000, "total": 2100000000, "rate": 48000000, "out": "1.3 of 2.1 GB · 48 MB/s · 17 s left" },
+    { "done": 0, "total": 5000000, "rate": null, "out": "0.0 of 5.0 MB" },
+    { "done": 2500000, "total": 5000000, "rate": 1200000, "out": "2.5 of 5.0 MB · 1.2 MB/s · 3 s left" },
+    { "done": 100, "total": 512, "rate": 50, "out": "100 of 512 bytes · 50 bytes/s · 9 s left" },
+    { "done": 1000000000, "total": 9000000000, "rate": 2000000, "out": "1.0 of 9.0 GB · 2.0 MB/s · 1 h 7 min left" },
+    { "done": 0, "total": 300000, "rate": 20000, "out": "0.0 of 300.0 KB · 20 KB/s · 15 s left" },
+    { "done": 1000000, "total": 1000000000, "rate": 5000000, "out": "0.0 of 1.0 GB · 5.0 MB/s · 4 min left" },
+    { "done": 512, "total": 512, "rate": 50, "out": "512 of 512 bytes · 50 bytes/s" }
+  ]
+}
