@@ -13,6 +13,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 5: Android core `ClipboardHub` (send results, frame-size limit, received items, recent 10). Verified: 8 new tests.
 - Task 6: Mac `PasteboardWatcher` (0.5 s change-count poll, PNG/TIFF → PNG), `ClipboardNotifier`, `ClipboardSync` wired to the hub, transfers (clipboard folder `ClipboardIncoming`) and settings. Verified: Mac app build.
 - Task 7: Mac Clipboard page (search, direction, Copy/Send on hover) and Settings → General → Clipboard (send, receive, history size, Clear History). No "coming soon" sections left on the Mac. Verified: Mac app build.
+- Task 8: Android clipboard: receive into `ClipboardManager` (images via a FileProvider), invisible `ClipboardSendActivity`, Quick Settings tile, "Send clipboard" notification action, "Copy to Mac" share target; clipboard transfers hidden from Files and the progress notification. Verified: Android gates (`ClipboardPresentationTest`).
 
 ## 2026-10-13 — Plan 3: notifications (done on feat/notifications-clipboard)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md` (spec: `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md`). Executed inline (the owner chose "native").

@@ -17,6 +17,7 @@ import dev.macdroid.app.R
 import dev.macdroid.app.graph
 import dev.macdroid.app.platform.Permissions
 import dev.macdroid.app.ui.MainActivity
+import dev.macdroid.app.ui.clipboard.ClipboardSendActivity
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.protocol.DeviceStatusBody
 import kotlinx.coroutines.channels.awaitClose
@@ -47,11 +48,17 @@ object Notifications {
             Intent(context, ConnectionService::class.java).setAction(ConnectionService.ACTION_DISCONNECT),
             PendingIntent.FLAG_IMMUTABLE,
         )
+        val sendClipboard = PendingIntent.getActivity(
+            context, 2,
+            Intent(context, ClipboardSendActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_IMMUTABLE,
+        )
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_macdroid)
             .setContentTitle(StatusText.title(state))
             .setOngoing(true)
             .setContentIntent(open)
+            .addAction(0, "Send clipboard", sendClipboard)
             .addAction(0, "Disconnect", disconnect)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
