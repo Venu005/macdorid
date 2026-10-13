@@ -7,6 +7,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 ## 2026-10-13 — Plan 2b: file transfer UI (in progress on feat/file-transfer)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`.
 - Task 1: Mac `TransferManager` shows undecided incoming offers as `.offered` rows, passes `IncomingOffer` (id, name, size, mime) to the save-location provider, and cancels the question when either side cancels; undecided offers are forgotten at relaunch. Verified: `swift test`.
+- Task 2: `TransferPresentation` (row text, popover items, drop summary) in `MacDroidCore`. Verified: `TransferPresentationTests`.
 
 ## 2026-10-13 — Plan 2b written (file transfer UI and platform glue)
 - **What:** wrote `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`. It has 13 tasks:
