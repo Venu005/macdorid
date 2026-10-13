@@ -14,6 +14,7 @@ struct ServerHarness {
 
     static func run(
         pairedPhone: Identity? = nil,
+        transfers: TransferManager? = nil,
         _ body: (ServerHarness) async throws -> Void
     ) async throws {
         let store = InMemoryPairedDeviceStore()
@@ -25,7 +26,8 @@ struct ServerHarness {
         let server = MacDroidServer(
             identity: try Identity.generate(commonName: "Test Mac"),
             pairing: pairing, hub: hub, macName: "Test Mac",
-            configuration: ServerConfiguration(host: "127.0.0.1", port: 0)
+            configuration: ServerConfiguration(host: "127.0.0.1", port: 0),
+            transfers: transfers
         )
         let (ports, portContinuation) = AsyncStream.makeStream(of: Int.self)
         let task = Task { try await server.run { port in portContinuation.yield(port) } }

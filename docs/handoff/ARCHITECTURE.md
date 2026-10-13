@@ -9,6 +9,7 @@ Android (client)                                  Mac (server, advertised as _ma
   OkHttp, mTLS, pinned ──── WSS  /v1/ws ────────▶ ConnectionHub (one phone session; hello first)
                         ──── POST /v1/pair ──────▶ PairingManager (only while the pairing window is open)
                         ──── GET  /v1/info ──────▶ TrustedPeerMiddleware (global: everything but /v1/pair)
+                        ──── HEAD/PUT/GET /v1/files/{id} ──▶ TransferManager (bytes; control over WS)
 ```
 - Transport: HTTPS + WebSocket over **TLS 1.3, mutual authentication**.
 - Messages: WebSocket text frames shaped `{"v":1,"type":…,"id":…,"body":{…}}`.
@@ -38,7 +39,7 @@ Android (client)                                  Mac (server, advertised as _ma
 | Network | `Network/LocalAddress.swift`, `BonjourAdvertiser.swift` | LAN IPv4 for the QR code; DNS-SD advertising |
 | Session | `Session/ConnectionHub.swift` (actor) | One live session, hello-first ordering, the newest session wins, status stream |
 | Session | `Session/Broadcast.swift` | Multi-subscriber stream fan-out |
-| Server | `Server/MacDroidServer.swift` | Hummingbird 2 + mTLS callback, routes, WS bridge |
+| Server | `Server/MacDroidServer.swift`, `Server/FileRoutes.swift` | Hummingbird 2 + mTLS callback, routes, WS bridge |
 | Transfer | `Transfer/TransferManager.swift` (actor), `PartFileWriter.swift`, `SourceReader.swift`, `FileNaming.swift`, `TransferModel.swift`, `JSONFileStore.swift` | File transfers: handshake, part files, checksums, resume, history |
 | Presentation | `Presentation/StatusPresentation.swift` | Pure status → icon/text mapping for the UI |
 | Dev server | `Sources/MacDroidDevServer/main.swift` | Headless server for the cross-platform test |

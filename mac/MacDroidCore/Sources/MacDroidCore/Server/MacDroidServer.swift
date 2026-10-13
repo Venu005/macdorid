@@ -64,14 +64,16 @@ public final class MacDroidServer: Sendable {
     private let hub: ConnectionHub
     private let macName: String
     private let configuration: ServerConfiguration
+    private let transfers: TransferManager?
     private let logger = Logger(label: "dev.macdroid.server")
 
-    public init(identity: Identity, pairing: PairingManager, hub: ConnectionHub, macName: String, configuration: ServerConfiguration = .init()) {
+    public init(identity: Identity, pairing: PairingManager, hub: ConnectionHub, macName: String, configuration: ServerConfiguration = .init(), transfers: TransferManager? = nil) {
         self.identity = identity
         self.pairing = pairing
         self.hub = hub
         self.macName = macName
         self.configuration = configuration
+        self.transfers = transfers
     }
 
     /// Runs until the calling task is cancelled. `onRunning` receives the bound port.
@@ -148,6 +150,7 @@ public final class MacDroidServer: Sendable {
         // TLS 1.3 session resumption skips the handshake callback, so this app-layer check is what keeps strangers out.
         router.add(middleware: TrustedPeerMiddleware(pairing: pairing))
         router.get("/v1/info") { _, _ -> ServerInfo in ServerInfo(macName: macName) }
+        if let transfers { Self.addFileRoutes(to: router, transfers: transfers) }
 
         return router
     }
