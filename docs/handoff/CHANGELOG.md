@@ -6,6 +6,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 
 ## 2026-10-13 — Deferred minors round (fix/review-minors)
 The 9 minors from the Plans 3–4 final review, fixed one by one on `fix/review-minors`.
+All 9 fixed. All gates pass from scratch, plus the cross-platform run.
 - Minor 1: clipboard bounce: the Mac records its own pasteboard writes in the watcher at write time (`PasteboardChangeTracker`), so the watcher never reports them as a copy. Verified: `ownWritesAreNeverReported` RED→GREEN, `swift test` 214, Mac app build.
 - Minor 2: clipboard images are sent from a copy in `Clipboard/outgoing/` (`ClipboardHistory.outgoingCopy`; only the newest is kept), so Clear History or a trim no longer breaks a transfer in flight. Verified: `sentImagesAreCopiesThatSurviveClearingHistory` RED→GREEN, `swift test` 215.
 - Minor 6: history Send applies the same 1 MB frame check and note as a fresh copy. Verified: `oversizedHistoryTextIsNotResent` RED→GREEN.
