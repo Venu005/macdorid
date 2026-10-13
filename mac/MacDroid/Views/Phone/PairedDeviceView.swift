@@ -1,0 +1,51 @@
+import MacDroidCore
+import SwiftUI
+
+struct PairedDeviceView: View {
+    let model: AppModel
+    @State private var confirmForget = false
+
+    var body: some View {
+        let status = model.phoneStatus
+        Form {
+            Section {
+                HStack(spacing: 14) {
+                    Image(systemName: "iphone.gen3")
+                        .font(.system(size: 30))
+                        .frame(width: 64, height: 64)
+                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(status.title).font(.title2.weight(.semibold))
+                        HStack(spacing: 6) {
+                            StatusDot(tone: status.tone)
+                            Text(status.tone == .connected ? "Connected over Wi-Fi" : "Not connected — waiting for your phone")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.vertical, 6)
+            }
+            Section("Details") {
+                LabeledContent("Battery", value: StatusPresentation.batteryText(model.status))
+                if let device = model.pairedDevice {
+                    LabeledContent("Model", value: device.model)
+                    LabeledContent("Paired", value: device.pairedAt.formatted(date: .abbreviated, time: .omitted))
+                }
+            }
+            Section {
+                HStack {
+                    Button("Pair a Different Phone…") { Task { await model.startRepair() } }
+                    Spacer()
+                    Button("Forget This Phone…", role: .destructive) { confirmForget = true }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .alert("Forget \(model.pairedDevice?.name ?? "this phone")?", isPresented: $confirmForget) {
+            Button("Forget", role: .destructive) { Task { await model.forgetPhone() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The phone will be disconnected and will need to be paired again.")
+        }
+    }
+}

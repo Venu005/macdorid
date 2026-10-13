@@ -45,7 +45,8 @@ sealed interface ConnectionState {
     data object NotPaired : ConnectionState
     data object Connecting : ConnectionState
     data class Connected(val macName: String) : ConnectionState
-    data class Waiting(val retryInMs: Long) : ConnectionState
+    /** [retryAtNanos] is the monotonic `System.nanoTime()` deadline of the retry; 0 when unknown. */
+    data class Waiting(val retryInMs: Long, val retryAtNanos: Long = 0) : ConnectionState
     /** The Mac's certificate isn't the pinned one, or the Mac rejected ours. The user must re-pair. */
     data class TrustFailure(val detail: String) : ConnectionState
 }
@@ -130,7 +131,7 @@ class ConnectionManager(
                 Outcome.Failed -> Unit
             }
             val delayMs = backoff.next()
-            if (state.value !is ConnectionState.TrustFailure) setState(gen, ConnectionState.Waiting(delayMs))
+            if (state.value !is ConnectionState.TrustFailure) setState(gen, ConnectionState.Waiting(delayMs, System.nanoTime() + delayMs * 1_000_000))
             val wake = try {
                 waitForRetry(mac, delayMs)
             } catch (e: CancellationException) {

@@ -11,6 +11,9 @@ import dev.macdroid.core.pairing.PairingClient
 import dev.macdroid.core.pairing.PairingStore
 import dev.macdroid.core.protocol.HelloBody
 import dev.macdroid.core.tls.ClientIdentity
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 
 class MacDroidApp : Application() {
@@ -47,4 +50,21 @@ class UiPrefs(context: Context) {
     var setupDone: Boolean
         get() = prefs.getBoolean("setupDone", false)
         set(value) { prefs.edit().putBoolean("setupDone", value).apply() }
+
+    /** Off after the user taps Disconnect or turns off "Keep connected"; the app then shows a Connect button. */
+    private val _keepConnected = MutableStateFlow(prefs.getBoolean("keepConnected", true))
+
+    /** Observable view of [keepConnected], so screens never act on a stale snapshot. */
+    val keepConnectedFlow: StateFlow<Boolean> = _keepConnected.asStateFlow()
+
+    var keepConnected: Boolean
+        get() = _keepConnected.value
+        set(value) {
+            prefs.edit().putBoolean("keepConnected", value).apply()
+            _keepConnected.value = value
+        }
+
+    var notificationsSkipped: Boolean
+        get() = prefs.getBoolean("notificationsSkipped", false)
+        set(value) { prefs.edit().putBoolean("notificationsSkipped", value).apply() }
 }

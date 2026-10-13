@@ -61,7 +61,10 @@ class ConnectionService : Service() {
             stopForPermission()
             return START_NOT_STICKY
         }
-        if (intent?.action == ACTION_DISCONNECT) stopSelf()
+        if (intent?.action == ACTION_DISCONNECT) {
+            graph.uiPrefs.keepConnected = false // the app shows "Disconnected · Connect" instead of reconnecting on its own
+            stopSelf()
+        }
         return START_STICKY
     }
 
