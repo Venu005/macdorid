@@ -4,6 +4,20 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Spec self-review and Plans 3 and 4 written
+- **What:**
+  - Self-reviewed the notifications + clipboard spec against the code and added §8 with 11 fixes, among them:
+    - the clipboard text limit is the 1 MiB WebSocket frame
+    - echo prevention runs only on the Mac, by pasteboard change count
+    - a single macOS notification delegate
+    - icon hashes are validated as file names
+    - `transfer.offer.purpose` is optional on the wire
+  - Wrote Plan 3 (`docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md`, 11 tasks) and Plan 4 (`docs/superpowers/plans/2026-10-13-macdroid-clipboard-4.md`, 11 tasks).
+- **Why:** the owner asked for a self-review and then the plans.
+- **Updated:** README (picking-up note, round table), STATUS, ROADMAP.
+- **Verified:** plan self-review (spec coverage, placeholder scan, type consistency, review focus). No code changed.
+- **Branch:** `main`.
+
 ## 2026-10-13 — Notifications + clipboard spec (Plans 3 and 4)
 - **What:** brainstormed and wrote `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md`: one spec for notification mirroring (Plan 3) and clipboard sync (Plan 4), delivered as two plans on `feat/notifications-clipboard`. Covers the new `notification.*` and `clipboard.set` messages, `transfer.offer.purpose`, behaviour on both sides, UI (Mac page layout A grouped by app; Android Notifications tab as a control panel; Clipboard page/tab), errors and testing.
 - **Why:** next rounds on the roadmap; the owner asked to do them together.

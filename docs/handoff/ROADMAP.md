@@ -39,8 +39,8 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
 ## Next: Plans 3 and 4 — Notifications and Clipboard (one spec)
 - **Spec:** `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md` (approved in brainstorming 2026-10-13; awaiting the owner's review of the written spec). It refines round-1 §5.1/§5.2 and wins where they differ.
 - **Next steps for a new session:**
-  1. Owner reviews and approves the spec.
-  2. Write Plan 3 (groundwork + notifications), then Plan 4 (clipboard), in `docs/superpowers/plans/`.
+  1. ~~Owner reviews the spec~~. The owner asked for a self-review instead: done 2026-10-13, fixes in spec §8.
+  2. ~~Write the plans~~. Done: `docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md` (11 tasks) and `docs/superpowers/plans/2026-10-13-macdroid-clipboard-4.md` (11 tasks). Execution ledgers go under `.superpowers/sdd/`.
   3. Run both subagent-driven on `feat/notifications-clipboard`, then one final review, the owner's hands-on checklist (spec §6) and one merge.
 - **Plan 3 scope:** tolerant `hello.features` and peer features on both sides; `notification.*` messages (phone owns the mute list, `notification.sync` on reconnect); Android `NotificationListenerService`; Mac `UserNotifications` with reply/actions/dismiss; Mac Notifications page (grouped by app) and Settings; Android Notifications tab as a control panel; notification access in the existing setup step.
 - **Plan 4 scope:** `clipboard.set`; `transfer.offer.purpose = clipboard` for images ≤ 10 MB; Mac pasteboard watcher (concealed/transient items never sent) and history page; Android Quick Settings tile, notification action, "Send now" and a "Copy to Mac" share target; Android Clipboard tab.

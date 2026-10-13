@@ -1,7 +1,7 @@
 # MacDroid — Notifications and Clipboard (Plans 3 and 4)
 
 **Date:** 2026-10-13
-**Status:** Approved in brainstorming on 2026-10-13; awaiting the owner's review of this written spec.
+**Status:** Approved in brainstorming on 2026-10-13; self-reviewed against the code on 2026-10-13 (fixes in §8); the owner asked for the plans next.
 **Builds on:**
 - Round-1 spec §4.4, §5.1, §5.2 (`2026-10-12-macdroid-round1-design.md`). This spec refines them and, where it differs, wins.
 - The UI redesign spec (`2026-10-13-macdroid-ui-ux-redesign-design.md`).
@@ -32,7 +32,7 @@ There is one owner hands-on check and one merge at the end.
 
 ### 2.1 Groundwork
 - **`hello.features`:**
-  - The phone and the Mac both send `["files","notifications","clipboard"]`.
+  - Each side lists what it implements: `["files","notifications"]` after Plan 3, plus `"clipboard"` after Plan 4. (Today both send `[]`.)
   - A feature is active only when **both** sides list it.
   - Swift `Hello` decodes a missing `features` as `[]` (Kotlin already does).
 - **Exposing the peer's features:**
@@ -58,7 +58,7 @@ There is one owner hands-on check and one merge at the end.
 - **Keys:** `key` is Android's `StatusBarNotification.key`, opaque to the Mac.
 - **Icons:** the phone sends `notification.icon` once per hash per connection, before the first `posted` that references it. The Mac caches icons on disk by hash.
 - **`notification.posted`:**
-  - `isUpdate = true` when a notification with the same key is updated in place.
+  - `isUpdate = true` when a notification with the same key was already forwarded. The phone sends an update only when the title, text, buttons or reply ability changed (see §8).
   - `title` is capped at 200 characters and `text` at 2,000, truncated on the phone.
 
 **Mute list**
@@ -69,7 +69,7 @@ There is one owner hands-on check and one merge at the end.
 ### 2.3 Clipboard messages
 | Type | Direction | Body |
 |---|---|---|
-| `clipboard.set` | both | `itemId` (UUID), `kind` = `text`, `text` (≤ 1 MB UTF-8) |
+| `clipboard.set` | both | `itemId` (UUID), `kind` = `text`, `text` (the whole encoded frame ≤ 1 MiB; see §8) |
 
 **Images** go over the file-transfer channel:
 - `transfer.offer` gains an optional `purpose`: `"file"` (default when absent) or `"clipboard"`. `mime` is `image/png`, and the size is ≤ 10 MB.
@@ -285,3 +285,19 @@ Every new message, and `transfer.offer` with `purpose`, gets a fixture in `proto
 | Mac Notifications page grouped by app (layout A) | Matches Notification Center | A timeline with filter chips |
 | The popover is unchanged | Notifications live in Notification Center; clipboard sync is invisible | Adding notification/clipboard sections |
 | Android keeps Material You colours | The owner's choice (B&W on their phone already) | Forcing black and white |
+
+## 8. Self-review fixes (2026-10-13)
+These were found by checking the spec against the code. Where they differ from the sections above, this section wins.
+
+1. **Clipboard text limit = the WebSocket frame limit.** Both sides cap a frame at `MacDroidServer.maxMessageSize` = 1,048,576 bytes. A `clipboard.set` whose *encoded frame* is larger is not sent ("too large"). The UI calls it "about 1 MB".
+2. **Echo prevention lives on the Mac only.** The phone never watches its clipboard, so nothing on the phone can echo. Every explicit phone send (tile, notification button, "Send now", share sheet) always sends. The Mac watcher skips a pasteboard change it caused itself: applying an item from the phone, or **Copy** from history (so history Copy really doesn't re-send).
+3. **`notification.sync` source.** The phone keeps the set of keys it forwarded (in memory, for the listener's lifetime) and, on each connect, sends the ones still active. If the app was restarted, the set is empty, so the Mac clears its old entries.
+4. **Update dedupe.** The phone remembers what it last sent per key. A repost with the same title, text, buttons and reply ability is not sent again (Android reposts often for silent changes), so the Mac never re-alerts for nothing.
+5. **Text extraction.** Title = conversation title, else `EXTRA_TITLE`. Text = the newest MessagingStyle message, else `EXTRA_BIG_TEXT`, else `EXTRA_TEXT`.
+6. **Flood rule, precisely.** A sliding 5-second window per app: a `posted` gets a banner only if that app sent at most 10 in the last 5 s (counting this one).
+7. **One macOS notification delegate.** macOS allows only one `UNUserNotificationCenter` delegate and one category set. A single router owns both: the received-file category, the phone-notification categories, and the clipboard notification. It routes each response by category.
+8. **macOS attachments are moved.** `UNNotificationAttachment` moves its file into the system's store, so the cached app icon is copied to a temporary file first.
+9. **`transfer.offer.purpose` is optional on the wire.** It is omitted for files, so today's fixtures and older apps are unchanged.
+10. **Clipboard transfers stay out of the Files UI.** Clipboard records are hidden from both apps' Files pages and transfer notifications, and are dropped (not archived) when they finish, so they never take up the 100-entry history.
+11. **Settings placement on the Mac.** "Notifications" and "Clipboard" are sections in Settings → General, next to "Received files".
+
