@@ -44,11 +44,12 @@ class EngineHarness(
     val incoming = MutableSharedFlow<Message>(extraBufferCapacity = 64)
     val connected = MutableStateFlow(true)
     val folder = File(dir, "Download/MacDroid")
+    val clipboardFolder = File(dir, "clipboard")
     private val saveTarget = target ?: FolderSaveTarget(folder)
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val engine = TransferEngine(
         scope = scope, store = store, files = mac, sources = FileSourceOpener(),
-        saveTarget = { saveTarget }, parts = { FolderSaveTarget.reopen(it) },
+        saveTarget = { saveTarget }, clipboardTarget = { FolderSaveTarget(clipboardFolder) }, parts = { FolderSaveTarget.reopen(it) },
         send = { message -> if (online) sent.add(message) else false },
         clock = { now }, retryDelayMs = 20, maxRetries = 3, resumeIntervalMs = resumeIntervalMs,
     )
