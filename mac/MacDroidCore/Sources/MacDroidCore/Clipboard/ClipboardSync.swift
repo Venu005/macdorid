@@ -147,6 +147,7 @@ public actor ClipboardSync {
         guard connected, phoneSupports, let item = history.item(id: id) else { return setNote("Your phone isn't connected") }
         switch history.content(of: item) {
         case .text(let text):
+            guard ClipboardRules.fitsInAFrame(text) else { return setNote("Not sent to your phone: text over 1 MB") }
             try? await send(.clipboardSet(ClipboardSet(itemId: Self.newID(), text: text)))
         case .image:
             if let url = history.outgoingCopy(of: item) { _ = await sendImage(url) }

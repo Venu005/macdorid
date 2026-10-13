@@ -298,3 +298,21 @@ import Testing
         #expect(try Data(contentsOf: newest) == testBytes(500))
     }
 }
+
+@Suite struct ClipboardHistorySendLimitTests {
+    // Review minor 6: history Send gets the same frame-size check as a fresh copy.
+    @Test func oversizedHistoryTextIsNotResent() async throws {
+        let sent = Collector<Message>()
+        let sync = ClipboardSync(
+            history: ClipboardHistory(directory: try makeTemporaryDirectory()),
+            send: { await sent.append($0) }, sendImage: { _ in true }, apply: { _ in 1 }
+        )
+        await sync.connectionChanged(.connected(PeerInfo(device: "Phone", app: "0.4.0", features: ProtocolInfo.features)))
+        // Arrived from the phone (checked there with Kotlin's encoding), but too big to send back from here.
+        await sync.handle(.clipboardSet(ClipboardSet(itemId: "x", text: String(repeating: "\n", count: 600_000))))
+        let id = try #require(await sync.state.items.first?.id)
+        await sync.sendToPhone(id: id)
+        #expect(await sent.items.isEmpty)
+        #expect(await sync.state.note == "Not sent to your phone: text over 1 MB")
+    }
+}
