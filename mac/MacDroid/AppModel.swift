@@ -157,12 +157,17 @@ final class AppModel {
 
     var phoneName: String { pairedDevice?.name ?? "your phone" }
 
-    /// Queues dropped or picked files. Folders aren't supported yet (spec §1, out of scope).
+    /// Queues dropped or picked files. Anything that can't be sent (folders, files MacDroid can't read) is named in a banner.
     func sendFiles(_ urls: [URL]) {
-        let files = urls.filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory != true }
-        transientError = files.count < urls.count ? "Folders can't be sent yet — send the files inside instead." : nil
-        guard !files.isEmpty else { return }
-        Task { _ = await transferManager.send(files: files) }
+        guard !urls.isEmpty else { return }
+        transientError = nil
+        Task {
+            let report = await transferManager.sendReporting(files: urls)
+            guard let first = report.skipped.first else { return }
+            transientError = report.skipped.count == 1
+                ? "Couldn't send “\(first.name)”: \(first.reason)."
+                : "Couldn't send \(report.skipped.count) files (“\(first.name)” and others): \(first.reason)."
+        }
     }
 
     func pickFilesToSend() {

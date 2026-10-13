@@ -1,3 +1,4 @@
+import Logging
 import SwiftUI
 
 @main
@@ -6,6 +7,7 @@ struct MacDroidApp: App {
     @State private var model: AppModel
 
     init() {
+        LoggingSystem.bootstrap(OSLogHandler.init)
         let model = AppModel()
         model.start()
         AppDelegate.onReopen = { model.showWindow(.phone) }

@@ -63,6 +63,9 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
   adb shell am instrument -w -e class dev.macdroid.app.<TestClass> dev.macdroid.app.test/androidx.test.runner.AndroidJUnitRunner
   ```
 
+- **Mac app logs:** MacDroidCore's logs go to the unified log under subsystem `dev.macdroid.mac` (`OSLogHandler`). Watch them with `log stream --predicate 'subsystem == "dev.macdroid.mac"' --style compact`.
+- **Security-scoped bookmarks and ad-hoc builds:** like the keychain, bookmarks made by one ad-hoc-signed build may not resolve in the next build. During development, a Retry of a file queued before a rebuild can fail with "The original file is no longer available".
+
 ## Conventions
 - Swift Testing (`@Test`, `#expect`) on the Mac and JUnit4 on Android; TDD for logic.
 - Pure presentation and state logic lives in testable types; views stay thin.

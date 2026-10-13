@@ -4,6 +4,14 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Mac: never drop a file silently; transfer logs in Console
+- **What:**
+  - `TransferManager.sendReporting(files:)` reports files it couldn't queue, with the reason. The Mac shows them in a banner ("Couldn't send “name”: reason") instead of silently doing nothing.
+  - The engine's and server's logs now reach the unified log (subsystem `dev.macdroid.mac`), including why a source file couldn't be reopened for the phone.
+- **Why:** the owner's Mac → phone sends showed nothing at all, and there was no log to diagnose it.
+- **Verified:** `unreadableFilesAreReportedNotDropped` (RED→GREEN), `swift test` 142, Mac app build with no compiler warnings.
+- **Branch:** `feat/file-transfer`.
+
 ## 2026-10-13 — Received files that were deleted say so
 - **What (owner's request):** if a received file is deleted after it arrives, its row says so instead of offering to open it.
   - **Mac:** the row reads "Deleted from this Mac" and has no Show/Open. Show in Finder or Open on a file removed meanwhile shows the banner "“name” is no longer on this Mac — it was deleted or moved".

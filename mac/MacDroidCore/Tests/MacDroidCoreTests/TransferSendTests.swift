@@ -155,4 +155,22 @@ import Testing
         #expect(TransferManager.mimeType(for: URL(fileURLWithPath: "/x/a.pdf")) == "application/pdf")
         #expect(TransferManager.mimeType(for: URL(fileURLWithPath: "/x/noext")) == "application/octet-stream")
     }
+
+    /// Like a sandboxed app that lost access to a file: bookmarks can't be made.
+    struct NoAccess: SourceAccess {
+        func bookmark(for url: URL) throws -> Data { throw CocoaError(.fileReadNoPermission) }
+        func resolve(_ bookmark: Data) throws -> AccessedFile { throw CocoaError(.fileReadNoPermission) }
+    }
+
+    // Owner's report: a file the Mac can't read must be reported, never dropped silently.
+    @Test func unreadableFilesAreReportedNotDropped() async throws {
+        let f = try TransferFixture()
+        let manager = f.manager(sourceAccess: NoAccess())
+        await manager.connectionChanged(true)
+        let report = await manager.sendReporting(files: try sources(f, count: 2))
+        #expect(report.ids.isEmpty)
+        #expect(report.skipped.map(\.name) == ["file0.jpg", "file1.jpg"])
+        #expect(report.skipped.allSatisfy { !$0.reason.isEmpty })
+        #expect(await f.phone.sent.isEmpty)
+    }
 }

@@ -4,11 +4,33 @@ import UniformTypeIdentifiers
 extension TransferManager {
     /// Queues files to send to the phone and returns their transfer ids. Folders and unreadable files are skipped.
     public func send(files urls: [URL]) async -> [String] {
+        await sendReporting(files: urls).ids
+    }
+
+    /// Like `send(files:)`, but also says which files couldn't be queued and why, so the app can tell the user.
+    public func sendReporting(files urls: [URL]) async -> SendReport {
         var ids: [String] = []
+        var skipped: [SendReport.Skipped] = []
         for url in urls {
-            guard let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey]),
-                  values.isDirectory != true, let size = values.fileSize,
-                  let bookmark = try? sourceAccess.bookmark(for: url) else { continue }
+            let name = url.lastPathComponent
+            let values: URLResourceValues
+            let bookmark: Data
+            do {
+                values = try url.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
+                guard values.isDirectory != true else {
+                    skipped.append(.init(name: name, reason: "folders can't be sent yet"))
+                    continue
+                }
+                bookmark = try sourceAccess.bookmark(for: url)
+            } catch {
+                logger.warning("can't send \(url.path(percentEncoded: false)): \(error)")
+                skipped.append(.init(name: name, reason: error.localizedDescription))
+                continue
+            }
+            guard let size = values.fileSize else {
+                skipped.append(.init(name: name, reason: "its size can't be read"))
+                continue
+            }
             let record = TransferRecord(
                 id: Self.newID(), direction: .toPhone, name: url.lastPathComponent, size: Int64(size),
                 mime: Self.mimeType(for: url), phase: .queued, sourceBookmark: bookmark, createdAt: now(), updatedAt: now()
@@ -19,7 +41,7 @@ extension TransferManager {
         persist()
         publish(force: true)
         await pump()
-        return ids
+        return SendReport(ids: ids, skipped: skipped)
     }
 
     /// Sends a failed or cancelled outgoing file again, as a new transfer.
@@ -91,7 +113,12 @@ extension TransferManager {
         guard let record = active.first(where: { $0.id == id && $0.direction == .toPhone }),
               record.phase != .queued, !record.phase.isFinished else { throw RouteError.notFound }
         guard start >= 0, start <= record.size else { throw RouteError.rangeNotSatisfiable }
-        guard let bookmark = record.sourceBookmark, let file = try? sourceAccess.resolve(bookmark) else {
+        let file: AccessedFile
+        do {
+            guard let bookmark = record.sourceBookmark else { throw CocoaError(.fileNoSuchFile) }
+            file = try sourceAccess.resolve(bookmark)
+        } catch {
+            logger.warning("can't reopen \(record.name) for the phone: \(error)")
             await sourceFailed(id: id)
             throw RouteError.sourceUnavailable
         }

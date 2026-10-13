@@ -95,7 +95,7 @@ public actor TransferManager {
     private let freeSpace: @Sendable (URL) -> Int64?
     let now: @Sendable () -> Date
     let send: @Sendable (Message) async throws -> Void
-    private let logger = Logger(label: "dev.macdroid.transfers")
+    let logger = Logger(label: "dev.macdroid.transfers")
 
     var active: [TransferRecord]
     var history: [TransferRecord]

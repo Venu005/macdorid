@@ -118,10 +118,11 @@ struct TransferFixture {
         try FileManager.default.createDirectory(at: downloads, withIntermediateDirectories: true)
     }
 
-    func manager(location: (any ReceiveLocationProvider)? = nil, freeSpace: @escaping @Sendable (URL) -> Int64? = { _ in nil }) -> TransferManager {
+    func manager(location: (any ReceiveLocationProvider)? = nil, sourceAccess: any SourceAccess = PlainSourceAccess(),
+                 freeSpace: @escaping @Sendable (URL) -> Int64? = { _ in nil }) -> TransferManager {
         let phone = self.phone, clock = self.clock
         return TransferManager(
-            stateDirectory: state, location: location ?? FixedLocation(.folder(downloads)),
+            stateDirectory: state, location: location ?? FixedLocation(.folder(downloads)), sourceAccess: sourceAccess,
             freeSpace: freeSpace, now: { clock.now }, send: { try await phone.send($0) }
         )
     }

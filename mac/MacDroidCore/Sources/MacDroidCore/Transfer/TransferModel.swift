@@ -124,3 +124,14 @@ public enum TransferEvent: Equatable, Sendable {
     /// A file from the phone was verified and saved (`savedURL` is set).
     case received(TransferRecord)
 }
+
+/// What `TransferManager.sendReporting(files:)` queued, and what it couldn't.
+public struct SendReport: Equatable, Sendable {
+    public struct Skipped: Equatable, Sendable {
+        public let name: String
+        public let reason: String
+    }
+
+    public let ids: [String]
+    public let skipped: [Skipped]
+}
