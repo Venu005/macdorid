@@ -2,12 +2,26 @@
 
 Each round follows the same process: brainstorm, then a spec in `docs/superpowers/specs/`, then a plan in `docs/superpowers/plans/`, then subagent-driven execution with per-task review, then a final review, then the owner's hands-on check, then merge.
 
-## Next: Plan 2 — File transfer (spec approved, plan not written yet)
+## Next: Plan 2 — File transfer (spec approved and reviewed; plan written)
 - **Spec:** `docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`. It was approved in brainstorming on 2026-10-13.
+- **Review:** the 8 review points were resolved on 2026-10-13 (spec §8; rulings in DECISIONS.md).
+- **Plans:** the work is split in two, at the owner's request, so execution can start sooner. Both run on the branch `feat/file-transfer`.
+  - **2a, the engine:** `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md`. 14 tasks:
+    - the protocol and the global middleware
+    - the hub streams
+    - the Mac `TransferManager` and file routes
+    - the Android `TransferClient` and `TransferEngine`
+    - a cross-platform test with a mid-file disconnect
+
+    Nothing in 2a is visible to the user.
+  - **2b, UI and platform glue** (not written yet): `…-2b-ui.md`. It covers:
+    - Mac: app wiring and entitlements, Files page, design-A popover, Settings → Files, notifications.
+    - Android: MediaStore/SAF/ask save targets, content-URI sources, Files tab, Home Send FAB, share target, settings and setup step, progress and received notifications.
 - **Next step for a new session:**
-  1. Invoke `superpowers:writing-plans` on that spec, saving to `docs/superpowers/plans/2026-10-13-macdroid-file-transfer.md`.
-  2. Have the owner review the plan.
-  3. Execute it with `superpowers:subagent-driven-development` (the owner's preferred method), on a branch such as `feat/file-transfer`.
+  1. Have the owner review Plan 2a (see STATUS.md for whether that's done).
+  2. Execute it with `superpowers:subagent-driven-development` (the owner's preferred method).
+  3. Write Plan 2b with `superpowers:writing-plans`. It builds on 2a's public APIs (`TransferManager`, `TransferEngine`, `SaveTarget`/`PartFile`/`SourceOpener`).
+  4. Run 2b, then the owner's hands-on checklist (spec §6), then merge.
 - **Groundwork tasks the plan must start with:**
   - a global `TrustedPeerMiddleware` (only `/v1/pair` exempt)
   - a `ConnectionHub` incoming-message hook

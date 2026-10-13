@@ -1,8 +1,18 @@
 # MacDroid handoff
 
-> **Picking up?** The next action is in [ROADMAP.md](ROADMAP.md) under "Next": write the implementation plan for the approved file-transfer spec, then run it subagent-driven.
+> **Picking up?** The next action is in [ROADMAP.md](ROADMAP.md) under "Next":
+> 1. The owner reviews **Plan 2a, the transfer engine** (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md`), then it runs subagent-driven on `feat/file-transfer`.
+> 2. **Plan 2b** (UI and platform glue) is written next, then runs on the same branch.
 
-Read this first if you're picking the project up, whether you're a person or a Claude Code session.
+Read this first if you're picking the project up, whether you're a person, a Claude Code session or a Claude Desktop session.
+
+## Rules for whoever picks this up
+These rules are also in the repo's `/CLAUDE.md`. Claude Desktop doesn't load that file automatically, so they're repeated here.
+- **Keep this folder current.** Every change, including docs-only changes and decisions, updates `docs/handoff/` in the same commit: always a dated entry at the top of [CHANGELOG.md](CHANGELOG.md), plus whichever of STATUS, ARCHITECTURE, DEV-GUIDE, ROADMAP, DECISIONS and this README the change affects.
+- **The protocol is a contract.** `protocol/PROTOCOL.md` and `protocol/fixtures/` change together with both codecs (Swift and Kotlin), and both test suites must pass.
+- **Don't weaken security.** Mutual TLS 1.3 with fingerprint pinning on both sides. The Mac takes the phone's fingerprint from the TLS session, never from a request body. Unpaired certificates may only reach `POST /v1/pair`, and only while the pairing window is open.
+- **Process:** brainstorm → spec → plan → subagent-driven execution with per-task review → owner's hands-on check → merge.
+- **Build gates** (all must pass with no warnings): see [DEV-GUIDE.md](DEV-GUIDE.md).
 
 ## What MacDroid is
 A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair once by QR code, then stay connected over local Wi-Fi with mutual TLS. The full feature set is planned in rounds:
@@ -12,7 +22,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 | Plan 1 | Protocol + connection core: pairing, encrypted link, auto-reconnect, battery on Mac | **Done, merged to `main`** |
 | UI/UX redesign | Native Mac (menu-bar popover + sidebar window) and Material 3 Android (setup wizard + 5 tabs) | **Done, merged to `main`** (verified by the owner) |
 | App icons | Peeking-droid icon for both apps | **Done, merged to `main`** |
-| Plan 2 | File transfer both ways (drag-drop, share sheet, resume, checksums) | **Spec approved; plan not written yet** (see ROADMAP "Next") |
+| Plan 2 | File transfer both ways (drag-drop, share sheet, resume, checksums) | **Spec reviewed; plan split into 2a (engine, written) and 2b (UI, next)** (see ROADMAP "Next") |
 | Plan 3 | Android notifications mirrored to the Mac (reply, dismiss) | Not started |
 | Plan 4 | Clipboard sync (Mac→phone automatic, phone→Mac on demand) | Not started |
 | Later | Photo gallery, SMS, screen mirroring, webcam/mic, USB transport | Out of scope so far |
@@ -30,6 +40,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 - Round-1 spec: [../superpowers/specs/2026-10-12-macdroid-round1-design.md](../superpowers/specs/2026-10-12-macdroid-round1-design.md). It covers all of round 1: connection, notifications, clipboard and files.
 - UI redesign spec: [../superpowers/specs/2026-10-13-macdroid-ui-ux-redesign-design.md](../superpowers/specs/2026-10-13-macdroid-ui-ux-redesign-design.md)
 - Protocol: [../../protocol/PROTOCOL.md](../../protocol/PROTOCOL.md) plus `protocol/fixtures/`
+- **File transfer Plan 2a, engine (next up):** [../superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md](../superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md). Plan 2b (UI and platform glue) will be `…-2b-ui.md`.
 - Implementation plans: `docs/superpowers/plans/`. Each has a `*-followups.md` listing rulings and deferred items.
 
 ## Owner context

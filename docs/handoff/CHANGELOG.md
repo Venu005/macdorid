@@ -4,6 +4,25 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — File transfer review points resolved; Plan 2a (engine) written
+- **What:**
+  - The owner accepted the suggested answer for all 8 review points. They're folded into the spec, which gains a §8 list of rulings, and recorded in DECISIONS.md.
+  - Three refinements came up while planning: an unknown re-offered id starts over instead of being rejected; downloads always make a `GET`, so `finish` is always sent; OkHttp uses 60 s read/write timeouts. They're in the spec (§2.2, §4.2, §8) and DECISIONS.md.
+  - Split the plan, at the owner's request. Wrote Plan 2a, the engine (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md`, 14 tasks); Plan 2b (UI and platform glue) comes next.
+  - Updated the README, ROADMAP and STATUS with the next steps.
+- **Branch:** `main` (docs only).
+- **Verified:** docs only; nothing to build.
+
+## 2026-10-13 — File transfer spec reviewed; handoff made usable from Claude Desktop
+- **What:**
+  - Reviewed the Plan 2 spec against the code (`MacDroidServer`, `ConnectionHub`, `TlsClientFactory`, entitlements).
+  - Recorded 8 open points, each with a suggested answer, in ROADMAP.md "Next": the Android default save folder (MediaStore vs SAF), share-target URI grants, Mac source bookmarks for resume after a relaunch, the resume handshake, the scope of the 3-transfer limit, the offer timeout, HTTP and naming edge cases, and plan-level details.
+  - README: added a "Rules for whoever picks this up" section that repeats the key `CLAUDE.md` rules, because Claude Desktop doesn't load `CLAUDE.md` automatically. Updated the next action and the round table.
+  - STATUS: "In flight" now points to the open points.
+- **Why:** to settle these gaps before planning, and so any Claude session (Code or Desktop) can pick up from this folder alone.
+- **Branch:** `main` (docs only).
+- **Verified:** docs only; nothing to build.
+
 ## 2026-10-13 — File transfer spec (Plan 2) approved; roadmap reordered
 - **What:**
   - Wrote `docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`.
