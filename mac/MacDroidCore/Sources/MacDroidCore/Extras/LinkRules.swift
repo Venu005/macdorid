@@ -1,0 +1,25 @@
+import Foundation
+
+/// Which links travel between the devices (spec §2): the first http(s) URL in a text, trailing punctuation
+/// trimmed, at most 8 KB. Mirrors Kotlin `LinkExtractor` exactly.
+public enum LinkRules {
+    public static let maxBytes = 8_192
+    private static let pattern = try! NSRegularExpression(pattern: #"(?i)\bhttps?://[^\s<>"']+"#)
+    private static let trailing: Set<Character> = [".", ",", ";", ":", "!", "?", ")", "]", "}", "'", "\""]
+
+    public static func firstLink(in text: String) -> String? {
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = pattern.firstMatch(in: text, range: range), let found = Range(match.range, in: text) else { return nil }
+        var link = String(text[found])
+        while let last = link.last, trailing.contains(last) { link.removeLast() }
+        return allowedURL(link) == nil ? nil : link
+    }
+
+    /// The URL if it's http/https with a host and within the size limit; nil otherwise.
+    public static func allowedURL(_ string: String) -> URL? {
+        guard string.utf8.count <= maxBytes, let url = URL(string: string),
+              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              let host = url.host(), !host.isEmpty else { return nil }
+        return url
+    }
+}

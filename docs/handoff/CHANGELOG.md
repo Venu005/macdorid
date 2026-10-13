@@ -7,6 +7,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 ## 2026-10-13 — Plan 5: small wins (in progress on feat/small-wins)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md` (executed inline).
 - Task 1: `device.ring`, `device.ringState`, `link.open`, `media.state`, `media.art` and `media.command` in both codecs (7 fixtures); features `ring`, `links`, `media`. Verified: `swift test` 218, Android gates.
+- Task 2: mirrored link rules, Swift `LinkRules` and Kotlin `LinkExtractor` (first http/https link, trailing punctuation trimmed, ≤ 8 KB). Verified: 4 tests on each side.
 
 ## 2026-10-13 — Plan 5 (small wins) written
 - **What:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md`, 10 tasks:
