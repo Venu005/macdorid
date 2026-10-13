@@ -2,7 +2,7 @@
 
 > **Picking up?** The next action is in [ROADMAP.md](ROADMAP.md) under "Next":
 > 1. Plan 2a (the transfer engine) is **done** on `feat/file-transfer`.
-> 2. Next: write **Plan 2b** (UI and platform glue: `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`) and run it on the same branch. Then comes the owner's hands-on check, then the merge.
+> 2. **Plan 2b** (UI and platform glue) is written: `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md` (13 tasks). Next: run it on the same branch, then the owner's hands-on check, then merge.
 
 Read this first if you're picking the project up, whether you're a person, a Claude Code session or a Claude Desktop session.
 

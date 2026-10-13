@@ -7,7 +7,7 @@
 ## In flight
 - **File transfer (Plan 2):** the spec was written and approved on 2026-10-13 (`docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`). The 8 review points were resolved the same day (spec §8).
   - **Plan 2a (engine):** done on `feat/file-transfer`. It covers protocol messages, the global middleware, hub streams, the Mac `TransferManager` and `/v1/files` routes, and the Android `TransferClient` and `TransferEngine`. The cross-platform test sends files both ways with a mid-file disconnect.
-  - **Plan 2b (UI and platform glue):** next. It isn't written yet.
+  - **Plan 2b (UI and platform glue):** written (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`); next to run.
 
 ## Working and verified
 - Pairing by QR code and by manual entry, with a fingerprint check.

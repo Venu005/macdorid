@@ -4,6 +4,16 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Plan 2b written (file transfer UI and platform glue)
+- **What:** wrote `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`. It has 13 tasks:
+  - **Engine changes, both sides:** pending incoming offers become visible, cancellable rows, and the save-location question gets the offer's details. Android also retries paused transfers while connected.
+  - **Mac:** app wiring with entitlements, the Files page, the Received-files settings and the design-A popover.
+  - **Android:** pure helpers, the MediaStore/SAF/ask save targets, notifications, the Files tab with the Home Send button, the share target, Settings → Files and a setup step.
+  - **Wrap-up:** a final task with the owner's hands-on checklist.
+- **Why:** this is the second half of Plan 2. It also folds in the 2a review minors that 2b needed (save-location API gaps, transfers stuck "Paused" while connected).
+- **Branch:** `feat/file-transfer`.
+- **Verified:** docs only.
+
 ## 2026-10-13 — Plan 2a: file transfer engine (done on feat/file-transfer)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md` (engine); Plan 2b (UI and platform glue) follows.
 - **Verified:**
