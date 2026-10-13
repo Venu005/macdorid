@@ -4,10 +4,12 @@ import SwiftUI
 /// The phone's media in the popover (spec §4): artwork, title, artist · app, a seek bar and transport buttons.
 struct NowPlayingCard: View {
     let model: AppModel
+    /// Passed as a value (not read from `model` here), so every new state redraws the card. Reading it through the
+    /// shared model alone left the play/pause button stale in the menu-bar popover.
+    let extras: PhoneExtrasState
     @State private var scrubbing: Double?
 
     var body: some View {
-        let extras = model.extras
         let media = extras.media
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {

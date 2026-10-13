@@ -166,3 +166,12 @@ class MediaTrackerTest {
         assertNull(tracker.handle(Message.MediaCommand(MediaCommandBody(MediaCommandKind.Play))))
     }
 }
+
+class PreviousTrackTest {
+    // Owner feedback: ⏮ on the Mac must go to the previous song, not restart the current one.
+    @Test fun rewindsFirstOnlyPastTheRestartWindow() {
+        assertTrue(PreviousTrack.needsRewindFirst(positionMs = 45_000, canSeek = true))
+        assertFalse(PreviousTrack.needsRewindFirst(positionMs = 2_000, canSeek = true))
+        assertFalse(PreviousTrack.needsRewindFirst(positionMs = 45_000, canSeek = false))
+    }
+}

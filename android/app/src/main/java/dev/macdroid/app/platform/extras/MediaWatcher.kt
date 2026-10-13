@@ -17,6 +17,7 @@ import dev.macdroid.core.extras.MediaArtwork
 import dev.macdroid.core.extras.MediaControl
 import dev.macdroid.core.extras.MediaSnapshot
 import dev.macdroid.core.extras.MediaTracker
+import dev.macdroid.core.extras.PreviousTrack
 import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.MediaCommandKind
 import java.io.ByteArrayOutputStream
@@ -165,12 +166,22 @@ class MediaWatcher(private val context: Context, private val connection: Connect
     }.getOrNull()
 
     private fun apply(control: MediaControl) {
-        val controls = controllers[control.packageName]?.first?.transportControls ?: return
+        val controller = controllers[control.packageName]?.first ?: return
+        val controls = controller.transportControls
         when (control.command) {
             MediaCommandKind.Play -> controls.play()
             MediaCommandKind.Pause -> controls.pause()
             MediaCommandKind.Next -> controls.skipToNext()
-            MediaCommandKind.Previous -> controls.skipToPrevious()
+            MediaCommandKind.Previous -> {
+                val state = controller.playbackState
+                val position = state?.let {
+                    val elapsed = if (it.state == PlaybackState.STATE_PLAYING) (SystemClock.elapsedRealtime() - it.lastPositionUpdateTime) * it.playbackSpeed else 0f
+                    it.position + elapsed.toLong()
+                } ?: 0L
+                val canSeek = state != null && (state.actions and PlaybackState.ACTION_SEEK_TO) != 0L
+                if (PreviousTrack.needsRewindFirst(position, canSeek)) controls.seekTo(0) // otherwise "previous" only restarts
+                controls.skipToPrevious()
+            }
             MediaCommandKind.Seek -> control.positionMs?.let(controls::seekTo)
         }
     }

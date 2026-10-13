@@ -15,7 +15,7 @@ struct MenuBarPopover: View {
             } else {
                 deviceCard
                 tiles
-                if model.extras.supportsMedia && model.extras.media.active { NowPlayingCard(model: model) }
+                if model.extras.supportsMedia && model.extras.media.active { NowPlayingCard(model: model, extras: model.extras) }
                 transfers
             }
             ForEach(model.warnings, id: \.self) { warning in

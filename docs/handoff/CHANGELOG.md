@@ -21,6 +21,9 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
   - A paused media session is hidden after 5 minutes (`MediaTracker.tick` every 60 s). Verified: `aLongPausedSessionIsHiddenOnTheNextTick` RED→GREEN.
   - Media updates go through one ordered lane, and the artwork cache keeps 8 tracks. Verified: build.
   - 11 minors deferred to the follow-ups file.
+- Owner feedback fixes:
+  - **Play/pause icon was stale on the Mac.** Logs showed the Mac received every play/pause change, but the popover's Now Playing card never redrew from the shared model. It now gets the state passed in as a value, so every change redraws it.
+  - **⏮ restarted the song instead of going back** (Media3 apps treat "previous" after 3 s as a restart). Past 3 s the phone now seeks to 0, then skips to previous (`PreviousTrack`). Verified: `rewindsFirstOnlyPastTheRestartWindow` RED→GREEN, all gates.
 
 ## 2026-10-13 — Plan 5 (small wins) written
 - **What:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md`, 10 tasks:
