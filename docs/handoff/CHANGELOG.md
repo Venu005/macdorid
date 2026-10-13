@@ -4,6 +4,16 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Plan 5 (small wins) written
+- **What:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md`, 10 tasks:
+  - protocol; link rules on both sides
+  - Android core ring/media logic; Mac core `PhoneExtras`
+  - Android ringer, links, media watcher
+  - Mac Services/popover/Now Playing
+  - the cross-platform run; final
+- **Ruling recorded in the plan:** the Mac projects the media position from its own receive time (clock skew between devices).
+- **Branch:** `main` (docs only).
+
 ## 2026-10-13 — Small wins spec (Plan 5): ring, links, media controls
 - **What:** brainstormed and wrote `docs/superpowers/specs/2026-10-13-macdroid-small-wins-design.md`:
   - ring my phone (loud on silent plus flashing torch, stopped many ways)
