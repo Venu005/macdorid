@@ -4,6 +4,19 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — File transfer spec (Plan 2) approved; roadmap reordered
+- **What:**
+  - Wrote `docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`.
+  - File transfer is now Plan 2, notifications Plan 3 and clipboard Plan 4.
+  - Updated the handoff (README round table, ROADMAP "Next" with exact next steps, STATUS "In flight", DECISIONS).
+- **Key choices:**
+  - auto-save on receive
+  - full resumable transfers
+  - drag-drop and picker on the Mac, with the Finder Share extension deferred
+  - Control Center-style popover
+  - Android share target, Files tab, Photo Picker and SAF
+- **Next:** write the implementation plan (writing-plans skill), then execute it subagent-driven.
+
 ## 2026-10-13 — App icons merged to main
 - **What:** merged `feat/app-icons` into `main`.
 - **Verified:** the owner checked the icon on the Mac and the phone. It shows normally in the Dock, with no grey tile.

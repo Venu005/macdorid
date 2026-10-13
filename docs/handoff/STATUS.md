@@ -3,6 +3,9 @@
 ## Branches
 - `main`: Plan 1 (protocol and connection core), the UI/UX redesign and the app icons. All are merged and were verified by hand by the owner.
 
+## In flight
+- **File transfer (Plan 2):** the spec was written and approved on 2026-10-13 (`docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`). No code yet. The next step is the implementation plan.
+
 ## Working and verified
 - Pairing by QR code and by manual entry, with a fingerprint check.
 - Mutual TLS 1.3 with pinning, and auto-reconnect across Wi-Fi toggles, Mac quit/relaunch, sleep/wake and phone reboot. The owner verified these by hand on Plan 1.

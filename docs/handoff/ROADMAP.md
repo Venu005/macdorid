@@ -2,13 +2,27 @@
 
 Each round follows the same process: brainstorm, then a spec in `docs/superpowers/specs/`, then a plan in `docs/superpowers/plans/`, then subagent-driven execution with per-task review, then a final review, then the owner's hands-on check, then merge.
 
-## Next: Plan 2 (app icons are done and merged)
+## Next: Plan 2 — File transfer (spec approved, plan not written yet)
+- **Spec:** `docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`. It was approved in brainstorming on 2026-10-13.
+- **Next step for a new session:**
+  1. Invoke `superpowers:writing-plans` on that spec, saving to `docs/superpowers/plans/2026-10-13-macdroid-file-transfer.md`.
+  2. Have the owner review the plan.
+  3. Execute it with `superpowers:subagent-driven-development` (the owner's preferred method), on a branch such as `feat/file-transfer`.
+- **Groundwork tasks the plan must start with:**
+  - a global `TrustedPeerMiddleware` (only `/v1/pair` exempt)
+  - a `ConnectionHub` incoming-message hook
+  - a multi-subscriber status stream
+- **Scope:**
+  - drag-and-drop and Send Files… on the Mac (Files page and the redesigned popover, design A)
+  - Android Share target, Files tab and Home Send (Photo Picker / file picker)
+  - auto-save with a notification; resumable, checksummed transfers, 3 in parallel
+- **Deferred:** the Finder Share extension (a small round after this).
 
-## Plan 2: Notifications (round-1 spec §5.1)
-- **Groundwork first:**
-  - `ConnectionHub` needs a multi-subscriber status stream and an incoming-message hook.
+## Plan 3: Notifications (round-1 spec §5.1)
+- **Groundwork:**
   - Swift `Hello.features` should become tolerant (Kotlin already defaults it).
   - Android `ConnectionState.Connected` should expose the Mac's features.
+  - The hub message hook and multi-subscriber stream arrive in Plan 2.
 - **Android:**
   - `NotificationListenerService`, plus an onboarding step for notification access.
   - Forward posted and removed notifications, with icons sent once per app and cached by hash.
@@ -19,22 +33,14 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
   - The Notifications sidebar page lists the last 50 notifications and has per-app mute toggles.
 - **Messages:** `notification.posted|removed|action|reply|dismiss|filter`.
 
-## Plan 3: Clipboard (§5.2)
+## Plan 4: Clipboard (round-1 spec §5.2)
 - **Mac → phone:** automatic, by polling the `NSPasteboard` change count. Concealed (password-manager) items are skipped.
-- **Phone → Mac:** on demand, because Android 10+ blocks background clipboard reads. Three ways: Quick Settings tile, notification action, Share target.
-- History on the Mac (10/20/50 entries) and the Clipboard tabs.
-- **Messages:** `clipboard.set`, plus image transfers via Plan 4's transfer channel.
+- **Phone → Mac:** on demand (Quick Settings tile, notification action, Share target), because Android 10+ blocks background clipboard reads.
+- **History** on the Mac (10/20/50 entries) and the Clipboard tabs.
+- **Images** use Plan 2's transfer channel.
 
-## Plan 4: File transfer (§5.3)
-- **Groundwork:** make `TrustedPeerMiddleware` global before adding `/v1/files/{id}`.
-- **Endpoints:**
-  - Phone → Mac: `PUT`.
-  - Mac → phone: `GET`.
-  - Resume: HTTP Range on GETs; HEAD + `Upload-Offset` on uploads.
-  - SHA-256 is verified via `transfer.finish`/`result`.
-- Up to 3 transfers run in parallel.
-- **Destinations:** a folder choice with "ask each time" on both sides (security-scoped bookmark on the Mac, Storage Access Framework on Android).
-- **Entry points:** Finder Share extension, Android Share target, and the Send button on Android Home.
+## Small round: Finder Share extension
+"Share → Send to phone" in Finder. It needs an app-extension target that hands files to the main app via an app group (the extension never opens network connections).
 
 ## Later rounds (not specced)
 Photo gallery, SMS (Play-restricted permissions), screen mirroring/remote control (scrcpy-style, needs debugging mode), phone as webcam/mic (CoreMediaIO extension), USB transport via `adb reverse`, Wi-Fi Direct.

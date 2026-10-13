@@ -17,3 +17,9 @@ The full per-plan rulings are in the `docs/superpowers/plans/*-followups.md` fil
 | Android uses a pairing-centred setup wizard plus 5 bottom tabs, with "coming soon" tabs until features ship | The final shape is visible now and later rounds fill the tabs in | Hub grid; hiding the tabs |
 | After Forget, the Mac shows a "Pair a Phone" button instead of opening a code automatically | An open window lets the forgotten phone past TLS, so it would show "Waiting" instead of "Pairing problem" | A core change (403 on untrusted WS upgrade), deferred |
 | `ConnectionState.Waiting.retryAtNanos` (additive core change) | An accurate reconnect countdown that survives StateFlow conflation and resubscription | Timestamping in the view model |
+| File transfer comes before notifications and clipboard | Files depend only on the connection core; clipboard images reuse the transfer channel | The original order (notifications → clipboard → files) |
+| Received files save automatically (default `~/Downloads/MacDroid` and `Download/MacDroid`), with an Open notification; "Ask where to save" is optional | Both devices are the owner's and already paired, so it should feel like AirDrop to yourself | Accept or decline every file; prompt only for large files |
+| Full resumable design: Range/HEAD resume, SHA-256, 3 in parallel | The owner sends multi-GB files | Simple restart-on-failure; streaming over the WebSocket |
+| Finder Share extension deferred to its own small round | It's about a third of the Mac work; drag-drop and the picker cover sending now | Building all Mac entry points at once |
+| Mac popover "Control Center" design: battery ring, Send/Open tiles, transfer rows, whole popover as drop target | The owner rejected the dashed-box popover; this feels native | Native-menu style popover |
+| Android uses the Photo Picker and SAF; no `MANAGE_EXTERNAL_STORAGE` | Play policy; no storage permission needed | Broad file access |

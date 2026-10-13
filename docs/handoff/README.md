@@ -1,5 +1,7 @@
 # MacDroid handoff
 
+> **Picking up?** The next action is in [ROADMAP.md](ROADMAP.md) under "Next": write the implementation plan for the approved file-transfer spec, then run it subagent-driven.
+
 Read this first if you're picking the project up, whether you're a person or a Claude Code session.
 
 ## What MacDroid is
@@ -9,9 +11,10 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 |---|---|---|
 | Plan 1 | Protocol + connection core: pairing, encrypted link, auto-reconnect, battery on Mac | **Done, merged to `main`** |
 | UI/UX redesign | Native Mac (menu-bar popover + sidebar window) and Material 3 Android (setup wizard + 5 tabs) | **Done, merged to `main`** (verified by the owner) |
-| Plan 2 | Android notifications mirrored to the Mac (reply, dismiss) | Not started |
-| Plan 3 | Clipboard sync (Mac→phone automatic, phone→Mac on demand) | Not started |
-| Plan 4 | File transfer both ways (HTTPS PUT/GET, resume, checksums) | Not started |
+| App icons | Peeking-droid icon for both apps | **Done, merged to `main`** |
+| Plan 2 | File transfer both ways (drag-drop, share sheet, resume, checksums) | **Spec approved; plan not written yet** (see ROADMAP "Next") |
+| Plan 3 | Android notifications mirrored to the Mac (reply, dismiss) | Not started |
+| Plan 4 | Clipboard sync (Mac→phone automatic, phone→Mac on demand) | Not started |
 | Later | Photo gallery, SMS, screen mirroring, webcam/mic, USB transport | Out of scope so far |
 
 ## Documents
@@ -23,6 +26,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 - [CHANGELOG.md](CHANGELOG.md): a dated log of every change; read the newest entries first.
 
 ## Source-of-truth documents
+- **File transfer spec (next up):** [../superpowers/specs/2026-10-13-macdroid-file-transfer-design.md](../superpowers/specs/2026-10-13-macdroid-file-transfer-design.md)
 - Round-1 spec: [../superpowers/specs/2026-10-12-macdroid-round1-design.md](../superpowers/specs/2026-10-12-macdroid-round1-design.md). It covers all of round 1: connection, notifications, clipboard and files.
 - UI redesign spec: [../superpowers/specs/2026-10-13-macdroid-ui-ux-redesign-design.md](../superpowers/specs/2026-10-13-macdroid-ui-ux-redesign-design.md)
 - Protocol: [../../protocol/PROTOCOL.md](../../protocol/PROTOCOL.md) plus `protocol/fixtures/`
