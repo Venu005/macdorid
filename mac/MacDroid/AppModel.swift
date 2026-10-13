@@ -28,6 +28,14 @@ final class AppModel {
     private(set) var transientError: String?
     private(set) var windowRequest: WindowRequest?
     private(set) var transfers: TransferSnapshot = .empty
+    private(set) var clipboard: ClipboardState = .empty
+    @ObservationIgnored private let clipboardSync: ClipboardSync
+    @ObservationIgnored private let watcher = PasteboardWatcher()
+    @ObservationIgnored private let clipboardNotifier: ClipboardNotifier
+    @ObservationIgnored private let clipboardImages: URL
+    private static let clipboardSendKey = "clipboard.sendToPhone"
+    private static let clipboardReceiveKey = "clipboard.receiveFromPhone"
+    private static let clipboardSizeKey = "clipboard.historySize"
     private(set) var notifications: PhoneNotificationsState = .empty
     /// The last problem with a reply, button or mute (spec §5); shown on the Notifications page.
     private(set) var notificationProblem: String?
@@ -79,15 +87,32 @@ final class AppModel {
         let files = FilesSettings()
         files.phoneName = paired?.name ?? "Your phone"
         self.files = files
-        transferManager = TransferManager(
+        let manager = TransferManager(
             stateDirectory: URL.applicationSupportDirectory.appending(path: "Transfers", directoryHint: .isDirectory),
             location: MacReceiveLocation(settings: files),
             sourceAccess: SecurityScopedSourceAccess(),
+            clipboardDirectory: URL.applicationSupportDirectory.appending(path: "ClipboardIncoming", directoryHint: .isDirectory),
             send: { message in try await hub.send(message) }
         )
+        transferManager = manager
         let router = NotificationRouter()
         self.router = router
         notifier = ReceivedNotifier(router: router)
+        clipboardNotifier = ClipboardNotifier(router: router)
+        let defaults = UserDefaults.standard
+        let history = ClipboardHistory(
+            directory: URL.applicationSupportDirectory.appending(path: "Clipboard", directoryHint: .isDirectory),
+            capacity: defaults.object(forKey: Self.clipboardSizeKey) as? Int ?? ClipboardHistory.defaultCapacity
+        )
+        clipboardImages = history.imagesDirectory
+        clipboardSync = ClipboardSync(
+            history: history,
+            sendToPhone: defaults.object(forKey: Self.clipboardSendKey) as? Bool ?? true,
+            receiveFromPhone: defaults.object(forKey: Self.clipboardReceiveKey) as? Bool ?? true,
+            send: { message in try await hub.send(message) },
+            sendImage: { url in await manager.sendClipboardImage(url) },
+            apply: { content in await MainActor.run { PasteboardWatcher.write(content) } }
+        )
         let icons = IconCache(directory: URL.applicationSupportDirectory.appending(path: "NotificationIcons", directoryHint: .isDirectory))
         self.icons = icons
         phoneNotifier = PhoneNotifier(router: router, icons: icons)
@@ -120,6 +145,16 @@ final class AppModel {
         })
         router.setUp()
         router.onPhoneResponse = { [weak self] response in self?.handlePhoneResponse(response) }
+        tasks.append(Task { [clipboardSync, hub] in await clipboardSync.attach(to: hub) })
+        tasks.append(Task { [weak self, clipboardSync] in
+            for await state in clipboardSync.states { self?.clipboard = state }
+        })
+        tasks.append(Task { [weak self, clipboardSync] in
+            for await event in clipboardSync.events { await self?.handle(event) }
+        })
+        watcher.start { [clipboardSync] content, changeCount in
+            Task { await clipboardSync.localChange(content, changeCount: changeCount) }
+        }
         tasks.append(Task { [phoneNotifications, hub] in await phoneNotifications.attach(to: hub) })
         tasks.append(Task { [weak self, phoneNotifications] in
             for await state in phoneNotifications.states { self?.notifications = state }
@@ -208,6 +243,38 @@ final class AppModel {
         NSApp.activate()
         guard panel.runModal() == .OK else { return }
         sendFiles(panel.urls)
+    }
+
+    // MARK: Clipboard (spec §4)
+
+    private func handle(_ event: ClipboardEvent) async {
+        switch event {
+        case .receivedFromPhone(let item): await clipboardNotifier.notify(item, from: pairedDevice?.name ?? "your phone")
+        }
+    }
+
+    func copyClipboardItem(_ id: String) { Task { await clipboardSync.copyToMac(id: id) } }
+    func sendClipboardItem(_ id: String) { Task { await clipboardSync.sendToPhone(id: id) } }
+
+    func setClipboardSendToPhone(_ on: Bool) {
+        UserDefaults.standard.set(on, forKey: Self.clipboardSendKey)
+        Task { await clipboardSync.setSendToPhone(on) }
+    }
+
+    func setClipboardReceiveFromPhone(_ on: Bool) {
+        UserDefaults.standard.set(on, forKey: Self.clipboardReceiveKey)
+        Task { await clipboardSync.setReceiveFromPhone(on) }
+    }
+
+    func setClipboardHistorySize(_ size: Int) {
+        UserDefaults.standard.set(size, forKey: Self.clipboardSizeKey)
+        Task { await clipboardSync.setCapacity(size) }
+    }
+
+    func clearClipboardHistory() { Task { await clipboardSync.clearHistory() } }
+
+    func clipboardImageURL(_ item: ClipboardItem) -> URL {
+        ClipboardHistory.imageURL(imagesDirectory: clipboardImages, id: item.id)
     }
 
     // MARK: Phone notifications (spec §3)
@@ -301,7 +368,7 @@ final class AppModel {
     private func handle(_ event: TransferEvent) async {
         switch event {
         case .received(let record): await notifier.notifyReceived(record, from: pairedDevice?.name ?? "your phone")
-        case .clipboardImageReceived: break // Task 6 hands it to ClipboardSync
+        case .clipboardImageReceived(let url): await clipboardSync.imageReceived(url)
         }
     }
 
