@@ -1,11 +1,10 @@
-# Status (as of 2026-10-13, after the redesign merge)
+# Status (as of 2026-10-13, after the file-transfer merge)
 
 ## Branches
-- `main`: Plan 1 (protocol and connection core), the UI/UX redesign and the app icons. All are merged and were verified by hand by the owner.
-- `feat/file-transfer`: Plan 2a (transfer engine) done and verified. Nothing user-visible yet, so it isn't merged; Plan 2b continues on the same branch.
+- `main`: Plan 1 (connection core), the UI/UX redesign, the app icons and file transfer (Plan 2, merged 2026-10-13). All gates pass on `main`. The file-transfer hands-on checklist is still partly open (see below).
 
 ## In flight
-- **File transfer (Plan 2):** the 2a engine and the 2b UI are complete on `feat/file-transfer`. It's waiting for the owner's hands-on checklist (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`); merge after it passes.
+- **File transfer (Plan 2):** merged to `main` on 2026-10-13. The remaining hands-on checks are in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`; fix anything they turn up on a new branch.
   - Spec: `docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`.
   - Android 0.3.0 is installed on the phone. Build and open the Mac app with the commands in DEV-GUIDE.md.
   - **Owner-verified so far:** phone → Mac (photos, a 49 MB video); Mac → phone via Send Files…, drag to the Files page, and drag to the popover (after the drag-pasteboard fix). The rest of the checklist is still open.
@@ -18,11 +17,11 @@
 - Android 17 `ACCESS_LOCAL_NETWORK` flow.
 - Keystore-backed TLS client authentication on the real phone (instrumented test).
 - Automated tests:
-  - Swift: 140 tests (on `feat/file-transfer`; 59 on `main`).
+  - Swift: 144 tests.
   - Android core: protocol, TLS, pairing, connection manager.
   - Android app: status/setup logic.
   - Cross-platform script (Swift server ↔ Kotlin client).
-  - Cross-platform file transfer both ways (24 MiB each), with resume after a dropped connection (`feat/file-transfer`).
+  - Cross-platform file transfer both ways (24 MiB each), with resume after a dropped connection.
 
 ## Pending or unverified
 - **File transfer hands-on checklist** (owner): see the follow-ups file above. That includes the Mac app's first launch with the new entitlements: a fresh build asks for keychain access again.
@@ -33,7 +32,7 @@
 - One paired phone per Mac.
 - IPv4 only for NSD rediscovery. After Mac sleep/wake the phone may take up to about 30 s to reconnect.
 - The Mac has no "reconnecting" state; it shows "Not connected — waiting for your phone".
-- The Notifications and Clipboard tabs and sidebar items are placeholders. Files is live on `feat/file-transfer` (Mac: Task 5; Android: Task 10 of Plan 2b).
+- The Notifications and Clipboard tabs and sidebar items are placeholders. Files is live.
 
 ## Follow-up lists
 - [Plan 1 follow-ups](../superpowers/plans/2026-10-12-macdroid-plan1-followups.md)

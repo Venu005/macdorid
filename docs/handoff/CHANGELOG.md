@@ -4,6 +4,17 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — File transfer merged to main
+- **What:** merged `feat/file-transfer` into `main`: Plan 2a (engine), Plan 2b (UI), the owner-found fixes (MediaStore part file, Mac drag-and-drop in the sandbox) and the final-review fixes.
+- **Verified on the merged `main`:**
+  - `swift test`: 144 tests.
+  - The Mac app build succeeds with no compiler warnings.
+  - The Android gates pass with no warnings.
+  - `./scripts/cross-platform-test.sh` passes.
+- **Owner-verified:** phone → Mac, and Mac → phone via Send Files…, the Files page and the popover.
+- **Still open:** the rest of the hands-on checklist, in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`.
+- **Next:** Plan 3 (notifications).
+
 ## 2026-10-13 — Plan 2b final-review fixes
 - **Mac (critical):** with "Ask where to save each time", the file is now written straight into the file chosen in the save panel. The sandbox grants access to that exact file only, so the old sibling `.macdroid-part` failed anywhere outside Downloads. The Mac also keeps earlier save folders accessible for the session.
 - **Android:**

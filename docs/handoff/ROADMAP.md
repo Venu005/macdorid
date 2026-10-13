@@ -2,7 +2,7 @@
 
 Each round follows the same process: brainstorm, then a spec in `docs/superpowers/specs/`, then a plan in `docs/superpowers/plans/`, then subagent-driven execution with per-task review, then a final review, then the owner's hands-on check, then merge.
 
-## Next: Plan 2 — File transfer (spec approved and reviewed; plan written)
+## Done: Plan 2 — File transfer (merged 2026-10-13)
 - **Spec:** `docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`. It was approved in brainstorming on 2026-10-13.
 - **Review:** the 8 review points were resolved on 2026-10-13 (spec §8; rulings in DECISIONS.md).
 - **Plans:** the work is split in two, at the owner's request, so execution can start sooner. Both run on the branch `feat/file-transfer`.
@@ -25,7 +25,7 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
      - Then Android: helpers, save targets, notifications, Files tab, share target, settings and setup step.
      - It ends with a hands-on checklist for the owner.
   4. ~~Run 2b~~. Done on 2026-10-13.
-  5. **Next:** the owner's hands-on checklist (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`), then merge `feat/file-transfer`, then Plan 3 (notifications).
+  5. ~~Merge~~. Merged to `main` on 2026-10-13. The remaining hands-on checks are in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`. **Next round: Plan 3 (notifications).**
 - **Groundwork tasks the plan must start with:**
   - a global `TrustedPeerMiddleware` (only `/v1/pair` exempt)
   - a `ConnectionHub` incoming-message hook
