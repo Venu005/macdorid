@@ -15,7 +15,8 @@ public struct TransferRowModel: Equatable, Sendable {
 
 /// Pure transfer → text mapping for the Mac UI. The Android app mirrors it with "phone"/"Mac" swapped.
 public enum TransferPresentation {
-    public static func row(_ record: TransferRecord, rate: Double?) -> TransferRowModel {
+    /// `savedFileExists`: whether a received file is still where it was saved (the user may have deleted or moved it).
+    public static func row(_ record: TransferRecord, rate: Double?, savedFileExists: Bool = true) -> TransferRowModel {
         let toPhone = record.direction == .toPhone
         let fraction = record.size > 0 ? min(1, Double(record.bytesDone) / Double(record.size)) : nil
         let canRetry = toPhone && record.sourceBookmark != nil
@@ -37,6 +38,8 @@ public enum TransferPresentation {
         case .verifying:
             row.detail = "Checking…"
             row.progress = 1
+        case .done where !toPhone && !savedFileExists:
+            row.detail = "Deleted from this Mac"
         case .done:
             row.detail = "\(toPhone ? "Sent" : "Received") · \(TransferText.bytes(record.size))"
             row.canOpen = !toPhone && record.savedURL != nil

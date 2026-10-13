@@ -3,6 +3,8 @@ package dev.macdroid.app.ui.files
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
+import dev.macdroid.app.platform.ReceivedFiles
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,8 +27,12 @@ fun rememberSendPickers(onPicked: (List<Uri>) -> Unit): SendPickers {
     }
 }
 
-/** Opens a received file in whatever app handles its type. */
+/** Opens a received file in whatever app handles its type, or says it's gone if the user deleted it. */
 fun Context.openReceived(record: TransferRecord) {
-    val uri = record.savedUri?.let(Uri::parse) ?: return
-    runCatching { startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, record.mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)) }
+    val saved = record.savedUri ?: return
+    if (!ReceivedFiles.exists(this, saved)) {
+        Toast.makeText(this, "“${record.name}” was deleted from this phone", Toast.LENGTH_LONG).show()
+        return
+    }
+    runCatching { startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(saved), record.mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)) }
 }

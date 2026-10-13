@@ -64,4 +64,12 @@ import Testing
         #expect(TransferPresentation.dropSummary(count: 3, totalBytes: 12_400_000) == "3 files · 12.4 MB")
         #expect(TransferPresentation.dropSummary(count: 1, totalBytes: 512) == "1 file · 512 bytes")
     }
+
+    @Test func receivedFileThatWasDeletedSaysSoAndCannotBeOpened() {
+        let gone = TransferPresentation.row(record(.fromPhone, .done, size: 3_145_728, saved: URL(fileURLWithPath: "/x/clip.mov")), rate: nil, savedFileExists: false)
+        #expect(gone.detail == "Deleted from this Mac")
+        #expect(!gone.canOpen && !gone.isError)
+        // Only received files are checked: a sent file isn't on this Mac's save folder.
+        #expect(TransferPresentation.row(record(.toPhone, .done, size: 512), rate: nil, savedFileExists: false).detail == "Sent · 512 bytes")
+    }
 }

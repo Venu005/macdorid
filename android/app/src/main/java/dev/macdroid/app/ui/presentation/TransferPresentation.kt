@@ -23,7 +23,8 @@ data class TransferRowModel(
 object TransferPresentation {
     data class ProgressSummary(val title: String, val percent: Int)
 
-    fun row(record: TransferRecord, rate: Double?): TransferRowModel {
+    /** [savedFileExists]: whether a received file is still there (the user may have deleted it). */
+    fun row(record: TransferRecord, rate: Double?, savedFileExists: Boolean = true): TransferRowModel {
         val toMac = record.direction == Direction.ToMac
         val fraction = if (record.size > 0) (record.bytesDone.toFloat() / record.size).coerceIn(0f, 1f) else null
         val canRetry = toMac && record.source != null
@@ -37,7 +38,7 @@ object TransferPresentation {
             Phase.Active -> base.copy(detail = TransferText.line(record.bytesDone, record.size, rate), progress = fraction)
             Phase.Paused -> base.copy(detail = "Paused — waiting for connection", progress = fraction)
             Phase.Verifying -> base.copy(detail = "Checking…", progress = 1f)
-            Phase.Done -> base.copy(
+            Phase.Done -> if (!toMac && !savedFileExists) base.copy(detail = "Deleted from this phone") else base.copy(
                 detail = "${if (toMac) "Sent" else "Received"} · ${TransferText.bytes(record.size)}",
                 canOpen = !toMac && record.savedUri != null,
             )

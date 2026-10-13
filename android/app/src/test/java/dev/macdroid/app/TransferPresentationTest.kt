@@ -75,4 +75,12 @@ class TransferPresentationTest {
         val history = (1..5).map { record(Direction.ToMac, Phase.Done).copy(id = "t$it") }
         assertEquals(listOf("t1", "t2", "t3"), TransferPresentation.recent(TransferSnapshot(history = history)).map { it.id })
     }
+
+    @Test fun receivedFileThatWasDeletedSaysSoAndCannotBeOpened() {
+        val gone = TransferPresentation.row(record(Direction.FromMac, Phase.Done, size = 3_145_728, saved = "content://x"), null, savedFileExists = false)
+        assertEquals("Deleted from this phone", gone.detail)
+        assertFalse(gone.canOpen)
+        assertFalse(gone.isError)
+        assertEquals("Sent · 512 bytes", TransferPresentation.row(record(Direction.ToMac, Phase.Done, size = 512), null, savedFileExists = false).detail)
+    }
 }

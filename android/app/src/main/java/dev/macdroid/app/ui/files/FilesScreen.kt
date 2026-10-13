@@ -22,6 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -30,6 +32,7 @@ fun FilesScreen(viewModel: FilesViewModel = viewModel()) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val pickers = rememberSendPickers(viewModel::send)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
     LazyColumn(Modifier.fillMaxSize()) {
         item { Text("Files", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 8.dp)) }
         if (ui.folderProblem) {
@@ -60,7 +63,7 @@ fun FilesScreen(viewModel: FilesViewModel = viewModel()) {
             }
         }
         items(ui.snapshot.history, key = { "h-" + it.id }) { record ->
-            TransferRow(record, null, { viewModel.cancel(record.id) }, { viewModel.retry(record.id) }, { context.openReceived(record) })
+            TransferRow(record, null, { viewModel.cancel(record.id) }, { viewModel.retry(record.id) }, { context.openReceived(record) }, savedFileExists = record.id !in ui.deleted)
         }
     }
 }

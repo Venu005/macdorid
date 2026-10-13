@@ -180,12 +180,30 @@ final class AppModel {
     func cancelTransfer(_ id: String) { Task { await transferManager.cancel(id: id) } }
     func retryTransfer(_ id: String) { Task { await transferManager.retry(id: id) } }
 
+    /// A received file can be deleted or moved after it arrived; rows and actions check before using it.
+    func receivedFileExists(_ record: TransferRecord) -> Bool {
+        guard record.direction == .fromPhone, let url = record.savedURL else { return true }
+        return FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
+    }
+
     func revealReceived(_ record: TransferRecord) {
-        if let url = record.savedURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+        guard let url = usableReceivedFile(record) else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
     func openReceived(_ record: TransferRecord) {
-        if let url = record.savedURL { NSWorkspace.shared.open(url) }
+        guard let url = usableReceivedFile(record) else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func usableReceivedFile(_ record: TransferRecord) -> URL? {
+        guard let url = record.savedURL else { return nil }
+        guard receivedFileExists(record) else {
+            transientError = "“\(record.name)” is no longer on this Mac — it was deleted or moved."
+            return nil
+        }
+        transientError = nil
+        return url
     }
 
     private func handle(_ event: TransferEvent) async {

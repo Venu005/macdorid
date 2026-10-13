@@ -4,6 +4,19 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Received files that were deleted say so
+- **What (owner's request):** if a received file is deleted after it arrives, its row says so instead of offering to open it.
+  - **Mac:** the row reads "Deleted from this Mac" and has no Show/Open. Show in Finder or Open on a file removed meanwhile shows the banner "“name” is no longer on this Mac — it was deleted or moved".
+  - **Android:** the row reads "Deleted from this phone" (checked off the main thread, and again whenever Files or Home comes back). Tapping a missing file shows the toast "“name” was deleted from this phone".
+- **Where:**
+  - `TransferPresentation.row(…, savedFileExists:)` on both sides.
+  - Mac: `AppModel.receivedFileExists`.
+  - Android: `platform/ReceivedFiles`, `FilesUi.deleted`.
+- **Verified:**
+  - New presentation tests on both sides (RED→GREEN).
+  - The Mac app and Android gates pass with no warnings.
+- **Branch:** `feat/file-transfer`.
+
 ## 2026-10-13 — Fix: Mac → phone transfers failed at 0 bytes
 - **Symptom:** the owner's testing showed every Mac → phone transfer ending "Transfer failed". Phone → Mac worked.
 - **Root cause:**

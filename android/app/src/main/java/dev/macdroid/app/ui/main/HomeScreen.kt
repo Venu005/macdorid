@@ -30,6 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.macdroid.app.ui.files.FilesViewModel
@@ -45,6 +47,7 @@ fun HomeScreen(onPairAgain: () -> Unit, viewModel: HomeViewModel = viewModel(), 
     val files by filesViewModel.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val pickers = rememberSendPickers(filesViewModel::send)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { filesViewModel.refresh() }
     var sendMenu by remember { mutableStateOf(false) }
     var confirmPairAgain by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
@@ -74,7 +77,7 @@ fun HomeScreen(onPairAgain: () -> Unit, viewModel: HomeViewModel = viewModel(), 
                     )
                 }
                 recent.forEach { record ->
-                    TransferRow(record, null, { filesViewModel.cancel(record.id) }, { filesViewModel.retry(record.id) }, { context.openReceived(record) })
+                    TransferRow(record, null, { filesViewModel.cancel(record.id) }, { filesViewModel.retry(record.id) }, { context.openReceived(record) }, savedFileExists = record.id !in files.deleted)
                 }
             }
         }

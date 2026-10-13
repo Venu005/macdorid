@@ -9,7 +9,7 @@ struct TransferRow: View {
     var compact = false
 
     var body: some View {
-        let row = TransferPresentation.row(record, rate: rate)
+        let row = TransferPresentation.row(record, rate: rate, savedFileExists: model.receivedFileExists(record))
         HStack(spacing: 10) {
             Image(systemName: record.direction == .toPhone ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
                 .font(.system(size: compact ? 16 : 20))

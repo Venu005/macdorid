@@ -26,8 +26,15 @@ import dev.macdroid.core.transfer.Direction
 import dev.macdroid.core.transfer.TransferRecord
 
 @Composable
-fun TransferRow(record: TransferRecord, rate: Double?, onCancel: () -> Unit, onRetry: () -> Unit, onOpen: () -> Unit) {
-    val row = TransferPresentation.row(record, rate)
+fun TransferRow(
+    record: TransferRecord,
+    rate: Double?,
+    onCancel: () -> Unit,
+    onRetry: () -> Unit,
+    onOpen: () -> Unit,
+    savedFileExists: Boolean = true,
+) {
+    val row = TransferPresentation.row(record, rate, savedFileExists)
     ListItem(
         modifier = if (row.canOpen) Modifier.clickable(onClick = onOpen) else Modifier,
         leadingContent = {
