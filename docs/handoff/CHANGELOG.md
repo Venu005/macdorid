@@ -4,8 +4,15 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
-## 2026-10-13 — Plan 2a: file transfer engine (in progress on feat/file-transfer)
+## 2026-10-13 — Plan 2a: file transfer engine (done on feat/file-transfer)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md` (engine); Plan 2b (UI and platform glue) follows.
+- **Verified:**
+  - `swift test`: 127 tests.
+  - The Mac app build succeeds.
+  - `./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug` passes.
+  - `./scripts/cross-platform-test.sh` passed twice in a row.
+  - No warnings anywhere.
+- **Execution:** Tasks 1–2 were run subagent-driven with per-task reviews. At the owner's request, Tasks 3–14 were run natively, with one whole-branch review at the end.
 - Task 1: `TrustedPeerMiddleware` is global; every route except `POST /v1/pair` (and the not-found responder) requires the paired phone. Verified: `swift test`, including `strangerIsForbiddenEverywhereExceptPair`.
 - Task 2: `transfer.*` messages in both codecs with 7 fixtures; `PROTOCOL.md` documents them and the `/v1/files` routes. Verified: both suites.
 - Task 3: `Broadcast` fan-out; `ConnectionHub.statusUpdates` is multi-subscriber (replays the current status), and the new `ConnectionHub.messages` forwards control messages. Verified: `swift test` and the app build.

@@ -2,10 +2,12 @@
 
 ## Branches
 - `main`: Plan 1 (protocol and connection core), the UI/UX redesign and the app icons. All are merged and were verified by hand by the owner.
-- `feat/file-transfer`: Plan 2a in progress.
+- `feat/file-transfer`: Plan 2a (transfer engine) done and verified. Nothing user-visible yet, so it isn't merged; Plan 2b continues on the same branch.
 
 ## In flight
-- **File transfer (Plan 2):** the spec was written and approved on 2026-10-13 (`docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`). No code yet. The 8 review points were resolved the same day (spec §8). The work is split into Plan 2a (engine; `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md`, written and waiting for the owner's review) and Plan 2b (UI and platform glue; not written yet).
+- **File transfer (Plan 2):** the spec was written and approved on 2026-10-13 (`docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`). The 8 review points were resolved the same day (spec §8).
+  - **Plan 2a (engine):** done on `feat/file-transfer`. It covers protocol messages, the global middleware, hub streams, the Mac `TransferManager` and `/v1/files` routes, and the Android `TransferClient` and `TransferEngine`. The cross-platform test sends files both ways with a mid-file disconnect.
+  - **Plan 2b (UI and platform glue):** next. It isn't written yet.
 
 ## Working and verified
 - Pairing by QR code and by manual entry, with a fingerprint check.
@@ -15,7 +17,7 @@
 - Android 17 `ACCESS_LOCAL_NETWORK` flow.
 - Keystore-backed TLS client authentication on the real phone (instrumented test).
 - Automated tests:
-  - Swift: 59 tests.
+  - Swift: 127 tests (on `feat/file-transfer`; 59 on `main`).
   - Android core: protocol, TLS, pairing, connection manager.
   - Android app: status/setup logic.
   - Cross-platform script (Swift server ↔ Kotlin client).

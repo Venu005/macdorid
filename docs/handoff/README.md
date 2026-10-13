@@ -1,8 +1,8 @@
 # MacDroid handoff
 
 > **Picking up?** The next action is in [ROADMAP.md](ROADMAP.md) under "Next":
-> 1. The owner reviews **Plan 2a, the transfer engine** (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md`), then it runs subagent-driven on `feat/file-transfer`.
-> 2. **Plan 2b** (UI and platform glue) is written next, then runs on the same branch.
+> 1. Plan 2a (the transfer engine) is **done** on `feat/file-transfer`.
+> 2. Next: write **Plan 2b** (UI and platform glue: `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`) and run it on the same branch. Then comes the owner's hands-on check, then the merge.
 
 Read this first if you're picking the project up, whether you're a person, a Claude Code session or a Claude Desktop session.
 
@@ -22,7 +22,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 | Plan 1 | Protocol + connection core: pairing, encrypted link, auto-reconnect, battery on Mac | **Done, merged to `main`** |
 | UI/UX redesign | Native Mac (menu-bar popover + sidebar window) and Material 3 Android (setup wizard + 5 tabs) | **Done, merged to `main`** (verified by the owner) |
 | App icons | Peeking-droid icon for both apps | **Done, merged to `main`** |
-| Plan 2 | File transfer both ways (drag-drop, share sheet, resume, checksums) | **Spec reviewed; plan split into 2a (engine, written) and 2b (UI, next)** (see ROADMAP "Next") |
+| Plan 2 | File transfer both ways (drag-drop, share sheet, resume, checksums) | **Engine done (2a) on `feat/file-transfer`; UI (2b) next** (see ROADMAP "Next") |
 | Plan 3 | Android notifications mirrored to the Mac (reply, dismiss) | Not started |
 | Plan 4 | Clipboard sync (Mac→phone automatic, phone→Mac on demand) | Not started |
 | Later | Photo gallery, SMS, screen mirroring, webcam/mic, USB transport | Out of scope so far |

@@ -18,8 +18,7 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
     - Mac: app wiring and entitlements, Files page, design-A popover, Settings → Files, notifications.
     - Android: MediaStore/SAF/ask save targets, content-URI sources, Files tab, Home Send FAB, share target, settings and setup step, progress and received notifications.
 - **Next step for a new session:**
-  1. Have the owner review Plan 2a (see STATUS.md for whether that's done).
-  2. Execute it with `superpowers:subagent-driven-development` (the owner's preferred method).
+  1. ~~Review and execute Plan 2a~~. Done on 2026-10-13: 2a is complete on `feat/file-transfer`.
   3. Write Plan 2b with `superpowers:writing-plans`. It builds on 2a's public APIs (`TransferManager`, `TransferEngine`, `SaveTarget`/`PartFile`/`SourceOpener`).
   4. Run 2b, then the owner's hands-on checklist (spec §6), then merge.
 - **Groundwork tasks the plan must start with:**
