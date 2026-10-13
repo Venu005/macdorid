@@ -13,9 +13,11 @@ import androidx.core.content.ContextCompat
 import dev.macdroid.app.graph
 import dev.macdroid.app.platform.Permissions
 import dev.macdroid.app.platform.SendFiles
+import dev.macdroid.app.platform.extras.LinkNotifications
 import dev.macdroid.app.platform.extras.Ringer
 import dev.macdroid.app.ui.presentation.TransferPresentation
 import dev.macdroid.core.connection.ConnectionState
+import dev.macdroid.core.extras.LinkExtractor
 import dev.macdroid.core.extras.StopReason
 import dev.macdroid.core.protocol.Message
 import dev.macdroid.core.transfer.TransferEvent
@@ -91,6 +93,13 @@ class ConnectionService : Service() {
         scope.launch { manager.incoming.collect { ringer.handle(it) } }
         scope.launch {
             manager.state.collect { if (it !is ConnectionState.Connected) ringer.stop(StopReason.Disconnected) }
+        }
+        scope.launch {
+            manager.incoming.collect { message ->
+                if (message is Message.LinkOpen && LinkExtractor.isAllowed(message.body.url)) {
+                    LinkNotifications.show(this@ConnectionService, message.body.url)
+                }
+            }
         }
     }
 

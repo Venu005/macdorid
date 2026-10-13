@@ -120,6 +120,20 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/clipboard_paths" />
         </provider>
 
+        <activity
+            android:name=".ui.share.OpenOnMacActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:label="Open on Mac"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
         <!-- BOOT_COMPLETED is a protected broadcast; only the system can send it. -->
         <receiver android:name=".service.BootReceiver" android:exported="true">
             <intent-filter>

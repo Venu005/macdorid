@@ -11,6 +11,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 3: Android core `RingSession` (one ring, 30 s timeout) and `MediaTracker` (session choice, change detection, art once per connection, commands to the shown app). Verified: 11 tests.
 - Task 4: Mac core `PhoneExtras` (ring state, media state + art cache, incoming links validated, Open on Phone results) and `MediaPresentation` (position projected from the Mac's receive time). Verified: `swift test` 232.
 - Task 5: Android `Ringer`: alarm tone at full alarm volume (restored after), torch flash, volume keys caught by a temporary MediaSession, a Stop notification, 30 s, and it stops on a disconnect. Runs in `ConnectionService`. Verified: Android gates.
+- Task 6: Android "Open on Mac" share target (`OpenOnMacActivity` + pure `OpenOnMacDecision`) and tap-to-open "Link from your Mac" notifications. Verified: `OpenOnMacDecisionTest`, Android gates.
 
 ## 2026-10-13 — Plan 5 (small wins) written
 - **What:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md`, 10 tasks:
