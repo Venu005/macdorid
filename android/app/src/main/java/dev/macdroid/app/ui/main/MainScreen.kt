@@ -22,6 +22,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import dev.macdroid.app.ui.clipboard.ClipboardScreen
 import dev.macdroid.app.ui.files.FilesScreen
 import dev.macdroid.app.ui.notifications.NotificationsScreen
 
@@ -61,9 +62,7 @@ fun MainScreen(onForget: () -> Unit) {
         NavHost(tabs, startDestination = MainTab.Home.route, modifier = Modifier.padding(padding).consumeWindowInsets(padding)) {
             composable(MainTab.Home.route) { HomeScreen(onPairAgain = onForget) }
             composable(MainTab.Notifications.route) { NotificationsScreen() }
-            composable(MainTab.Clipboard.route) {
-                ComingSoonScreen(MainTab.Clipboard.icon, "Clipboard", "Copy on your Mac, paste on your phone — and send what you copied back with one tap.")
-            }
+            composable(MainTab.Clipboard.route) { ClipboardScreen() }
             composable(MainTab.Files.route) { FilesScreen() }
             composable(MainTab.Settings.route) { SettingsScreen(onForget = onForget) }
         }

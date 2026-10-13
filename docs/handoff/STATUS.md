@@ -34,7 +34,7 @@
 - One paired phone per Mac.
 - IPv4 only for NSD rediscovery. After Mac sleep/wake the phone may take up to about 30 s to reconnect.
 - The Mac has no "reconnecting" state; it shows "Not connected — waiting for your phone".
-- The Mac has no placeholders left (Clipboard is live, Plan 4); the Android Clipboard tab is still a placeholder until Plan 4 Task 9. Files is live; Notifications is live on both sides (Plan 3, in progress on `feat/notifications-clipboard`).
+- No placeholder pages or tabs are left on either side. Files, Notifications and Clipboard are live (Plan 3, in progress on `feat/notifications-clipboard`).
 
 ## Follow-up lists
 - [Plan 1 follow-ups](../superpowers/plans/2026-10-12-macdroid-plan1-followups.md)
