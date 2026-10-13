@@ -4,6 +4,24 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Photos plan (Plan 6)
+- **What:** self-reviewed the photos spec (§9, `06c1f71`) and wrote the implementation plan `docs/superpowers/plans/2026-10-13-macdroid-photos-6.md`. It has 10 tasks:
+  1. protocol
+  2. Android core queries and engine
+  3. Mac transfer destinations
+  4. Mac `PhotosClient`, cache and presentation
+  5. Android `PhotoService`
+  6. MediaStore library and bridge
+  7. Android setup and settings
+  8. the Mac Photos page
+  9. the cross-platform test
+  10. gates and checklist
+- **Rulings the plan makes against the spec:**
+  - Ordering and paging use `DATE_ADDED`, then `_ID`, instead of `DATE_TAKEN`. `DATE_TAKEN` can be null, and MediaProvider rejects `COALESCE` in sort orders.
+  - The Mac asks for at most 3 originals at a time, with previews first. The phone offers at most 3 uploads at once, so more would trip the 30 s timeout.
+  - The spec's `PhotoCursor` / `PhotoRequests` / `PhotoFetches` are named `PhotoQueries`, `PhotoService` and `TransferManager.expectPhoto`.
+- **Branch:** `main` (docs only). Execution goes on `feat/photos`.
+
 ## 2026-10-13 — Photos spec (Plan 6)
 - **What:** brainstormed and wrote `docs/superpowers/specs/2026-10-13-macdroid-photos-design.md`: browse the phone's photos and videos on the Mac and transfer them. It covers:
   - full or limited Android access, with the Mac showing what's granted
