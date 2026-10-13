@@ -106,8 +106,12 @@ public struct TransferRecord: Codable, Equatable, Sendable, Identifiable {
         self.updatedAt = updatedAt
     }
 
-    /// Incoming: where bytes land until the checksum is verified.
-    public var partURL: URL? { folder?.appending(path: name + FileNaming.partSuffix) }
+    /// Incoming: where bytes land until the checksum is verified. A file chosen in a save panel is written in place:
+    /// the sandbox grants access to that exact file only, not to a sibling part file.
+    public var partURL: URL? {
+        guard let folder else { return nil }
+        return replacesExisting ? folder.appending(path: name) : folder.appending(path: name + FileNaming.partSuffix)
+    }
 }
 
 public struct TransferSnapshot: Equatable, Sendable {

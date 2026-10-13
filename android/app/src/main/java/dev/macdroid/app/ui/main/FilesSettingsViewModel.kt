@@ -27,6 +27,9 @@ class FilesSettingsViewModel(application: Application) : AndroidViewModel(applic
 
     fun chooseFolder(uri: Uri) {
         val resolver = getApplication<Application>().contentResolver
+        graph.filesPrefs.treeUri?.takeIf { it != uri.toString() }?.let { old ->
+            runCatching { resolver.releasePersistableUriPermission(Uri.parse(old), Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
+        }
         runCatching { resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
         graph.filesPrefs.treeUri = uri.toString()
         refresh()

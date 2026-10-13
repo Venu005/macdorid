@@ -33,6 +33,7 @@ fun TransferRow(
     onRetry: () -> Unit,
     onOpen: () -> Unit,
     savedFileExists: Boolean = true,
+    onChooseLocation: () -> Unit = {},
 ) {
     val row = TransferPresentation.row(record, rate, savedFileExists)
     ListItem(
@@ -53,6 +54,7 @@ fun TransferRow(
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (row.canChooseLocation) TextButton(onClick = onChooseLocation) { Text("Choose where to save") }
                 if (row.canRetry) TextButton(onClick = onRetry) { Text("Retry") }
                 if (row.canCancel) IconButton(onClick = onCancel) { Icon(Icons.Rounded.Close, contentDescription = "Cancel") }
             }

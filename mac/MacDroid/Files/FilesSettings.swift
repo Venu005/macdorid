@@ -19,7 +19,8 @@ final class FilesSettings {
     /// Named in save panels ("<phone> is sending …").
     var phoneName = "Your phone"
 
-    @ObservationIgnored private var accessedFolder: URL?
+    /// Every folder opened this session stays accessible, so files already saved in a previous folder can still be opened.
+    @ObservationIgnored private var accessedFolders: [URL] = []
     @ObservationIgnored private var openPanels: [String: NSSavePanel] = [:]
 
     static var defaultFolder: URL {
@@ -54,8 +55,6 @@ final class FilesSettings {
 
     /// Resolves the bookmark and keeps access open while MacDroid runs (received files are written there at any time).
     private func restoreFolder() {
-        accessedFolder?.stopAccessingSecurityScopedResource()
-        accessedFolder = nil
         folderProblem = false
         guard let bookmark = UserDefaults.standard.data(forKey: Self.bookmarkKey) else {
             usesDefaultFolder = true
@@ -70,7 +69,7 @@ final class FilesSettings {
             folder = Self.defaultFolder
             return
         }
-        accessedFolder = url
+        accessedFolders.append(url)
         folder = url
         if stale, let fresh = try? url.bookmarkData(options: .withSecurityScope) {
             UserDefaults.standard.set(fresh, forKey: Self.bookmarkKey)

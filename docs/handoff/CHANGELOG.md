@@ -4,6 +4,19 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Plan 2b final-review fixes
+- **Mac (critical):** with "Ask where to save each time", the file is now written straight into the file chosen in the save panel. The sandbox grants access to that exact file only, so the old sibling `.macdroid-part` failed anywhere outside Downloads. The Mac also keeps earlier save folders accessible for the session.
+- **Android:**
+  - Only completed sends are tidied up: the cache copy is deleted and the read grant is released. Retry of a failed share works again, and grants no longer pile up (choosing a new folder releases the old one).
+  - Undecided incoming rows offer "Choose where to save", and the prompt notification stays until answered.
+  - A deleted chosen folder counts as unreachable (asks, shows the banner).
+  - Only a missing file shows as "Deleted from this phone".
+- **Verified:**
+  - Regression tests RED→GREEN: `savePanelChoiceIsWrittenInPlaceWithoutAPartFile`, `FinishedSendsTest`, `ReceivedFilesTest`, `undecidedIncomingRowOffersChoosingWhereToSave`.
+  - All gates pass.
+  - The deferred minors are listed in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`.
+- **Branch:** `feat/file-transfer`.
+
 ## 2026-10-13 — Fix: drag and drop onto the Mac app did nothing
 - **Symptom:** the owner dragged files onto MacDroid to send them to the phone, and nothing happened.
 - **Evidence:** the unified log showed `CFPasteboard … Sandbox extension data required immediately for flavor public.file-url, but failed to obtain`. The popover read dragged file URLs while hovering (to add up their sizes), and the sandbox grants access only at drop.

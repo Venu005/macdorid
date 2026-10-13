@@ -57,9 +57,12 @@ object SendFiles {
         file.path
     }.getOrNull()
 
-    /** Deletes cache copies of transfers that are finished. */
-    fun cleanUpCopies(context: Context, history: List<TransferRecord>) {
-        val root = File(context.cacheDir, COPIES_DIR).path
-        history.mapNotNull { it.source }.filter { it.startsWith(root) }.forEach { File(it).parentFile?.deleteRecursively() }
+    /** Deletes cache copies and releases read grants of completed sends, once each ([handled] remembers which). */
+    fun tidyUp(context: Context, history: List<TransferRecord>, handled: MutableSet<String>) {
+        val cleanup = FinishedSends.cleanup(history, File(context.cacheDir, COPIES_DIR).path)
+        cleanup.copiesToDelete.filter(handled::add).forEach { File(it).parentFile?.deleteRecursively() }
+        cleanup.grantsToRelease.filter(handled::add).forEach { uri ->
+            runCatching { context.contentResolver.releasePersistableUriPermission(Uri.parse(uri), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        }
     }
 }

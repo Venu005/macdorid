@@ -102,6 +102,23 @@ import Testing
         #expect(Set(await manager.snapshot.active.map(\.name)) == ["same.txt", "same (1).txt"])
     }
 
+    // Final review (Critical): a save panel only grants access to the chosen file, so bytes go straight into it — no sibling part file.
+    @Test func savePanelChoiceIsWrittenInPlaceWithoutAPartFile() async throws {
+        let f = try TransferFixture()
+        let chosen = f.file("picked.txt")
+        try Data("old contents".utf8).write(to: chosen)
+        let manager = f.manager(location: FixedLocation(.file(chosen)))
+        let data = Data("new".utf8)
+        await manager.handle(makeOffer("t1", name: "whatever.txt", size: 3))
+        try await eventually { await decided(manager) }
+        #expect(!f.exists("picked.txt.macdroid-part"))
+        #expect(try Data(contentsOf: chosen).isEmpty) // replaced, not appended to
+        try await upload(data, to: manager, id: "t1")
+        await manager.handle(.transferFinish(TransferFinish(transferId: "t1", sha256: Checksum.sha256Hex(data))))
+        #expect(try Data(contentsOf: chosen) == data)
+        #expect(await manager.snapshot.history.first?.savedURL == chosen)
+    }
+
     @Test func savePanelChoiceReplacesThatFile() async throws {
         let f = try TransferFixture()
         try Data("old".utf8).write(to: f.file("chosen.txt"))

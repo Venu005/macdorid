@@ -83,4 +83,11 @@ class TransferPresentationTest {
         assertFalse(gone.isError)
         assertEquals("Sent · 512 bytes", TransferPresentation.row(record(Direction.ToMac, Phase.Done, size = 512), null, savedFileExists = false).detail)
     }
+
+    // Final review: an undecided incoming file can always be answered from its row, not only from a notification.
+    @Test fun undecidedIncomingRowOffersChoosingWhereToSave() {
+        assertTrue(TransferPresentation.row(record(Direction.FromMac, Phase.Offered), null).canChooseLocation)
+        assertFalse(TransferPresentation.row(record(Direction.ToMac, Phase.Offered), null).canChooseLocation)
+        assertFalse(TransferPresentation.row(record(Direction.FromMac, Phase.Active), null).canChooseLocation)
+    }
 }

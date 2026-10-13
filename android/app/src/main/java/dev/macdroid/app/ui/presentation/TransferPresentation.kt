@@ -17,6 +17,8 @@ data class TransferRowModel(
     val canCancel: Boolean,
     val canRetry: Boolean,
     val canOpen: Boolean,
+    /** An incoming file is waiting for "where to save": the row can open the question (the notification may be gone). */
+    val canChooseLocation: Boolean = false,
 )
 
 /** Transfer → text for the Files tab, Home and notifications. Mirrors the Mac's TransferPresentation with "phone"/"Mac" swapped. */
@@ -34,7 +36,7 @@ object TransferPresentation {
         )
         return when (record.phase) {
             Phase.Queued -> base.copy(detail = "Waiting to send")
-            Phase.Offered -> base.copy(detail = if (toMac) "Waiting for your Mac" else "Waiting for you to choose where to save")
+            Phase.Offered -> base.copy(detail = if (toMac) "Waiting for your Mac" else "Waiting for you to choose where to save", canChooseLocation = !toMac)
             Phase.Active -> base.copy(detail = TransferText.line(record.bytesDone, record.size, rate), progress = fraction)
             Phase.Paused -> base.copy(detail = "Paused — waiting for connection", progress = fraction)
             Phase.Verifying -> base.copy(detail = "Checking…", progress = 1f)

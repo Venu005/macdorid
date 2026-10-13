@@ -31,6 +31,8 @@ class ConnectionService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var networkWatcher: NetworkWatcher? = null
     private var running = false
+    /** Completed sends already tidied up (cache copy deleted, read grant released). */
+    private val tidied = mutableSetOf<String>()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -64,7 +66,7 @@ class ConnectionService : Service() {
                 } else {
                     notifications.notify(TransferNotifications.PROGRESS_ID, TransferNotifications.progress(this@ConnectionService, summary))
                 }
-                withContext(Dispatchers.IO) { SendFiles.cleanUpCopies(this@ConnectionService, snapshot.history) }
+                withContext(Dispatchers.IO) { SendFiles.tidyUp(this@ConnectionService, snapshot.history, tidied) }
                 delay(1_000)
             }
         }

@@ -274,6 +274,8 @@ public actor TransferManager {
             } else {
                 finalName = url.lastPathComponent
                 replaces = true
+                // Written in place: start from an empty file (the user chose to replace whatever was there).
+                FileManager.default.createFile(atPath: url.path(percentEncoded: false), contents: nil)
             }
         }
         if let free = freeSpace(folder), free < offer.size {
@@ -420,15 +422,13 @@ public actor TransferManager {
         let fm = FileManager.default
         var name = current.name
         do {
-            let target = folder.appending(path: name)
-            if fm.fileExists(atPath: target.path(percentEncoded: false)) {
-                if current.replacesExisting {
-                    try fm.removeItem(at: target)
-                } else {
+            // A save-panel file was written in place and is already final; a part file is renamed to a free name.
+            if !current.replacesExisting {
+                if fm.fileExists(atPath: folder.appending(path: name).path(percentEncoded: false)) {
                     name = FileNaming.unique(name) { isTaken($0, in: folder) }
                 }
+                try fm.moveItem(at: part, to: folder.appending(path: name))
             }
-            try fm.moveItem(at: part, to: folder.appending(path: name))
         } catch {
             await failIncoming(id, .io)
             return

@@ -2,6 +2,7 @@ package dev.macdroid.app.platform
 
 import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
 import dev.macdroid.core.transfer.PartFile
 import dev.macdroid.core.transfer.SaveTarget
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,9 @@ class SaveTargets(private val context: Context, private val prefs: FilesPrefs, p
 
     fun current(): SaveTarget {
         val tree = prefs.treeUri
-        val writable = tree != null && context.contentResolver.persistedUriPermissions.any { it.uri.toString() == tree && it.isWritePermission }
+        val writable = tree != null &&
+            context.contentResolver.persistedUriPermissions.any { it.uri.toString() == tree && it.isWritePermission } &&
+            treeStillExists(Uri.parse(tree))
         val choice = SaveMode.choose(prefs.askEachTime, tree, writable)
         _folderProblem.value = choice.folderProblem
         return when (choice.mode) {
@@ -24,6 +27,12 @@ class SaveTargets(private val context: Context, private val prefs: FilesPrefs, p
             SaveMode.Ask -> AskSaveTarget(context, prompter)
         }
     }
+
+    /** The grant outlives a deleted folder, so check the folder itself too. */
+    private fun treeStillExists(tree: Uri): Boolean = runCatching {
+        val root = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+        context.contentResolver.query(root, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID), null, null, null)?.use { it.moveToFirst() } == true
+    }.getOrDefault(false)
 
     fun reopen(handle: String): PartFile? = when {
         handle.startsWith(MediaStorePart.PREFIX) -> MediaStorePart.reopen(context, handle)

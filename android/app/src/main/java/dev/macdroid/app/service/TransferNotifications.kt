@@ -39,7 +39,7 @@ object TransferNotifications {
             .setContentTitle("Save “$name” from your Mac?")
             .setContentText("Tap to choose where to save it")
             .setContentIntent(open)
-            .setAutoCancel(true)
+            .setOngoing(true) // stays until answered (or cancelled); the Files tab row can answer it too
             .build()
         context.getSystemService(NotificationManager::class.java).notify(askId(transferId), notification)
     }

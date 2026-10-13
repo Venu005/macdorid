@@ -53,7 +53,10 @@ fun FilesScreen(viewModel: FilesViewModel = viewModel()) {
         if (ui.snapshot.active.isNotEmpty()) {
             item { SectionTitle("In progress") }
             items(ui.snapshot.active, key = { it.id }) { record ->
-                TransferRow(record, ui.snapshot.rates[record.id], { viewModel.cancel(record.id) }, { viewModel.retry(record.id) }, { context.openReceived(record) })
+                TransferRow(
+                    record, ui.snapshot.rates[record.id], { viewModel.cancel(record.id) }, { viewModel.retry(record.id) }, { context.openReceived(record) },
+                    onChooseLocation = { context.startActivity(SaveAsActivity.intent(context, record.id, record.name, record.mime)) },
+                )
             }
         }
         item { SectionTitle("Recent") }
