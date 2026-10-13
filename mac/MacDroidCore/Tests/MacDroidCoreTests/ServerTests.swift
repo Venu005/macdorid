@@ -140,7 +140,7 @@ func pairBody(code: String) -> ByteBuffer {
             ) { inbound, outbound, _ in
                 var messages = inbound.messages(maxSize: 1 << 20).makeAsyncIterator()
                 guard case .text(let first)? = try await messages.next() else { Issue.record("no hello"); return }
-                #expect(try MessageCodec.decode(first) == .hello(Hello(app: "0.1.0", device: "Test Mac", features: [])))
+                #expect(try MessageCodec.decode(first) == .hello(Hello(app: "0.1.0", device: "Test Mac", features: ProtocolInfo.features)))
                 try await outbound.write(.text(MessageCodec.encode(.hello(Hello(app: "0.1.0", device: "Phone", features: [])))))
                 try await eventually { if case .connected = await harness.hub.status { return true }; return false }
                 try await outbound.close(.normalClosure, reason: nil)

@@ -20,6 +20,9 @@ public struct PeerInfo: Equatable, Sendable {
         self.battery = battery
         self.charging = charging
     }
+
+    /// The phone listed `feature` in its hello (spec §2.1).
+    public func supports(_ feature: String) -> Bool { features.contains(feature) }
 }
 
 public enum ConnectionStatus: Equatable, Sendable {
@@ -39,7 +42,7 @@ public actor ConnectionHub {
     /// Status changes. Each access is a new subscription that starts with the current status.
     public nonisolated var statusUpdates: AsyncStream<ConnectionStatus> { statusBroadcast.stream() }
 
-    /// Control messages for feature managers (transfers now; notifications and clipboard later), in arrival order.
+    /// Control messages for feature managers (transfers, notifications, clipboard), in arrival order.
     /// `hello`, `device.status` and unknown types are handled here and not forwarded.
     public nonisolated var messages: AsyncStream<Message> { messageBroadcast.stream() }
 
@@ -53,7 +56,7 @@ public actor ConnectionHub {
         didSet { if status != oldValue { statusBroadcast.yield(status) } }
     }
 
-    public init(macName: String, appVersion: String, features: [String] = []) {
+    public init(macName: String, appVersion: String, features: [String] = ProtocolInfo.features) {
         self.hello = Hello(app: appVersion, device: macName, features: features)
     }
 
@@ -123,12 +126,11 @@ public actor ConnectionHub {
                 peer.charging = update.charging
                 status = .connected(peer)
             }
-        case .transferOffer, .transferAccept, .transferReject, .transferFinish, .transferResult, .transferCancel,
-             .notificationPosted, .notificationRemoved, .notificationSync, .notificationIcon, .notificationApps,
-             .notificationReply, .notificationAction, .notificationDismiss, .notificationMute, .notificationError:
-            messageBroadcast.yield(message)
         case .unknown(let type):
             logger.debug("ignoring message type \(type)")
+        default:
+            // Feature messages (transfers, notifications, clipboard) go to their managers.
+            messageBroadcast.yield(message)
         }
     }
 

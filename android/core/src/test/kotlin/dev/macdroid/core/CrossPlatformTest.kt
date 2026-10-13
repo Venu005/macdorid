@@ -3,11 +3,13 @@ package dev.macdroid.core
 import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.connection.MacLocator
+import dev.macdroid.core.connection.macSupports
 import dev.macdroid.core.pairing.InMemoryPairingStore
 import dev.macdroid.core.pairing.PairResult
 import dev.macdroid.core.pairing.PairingClient
 import dev.macdroid.core.pairing.PairingInvite
 import dev.macdroid.core.protocol.DeviceStatusBody
+import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.HelloBody
 import dev.macdroid.core.protocol.Message
 import dev.macdroid.core.tls.ClientIdentity
@@ -81,7 +83,9 @@ class CrossPlatformTest {
         engine.start(manager.incoming, manager.state.map { it is ConnectionState.Connected }) // before connecting: incoming has no replay
         manager.start()
         try {
-            assertEquals(ConnectionState.Connected("MacDroid Dev Server"), withTimeout(10_000) { manager.state.first { it is ConnectionState.Connected } })
+            val connected = withTimeout(10_000) { manager.state.first { it is ConnectionState.Connected } } as ConnectionState.Connected
+            assertEquals("MacDroid Dev Server", connected.macName)
+            assertTrue(connected.macSupports(Features.NOTIFICATIONS))
             assertTrue(manager.send(Message.DeviceStatus(DeviceStatusBody(77, false))))
             delay(500)
             if (phoneFile != null && receiveDir != null) sendFilesBothWaysWithADrop(manager, engine, transport, File(phoneFile))

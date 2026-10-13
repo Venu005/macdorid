@@ -10,6 +10,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
   - `notification.*` messages (10 fixtures) in both codecs; `hello` without `features` decodes as none; `ProtocolInfo.features` / `Features.SUPPORTED` = files, notifications.
   - Also fixed a flaky Android test: `pausedUploadIsRetriedWhileConnected` raced its 300 ms periodic resume. That interval is now 1 s; the test failed 1 in 5 on `main`.
   - Verified: `swift test`, `./gradlew :core:test`.
+- Task 2: both sides announce `files`, `notifications`; the Mac hub forwards every feature message; Android `Connected` carries the Mac's features (`macSupports`). Verified: `swift test` 150, Android gates.
 
 ## 2026-10-13 — Spec self-review and Plans 3 and 4 written
 - **What:**

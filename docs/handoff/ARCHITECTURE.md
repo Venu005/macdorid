@@ -89,3 +89,7 @@ Mac app (`mac/MacDroid/`):
 - **UI:**
   - Mac: replace a `ComingSoonView` case in `MainWindow.detail(for:)`, and flip `SidebarSection.comingSoonDescription` to nil. Files is already live (`Views/Files/FilesView`).
   - Android: replace the `ComingSoonScreen` composable for that tab in `MainScreen`.
+
+## Feature exchange (Plan 3)
+- Both sides list their features in `hello` (`ProtocolInfo.features`, `Features.SUPPORTED`). Android exposes them as `ConnectionState.Connected(macName, features)` and `ConnectionState.macSupports(feature)`; the Mac as `PeerInfo.supports(feature)`.
+- `ConnectionHub.messages` carries every feature message (everything except `hello`, `device.status` and unknown types).

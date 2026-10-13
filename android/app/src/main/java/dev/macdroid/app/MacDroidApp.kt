@@ -14,6 +14,7 @@ import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.pairing.PairingClient
 import dev.macdroid.core.pairing.PairingStore
+import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.HelloBody
 import dev.macdroid.core.tls.ClientIdentity
 import dev.macdroid.core.transfer.FileEndpoint
@@ -52,7 +53,7 @@ class AppGraph(private val context: Context) {
         store = pairingStore,
         identity = { identity },
         locator = NsdMacLocator(context),
-        hello = { HelloBody(app = BuildConfig.VERSION_NAME, device = DeviceInfo.name(context)) },
+        hello = { HelloBody(app = BuildConfig.VERSION_NAME, device = DeviceInfo.name(context), features = Features.SUPPORTED) },
         baseClient = httpClient,
     )
 
