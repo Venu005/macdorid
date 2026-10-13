@@ -34,6 +34,7 @@ final class AppModel {
     @ObservationIgnored private let pairing: PairingManager
     @ObservationIgnored private let hub: ConnectionHub
     @ObservationIgnored private let advertiser = BonjourAdvertiser()
+    @ObservationIgnored private var isOpeningWindow = false
     @ObservationIgnored private var tasks: [Task<Void, Never>] = []
 
     init() {
@@ -114,6 +115,9 @@ final class AppModel {
             transientError = "Pairing is unavailable because MacDroid couldn't open its keychain. Quit and reopen MacDroid to try again."
             return
         }
+        guard !isOpeningWindow else { return }
+        isOpeningWindow = true
+        defer { isOpeningWindow = false }
         guard let port = listeningPort else { transientError = "MacDroid is still starting — try again in a moment."; return }
         guard let host = LocalAddress.primaryIPv4() else { transientError = "No network connection. Join Wi-Fi and try again."; return }
         transientError = nil
@@ -147,6 +151,8 @@ final class AppModel {
         case .windowOpened:
             break
         case .windowClosed:
+            // A newer code is already open: this close is for a replaced window, so ignore it.
+            if await pairing.currentWindow() != nil { return }
             if let expires = inviteExpiresAt, expires <= Date() { pairingExpired = true }
             invite = nil
             inviteExpiresAt = nil

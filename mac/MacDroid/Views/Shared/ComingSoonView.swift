@@ -5,9 +5,9 @@ struct ComingSoonView: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label(section.title, systemImage: section.symbol)
+            Label("Coming in a later update", systemImage: section.symbol)
         } description: {
-            Text("Coming in a later update.\n\(section.comingSoonDescription ?? "")")
+            Text(section.comingSoonDescription ?? "")
         }
     }
 }

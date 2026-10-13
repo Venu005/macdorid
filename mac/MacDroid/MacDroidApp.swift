@@ -9,6 +9,9 @@ struct MacDroidApp: App {
         let model = AppModel()
         model.start()
         AppDelegate.onReopen = { model.showWindow(.phone) }
+        AppDelegate.onLaunch = {
+            if AppDelegate.shouldOpenWindowAtLaunch(paired: model.pairedDevice != nil) { model.showWindow(.phone) }
+        }
         _model = State(initialValue: model)
     }
 

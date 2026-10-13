@@ -33,6 +33,13 @@ struct PairingView: View {
             activeCode(invite, expires: expires)
         } else if model.pairingExpired {
             expired
+        } else if model.transientError != nil {
+            VStack(spacing: 10) {
+                Image(systemName: "wifi.exclamationmark").font(.system(size: 44)).foregroundStyle(.secondary)
+                Button("Try again") { Task { await model.newCode() } }
+                    .buttonStyle(.borderedProminent)
+            }
+            .frame(width: 240, height: 240)
         } else {
             ProgressView().controlSize(.large).frame(width: 240, height: 240)
         }

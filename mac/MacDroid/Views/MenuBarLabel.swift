@@ -9,8 +9,10 @@ struct MenuBarLabel: View {
     var body: some View {
         Image(systemName: model.phoneStatus.symbol)
             .task {
-                if AppDelegate.shouldOpenWindowAtLaunch(paired: model.pairedDevice != nil) {
+                // A request made before this label appeared (at launch) must not be lost.
+                if model.windowRequest != nil {
                     openWindow(id: MainWindow.id)
+                    NSApp.activate()
                 }
             }
             .onChange(of: model.windowRequest) { _, request in

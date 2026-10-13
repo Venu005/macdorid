@@ -4,12 +4,15 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Set by the app at startup; opens the main window when the user launches MacDroid again.
     static var onReopen: (@MainActor () -> Void)?
+    /// Set by the app at startup; decides whether to open the window once launch details are known.
+    static var onLaunch: (@MainActor () -> Void)?
     private(set) static var launchedAsLoginItem = false
 
-    func applicationWillFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_ notification: Notification) {
         let event = NSAppleEventManager.shared().currentAppleEvent
         Self.launchedAsLoginItem = event?.eventID == AEEventID(kAEOpenApplication)
             && event?.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue == OSType(keyAELaunchedAsLogInItem)
+        Self.onLaunch?()
     }
 
     /// Launching MacDroid while it's already running (e.g. its menu-bar icon is hidden by the notch) opens the window.
