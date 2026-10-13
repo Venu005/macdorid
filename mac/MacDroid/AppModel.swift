@@ -28,6 +28,18 @@ final class AppModel {
     private(set) var transientError: String?
     private(set) var windowRequest: WindowRequest?
     private(set) var transfers: TransferSnapshot = .empty
+    private(set) var notifications: PhoneNotificationsState = .empty
+    /// The last problem with a reply, button or mute (spec §5); shown on the Notifications page.
+    private(set) var notificationProblem: String?
+    /// MacDroid's notifications are turned off in System Settings.
+    private(set) var macNotificationsDenied = false
+    /// Settings → Notifications → "Show phone notifications" (spec §3.2). Off: incoming notifications are ignored.
+    private(set) var showPhoneNotifications: Bool
+    static let showPhoneNotificationsKey = "showPhoneNotifications"
+    @ObservationIgnored let router: NotificationRouter
+    @ObservationIgnored private let phoneNotifications: PhoneNotifications
+    @ObservationIgnored private let phoneNotifier: PhoneNotifier
+    @ObservationIgnored private let icons: IconCache
     let files: FilesSettings
     @ObservationIgnored private let transferManager: TransferManager
     @ObservationIgnored private let notifier: ReceivedNotifier
@@ -73,7 +85,15 @@ final class AppModel {
             sourceAccess: SecurityScopedSourceAccess(),
             send: { message in try await hub.send(message) }
         )
-        notifier = ReceivedNotifier()
+        let router = NotificationRouter()
+        self.router = router
+        notifier = ReceivedNotifier(router: router)
+        let icons = IconCache(directory: URL.applicationSupportDirectory.appending(path: "NotificationIcons", directoryHint: .isDirectory))
+        self.icons = icons
+        phoneNotifier = PhoneNotifier(router: router, icons: icons)
+        let showPhone = UserDefaults.standard.object(forKey: Self.showPhoneNotificationsKey) as? Bool ?? true
+        showPhoneNotifications = showPhone
+        phoneNotifications = PhoneNotifications(icons: icons, enabled: showPhone, send: { message in try await hub.send(message) })
         if temporary {
             warnings.append("MacDroid couldn't open its keychain, so pairing is unavailable until you restart MacDroid.")
         }
@@ -98,7 +118,15 @@ final class AppModel {
         tasks.append(Task { [weak self, pairing] in
             for await event in pairing.events { await self?.handle(event) }
         })
-        notifier.setUp()
+        router.setUp()
+        router.onPhoneResponse = { [weak self] response in self?.handlePhoneResponse(response) }
+        tasks.append(Task { [phoneNotifications, hub] in await phoneNotifications.attach(to: hub) })
+        tasks.append(Task { [weak self, phoneNotifications] in
+            for await state in phoneNotifications.states { self?.notifications = state }
+        })
+        tasks.append(Task { [weak self, phoneNotifications] in
+            for await event in phoneNotifications.events { await self?.handle(event) }
+        })
         tasks.append(Task { [transferManager, hub] in await transferManager.attach(to: hub) })
         tasks.append(Task { [weak self, transferManager] in
             for await snapshot in transferManager.snapshots { self?.transfers = snapshot }
@@ -180,6 +208,65 @@ final class AppModel {
         NSApp.activate()
         guard panel.runModal() == .OK else { return }
         sendFiles(panel.urls)
+    }
+
+    // MARK: Phone notifications (spec §3)
+
+    func replyToNotification(_ key: String, text: String) {
+        notificationProblem = nil
+        Task { await phoneNotifications.reply(key: key, text: text) }
+    }
+
+    func performNotificationAction(_ key: String, index: Int) {
+        notificationProblem = nil
+        Task { await phoneNotifications.perform(key: key, actionIndex: index) }
+    }
+
+    func dismissNotification(_ key: String) {
+        Task { await phoneNotifications.dismiss(key: key) }
+    }
+
+    func clearAllNotifications() {
+        Task { await phoneNotifications.clearAll() }
+    }
+
+    func setAppMuted(_ packageName: String, muted: Bool) {
+        notificationProblem = nil
+        Task { await phoneNotifications.setMuted(packageName: packageName, muted: muted) }
+    }
+
+    func setShowPhoneNotifications(_ on: Bool) {
+        showPhoneNotifications = on
+        UserDefaults.standard.set(on, forKey: Self.showPhoneNotificationsKey)
+        Task { await phoneNotifications.setEnabled(on) }
+    }
+
+    func iconURL(_ hash: String) -> URL? { icons.url(for: hash) }
+
+    func refreshNotificationPermission() async {
+        macNotificationsDenied = await NotificationRouter.isDenied()
+    }
+
+    func dismissNotificationProblem() { notificationProblem = nil }
+
+    private func handle(_ event: PhoneNotificationEvent) async {
+        switch event {
+        case .show(let posted, let banner):
+            await phoneNotifier.show(posted, banner: banner, phoneName: pairedDevice?.name ?? "Your phone")
+        case .remove(let keys):
+            phoneNotifier.remove(keys)
+        case .problem(let text):
+            notificationProblem = text
+        }
+    }
+
+    private func handlePhoneResponse(_ response: PhoneNotificationResponse) {
+        switch response.kind {
+        case .open: showWindow(.notifications)
+        case .dismiss: dismissNotification(response.key)
+        case .reply(let text): replyToNotification(response.key, text: text)
+        case .button(let index): performNotificationAction(response.key, index: index)
+        }
     }
 
     func cancelTransfer(_ id: String) { Task { await transferManager.cancel(id: id) } }
