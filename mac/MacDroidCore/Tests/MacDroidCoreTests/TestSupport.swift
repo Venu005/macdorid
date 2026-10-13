@@ -48,3 +48,14 @@ actor Collector<T: Sendable> {
     private(set) var items: [T] = []
     func append(_ item: T) { items.append(item) }
 }
+
+func makeTemporaryDirectory() throws -> URL {
+    let url = FileManager.default.temporaryDirectory.appending(path: "macdroid-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+    try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    return url
+}
+
+/// Deterministic bytes, so failures are reproducible.
+func testBytes(_ count: Int, seed: UInt8 = 7) -> Data {
+    Data((0..<count).map { UInt8(truncatingIfNeeded: $0 &* 31 &+ Int(seed)) })
+}
