@@ -60,9 +60,11 @@ public enum TransferPresentation {
         return Array(snapshot.history.filter { $0.direction == .fromPhone && $0.phase == .done }.prefix(1))
     }
 
-    /// "3 files · 12.4 MB", shown while files are dragged over the popover.
-    public static func dropSummary(count: Int, totalBytes: Int64) -> String {
-        "\(count) \(count == 1 ? "file" : "files") · \(TransferText.bytes(totalBytes))"
+    /// "3 files · 12.4 MB", or just "3 files" while dragging: the sandbox only grants access to dragged files on drop.
+    public static func dropSummary(count: Int, totalBytes: Int64?) -> String {
+        let files = "\(count) \(count == 1 ? "file" : "files")"
+        guard let totalBytes else { return files }
+        return "\(files) · \(TransferText.bytes(totalBytes))"
     }
 
     static func failureText(_ failure: TransferFailure, toPhone: Bool) -> String {

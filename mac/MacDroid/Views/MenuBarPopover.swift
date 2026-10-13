@@ -102,7 +102,7 @@ struct MenuBarPopover: View {
                 VStack(spacing: 6) {
                     Image(systemName: "arrow.down.doc.fill").font(.system(size: 28))
                     Text("Drop to send to \(model.phoneName)").font(.headline)
-                    Text(TransferPresentation.dropSummary(count: drop.count, totalBytes: drop.totalBytes)).font(.callout)
+                    Text(TransferPresentation.dropSummary(count: drop.count, totalBytes: nil)).font(.callout)
                 }
                 .foregroundStyle(.white)
             }

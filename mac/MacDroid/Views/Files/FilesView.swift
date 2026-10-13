@@ -1,5 +1,6 @@
 import MacDroidCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The Files page: a drop zone to send, transfers in progress, and recent history (spec §3.2).
 struct FilesView: View {
@@ -49,10 +50,10 @@ struct FilesView: View {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(targeted ? Color.accentColor : Color.secondary.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, dash: [6]))
         )
-        .dropDestination(for: URL.self) { urls, _ in
+        .onDrop(of: [.fileURL], isTargeted: $targeted) { _ in
             guard model.canSendFiles else { return false }
-            model.sendFiles(urls)
+            model.sendFiles(DroppedFiles.urls()) // read at drop time, when the sandbox grants access
             return true
-        } isTargeted: { targeted = $0 && model.canSendFiles }
+        }
     }
 }

@@ -4,6 +4,16 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Fix: drag and drop onto the Mac app did nothing
+- **Symptom:** the owner dragged files onto MacDroid to send them to the phone, and nothing happened.
+- **Evidence:** the unified log showed `CFPasteboard … Sandbox extension data required immediately for flavor public.file-url, but failed to obtain`. The popover read dragged file URLs while hovering (to add up their sizes), and the sandbox grants access only at drop.
+- **Fix:**
+  - Both drop targets read file URLs from `NSPasteboard(name: .drag)` at drop time (`Files/DroppedFiles.swift`).
+  - The popover overlay shows only the count while hovering.
+  - The Files page uses `onDrop(of: [.fileURL])` instead of `dropDestination(for: URL.self)`.
+- **Verified:** `dropSummaryWithoutSizesShowsTheCount` (RED→GREEN) and the Mac app build. The owner's retest is pending.
+- **Branch:** `feat/file-transfer`.
+
 ## 2026-10-13 — Mac: never drop a file silently; transfer logs in Console
 - **What:**
   - `TransferManager.sendReporting(files:)` reports files it couldn't queue, with the reason. The Mac shows them in a banner ("Couldn't send “name”: reason") instead of silently doing nothing.

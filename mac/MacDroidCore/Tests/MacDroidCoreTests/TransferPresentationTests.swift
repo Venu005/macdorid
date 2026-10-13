@@ -72,4 +72,10 @@ import Testing
         // Only received files are checked: a sent file isn't on this Mac's save folder.
         #expect(TransferPresentation.row(record(.toPhone, .done, size: 512), rate: nil, savedFileExists: false).detail == "Sent · 512 bytes")
     }
+
+    // The sandbox only lets an app read dragged files once they're dropped, so while hovering only the count is known.
+    @Test func dropSummaryWithoutSizesShowsTheCount() {
+        #expect(TransferPresentation.dropSummary(count: 3, totalBytes: nil) == "3 files")
+        #expect(TransferPresentation.dropSummary(count: 1, totalBytes: nil) == "1 file")
+    }
 }
