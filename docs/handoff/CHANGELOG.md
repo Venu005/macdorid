@@ -4,6 +4,25 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — App icons: the peeking droid
+- **What:** the app icon for both apps is a minimal, flat green droid peeking over a MacBook lid, gripping the edge with two little hands, on a peach background. It is the name *Mac + Droid* as a character, chosen by the owner over generic sync or device glyphs.
+  - **Source art:** `design/icon/` (`macdroid-icon-mac.svg`, `macdroid-icon-monochrome.svg`).
+  - **Mac:**
+    - `mac/MacDroid/Assets.xcassets/AppIcon.appiconset`: 10 PNGs, 16 to 1024 px on Apple's 824/1024 grid.
+    - The PNGs are rendered by `scripts/render-icons.sh`, which uses `scripts/render-icon.swift` and AppKit's built-in SVG support.
+    - `project.yml` sets `ASSETCATALOG_COMPILER_APPICON_NAME`.
+  - **Android:**
+    - An adaptive vector icon: background colour, a foreground scaled into the 66dp safe zone, and a monochrome layer for themed icons.
+    - Manifest `icon`/`roundIcon`.
+    - The status-bar icon `ic_stat_macdroid` is now the droid silhouette.
+  - The menu-bar status icons are unchanged (they are SF Symbols that follow connection state).
+- **Branch:** `feat/app-icons`.
+- **Verified:**
+  - Both apps build with no warnings, and the Android unit tests pass.
+  - The icons render correctly (checked circle, squircle and themed masks).
+  - Installed on the phone, and the Mac app relaunched. The owner's visual check is pending.
+- **Watch:** macOS 26 may put legacy (non-Icon-Composer) icons inside a grey tile. If so, add an Icon Composer `.icon` version.
+
 ## 2026-10-13 — UI/UX redesign merged to main
 - **What:** merged `feat/ui-ux-redesign` into `main` (merge commit 1428d95).
 - **Verified:** the owner ran the hands-on checklist on the Mac and the Nothing Phone (3), and everything passed.

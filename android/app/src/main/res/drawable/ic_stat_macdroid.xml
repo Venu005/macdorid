@@ -1,6 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar icon: the droid silhouette (white on transparent; the system tints it). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M7,2h10a2,2 0,0 1,2 2v16a2,2 0,0 1,-2 2H7a2,2 0,0 1,-2 -2V4a2,2 0,0 1,2 -2zM7,5v13h10V5H7z" />
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <group android:translateY="4">
+        <path android:pathData="M50,25.5 V18.5" android:strokeColor="#FFFFFFFF" android:strokeWidth="4" android:strokeLineCap="round" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M46.5,16.5 A3.5,3.5 0 1,0 53.5,16.5 A3.5,3.5 0 1,0 46.5,16.5 Z" />
+        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+            android:pathData="M24,52 A26,26 0 0,1 76,52 Z M37.5,41 A4,4 0 1,0 45.5,41 A4,4 0 1,0 37.5,41 Z M54.5,41 A4,4 0 1,0 62.5,41 A4,4 0 1,0 54.5,41 Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M12,60 A5,5 0 0,1 17,55 H83 A5,5 0 0,1 88,60 V82 H12 Z" />
+    </group>
 </vector>

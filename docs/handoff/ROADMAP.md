@@ -2,7 +2,7 @@
 
 Each round follows the same process: brainstorm, then a spec in `docs/superpowers/specs/`, then a plan in `docs/superpowers/plans/`, then subagent-driven execution with per-task review, then a final review, then the owner's hands-on check, then merge.
 
-## Next: app icons, then Plan 2
+## Next: Plan 2 (app icons done on `feat/app-icons`, awaiting the owner's look)
 
 ## Plan 2: Notifications (round-1 spec §5.1)
 - **Groundwork first:**
