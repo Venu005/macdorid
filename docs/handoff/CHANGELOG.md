@@ -4,6 +4,14 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Small wins spec (Plan 5): ring, links, media controls
+- **What:** brainstormed and wrote `docs/superpowers/specs/2026-10-13-macdroid-small-wins-design.md`:
+  - ring my phone (loud on silent plus flashing torch, stopped many ways)
+  - open links both ways (share sheet "Open on Mac"; Mac Services → "Open on Phone"; incoming links on the phone become a tap-to-open notification)
+  - a Now Playing card with controls and seek in the Mac popover, using media sessions through the existing notification access
+- **Why:** step 2 of the agreed order.
+- **Branch:** `main` (no code). Implementation goes on `feat/small-wins`.
+
 ## 2026-10-13 — Deferred minors round (fix/review-minors)
 The 9 minors from the Plans 3–4 final review, fixed one by one on `fix/review-minors`.
 All 9 fixed. All gates pass from scratch, plus the cross-platform run.

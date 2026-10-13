@@ -56,7 +56,7 @@ Brainstorming started 2026-10-13, then the owner parked it. Resume at the first 
 
 ## Agreed order (2026-10-13)
 1. ~~**The 9 deferred minors**~~ (done, merged 2026-10-13) from the Plans 3–4 final review (`docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`), one by one.
-2. **Small wins:** ring my phone; open a link on the other device; media controls.
+2. **Small wins (Plan 5):** ring my phone; open a link on the other device; media controls. Spec written 2026-10-13: `docs/superpowers/specs/2026-10-13-macdroid-small-wins-design.md` (awaiting the owner's review), then plan → `feat/small-wins`.
 3. **Photo browsing and transfer.**
 4. **Screen mirroring (low latency)**, view-only first; then **remote control**.
 5. The rest of the owner's list, below.

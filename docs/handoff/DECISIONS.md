@@ -40,3 +40,6 @@ The full per-plan rulings are in the `docs/superpowers/plans/*-followups.md` fil
 | Clipboard images use the transfer channel (`purpose=clipboard`) | Resume and checksums for free | Base64 in the WebSocket |
 | Mac Notifications page grouped by app; popover unchanged; Android Notifications tab is a control panel | Matches Notification Center; the phone already has a shade | Timeline layout; phone-side history |
 | Android keeps Material You colours | Owner's choice (already B&W on their phone) | Forcing black and white |
+| Small wins: Mac → phone links via the macOS Services menu ("Open on Phone") | No extension and no sandbox file handoff; works in most apps | Popover link field; offering to open every copied link |
+| Ring like Find My (full alarm volume, even on silent) plus a flashing torch; heads-up notification with Stop | Findable on silent and in the dark; Play restricts full-screen intents | Current volume only; full-screen alert |
+| Media controls: a popover Now Playing card with seek; position projected from timestamped updates | Everyday need without taking over the Mac's media keys | macOS Now Playing / media keys; streaming the position |
