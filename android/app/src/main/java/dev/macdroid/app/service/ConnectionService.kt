@@ -13,8 +13,10 @@ import androidx.core.content.ContextCompat
 import dev.macdroid.app.graph
 import dev.macdroid.app.platform.Permissions
 import dev.macdroid.app.platform.SendFiles
+import dev.macdroid.app.platform.extras.Ringer
 import dev.macdroid.app.ui.presentation.TransferPresentation
 import dev.macdroid.core.connection.ConnectionState
+import dev.macdroid.core.extras.StopReason
 import dev.macdroid.core.protocol.Message
 import dev.macdroid.core.transfer.TransferEvent
 import dev.macdroid.core.transfer.files
@@ -32,6 +34,7 @@ class ConnectionService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var networkWatcher: NetworkWatcher? = null
     private var running = false
+    private var ringer: Ringer? = null
     /** Completed sends already tidied up (cache copy deleted, read grant released). */
     private val tidied = mutableSetOf<String>()
 
@@ -83,6 +86,12 @@ class ConnectionService : Service() {
             combine(manager.state, BatteryMonitor.statusFlow(this@ConnectionService)) { state, battery -> state to battery }
                 .collect { (state, battery) -> if (state is ConnectionState.Connected) manager.send(Message.DeviceStatus(battery)) }
         }
+
+        val ringer = Ringer(this, scope) { manager.send(it) }.also { this.ringer = it }
+        scope.launch { manager.incoming.collect { ringer.handle(it) } }
+        scope.launch {
+            manager.state.collect { if (it !is ConnectionState.Connected) ringer.stop(StopReason.Disconnected) }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -93,6 +102,7 @@ class ConnectionService : Service() {
         }
         when (intent?.action) {
             ACTION_CANCEL_TRANSFERS -> graph.transferEngine.cancelAll()
+            ACTION_STOP_RING -> ringer?.stop(StopReason.Tapped)
             ACTION_SEND_FILES -> {
                 // The share target's read grant came with this intent and lasts while the service runs.
                 val clip = intent.clipData
@@ -109,6 +119,7 @@ class ConnectionService : Service() {
 
     override fun onDestroy() {
         networkWatcher?.stop()
+        ringer?.stop(StopReason.Disconnected)
         scope.cancel()
         if (running) graph.connectionManager.stop()
         super.onDestroy()
@@ -131,6 +142,7 @@ class ConnectionService : Service() {
         const val ACTION_DISCONNECT = "dev.macdroid.app.DISCONNECT"
         const val ACTION_SEND_FILES = "dev.macdroid.app.SEND_FILES"
         const val ACTION_CANCEL_TRANSFERS = "dev.macdroid.app.CANCEL_TRANSFERS"
+        const val ACTION_STOP_RING = "dev.macdroid.app.STOP_RING"
 
         /** Hands shared URIs to the service with a read grant (spec §4.2, ruling 2). */
         fun sendFiles(context: Context, uris: List<Uri>) {
