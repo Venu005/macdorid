@@ -45,3 +45,22 @@ public enum ClipboardRules {
 
     public static func fitsInAFrame(_ text: String) -> Bool { encodedSize(of: text) <= ClipboardLimits.maxFrameBytes }
 }
+
+/// Which pasteboard change counts the watcher should report (spec §8.2): not the one it last saw, and never one
+/// the app produced itself. Recording our own writes here (on the main actor, at write time) closes the race in
+/// which the watcher reported the app's own write before `ClipboardSync` had recorded it.
+public struct PasteboardChangeTracker: Sendable {
+    private var last: Int
+
+    public init(current: Int) { last = current }
+
+    /// The app just wrote to the pasteboard, producing `changeCount`.
+    public mutating func wrote(_ changeCount: Int) { last = changeCount }
+
+    /// True when `changeCount` is a change someone else made since the last check.
+    public mutating func isNewChange(_ changeCount: Int) -> Bool {
+        guard changeCount != last else { return false }
+        last = changeCount
+        return true
+    }
+}

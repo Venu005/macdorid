@@ -4,6 +4,10 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Deferred minors round (fix/review-minors)
+The 9 minors from the Plans 3–4 final review, fixed one by one on `fix/review-minors`.
+- Minor 1: clipboard bounce: the Mac records its own pasteboard writes in the watcher at write time (`PasteboardChangeTracker`), so the watcher never reports them as a copy. Verified: `ownWritesAreNeverReported` RED→GREEN, `swift test` 214, Mac app build.
+
 ## 2026-10-13 — Owner's feature list and agreed order
 - **What:** recorded the owner's planned features (iPad file transfer, photo browsing, low-latency mirroring, remote control, contact sync, webcam and mic over Wi-Fi and USB) and the agreed order in ROADMAP. The order: the 9 deferred minors one by one, small wins, photo browsing, mirroring then remote control.
 - **Branch:** `main`. No code changed.

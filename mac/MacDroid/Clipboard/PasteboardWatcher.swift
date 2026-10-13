@@ -5,7 +5,7 @@ import MacDroidCore
 /// Reading is cheap: only `changeCount` is read until it changes.
 @MainActor
 final class PasteboardWatcher {
-    private var lastChangeCount = NSPasteboard.general.changeCount
+    private var tracker = PasteboardChangeTracker(current: NSPasteboard.general.changeCount)
     private var timer: Timer?
     private var onChange: ((ClipboardContent, Int) -> Void)?
 
@@ -20,8 +20,7 @@ final class PasteboardWatcher {
     private func poll() {
         let pasteboard = NSPasteboard.general
         let count = pasteboard.changeCount
-        guard count != lastChangeCount else { return }
-        lastChangeCount = count
+        guard tracker.isNewChange(count) else { return }
         switch ClipboardRules.kind(of: (pasteboard.types ?? []).map(\.rawValue)) {
         case .ignored:
             return
@@ -39,7 +38,14 @@ final class PasteboardWatcher {
     }
 
     /// Puts an item on the pasteboard and returns the change count it produced (echo prevention, spec §8.2).
-    static func write(_ content: ClipboardContent) -> Int {
+    /// The watcher records it at once, so it never reports this write as a copy.
+    func write(_ content: ClipboardContent) -> Int {
+        let count = Self.write(content)
+        tracker.wrote(count)
+        return count
+    }
+
+    private static func write(_ content: ClipboardContent) -> Int {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         switch content {

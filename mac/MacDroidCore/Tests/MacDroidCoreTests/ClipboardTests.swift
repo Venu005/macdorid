@@ -256,3 +256,23 @@ import Testing
         #expect(await cancels.items.count == 1)
     }
 }
+
+@Suite struct PasteboardChangeTrackerTests {
+    // Review minor 1: the watcher must never report a change the app made itself.
+    @Test func ownWritesAreNeverReported() {
+        var tracker = PasteboardChangeTracker(current: 10)
+        tracker.wrote(11)
+        let ownWrite = tracker.isNewChange(11)
+        let someoneElse = tracker.isNewChange(12)
+        let seenAgain = tracker.isNewChange(12)
+        #expect(ownWrite == false)
+        #expect(someoneElse)
+        #expect(seenAgain == false)
+    }
+
+    @Test func unchangedCountIsNotAChange() {
+        var tracker = PasteboardChangeTracker(current: 3)
+        let unchanged = tracker.isNewChange(3)
+        #expect(unchanged == false)
+    }
+}

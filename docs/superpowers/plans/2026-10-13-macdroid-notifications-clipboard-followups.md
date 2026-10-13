@@ -42,7 +42,7 @@ Both plans ran inline ("native"), with one final whole-branch review on Opus. It
 - Final: styled shared text fixed without a failing test (no instrumentation harness).
 
 **Deferred minors (from the final review)**
-- Echo prevention can be outrun: the watcher's task can reach `ClipboardSync` before `apply`'s change count is recorded, so a phone item bounces back. Fix: let `PasteboardWatcher.write` update `lastChangeCount` on the MainActor.
+- [x] (fixed) Echo prevention can be outrun: the watcher's task can reach `ClipboardSync` before `apply`'s change count is recorded, so a phone item bounces back. Fix: let `PasteboardWatcher.write` update `lastChangeCount` on the MainActor.
 - History "Send" uses the history image file itself as the transfer source; Clear History or a trim mid-transfer fails it silently. Fix: send a temporary copy.
 - Android main-thread work: `refreshAccess`/`setForwarding`/`setMuted` can render app icons under the forwarder lock; `ClipboardImages.prune` runs on Main. Fix: move them to the bridge worker or IO.
 - The pasteboard rule prefers an image over text when an app puts both (Office/iWork tables).
