@@ -36,7 +36,7 @@ struct MenuBarPopover: View {
             Text("No phone paired").font(.headline)
             Text("Pair your Android phone to get started.").font(.callout).foregroundStyle(.secondary)
             Button {
-                model.showWindow(.phone)
+                model.requestPairing()
             } label: {
                 Text("Pair a Phone…").frame(maxWidth: .infinity)
             }

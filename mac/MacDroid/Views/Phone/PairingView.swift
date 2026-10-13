@@ -31,6 +31,14 @@ struct PairingView: View {
             unavailable
         } else if let invite = model.invite, let expires = model.inviteExpiresAt {
             activeCode(invite, expires: expires)
+        } else if model.awaitingPairRequest {
+            VStack(spacing: 10) {
+                Image(systemName: "iphone.gen3").font(.system(size: 44)).foregroundStyle(.secondary)
+                Text("Phone forgotten").font(.headline)
+                Button("Pair a Phone") { Task { await model.newCode() } }
+                    .buttonStyle(.borderedProminent)
+            }
+            .frame(width: 240, height: 240)
         } else if model.pairingExpired {
             expired
         } else if model.transientError != nil {

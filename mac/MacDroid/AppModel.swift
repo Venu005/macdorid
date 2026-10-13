@@ -18,6 +18,8 @@ final class AppModel {
     private(set) var pairingExpired = false
     /// True while the user is pairing a replacement phone from the paired view.
     private(set) var isRepairing = false
+    /// The phone was just forgotten: wait for an explicit "Pair a Phone" instead of opening a pairing window on its own.
+    private(set) var awaitingPairRequest = false
     private(set) var listeningPort: Int?
     /// Conditions that last until restart (keychain unavailable, server stopped, Bonjour failed). Never cleared by pairing.
     private(set) var warnings: [String] = []
@@ -83,12 +85,24 @@ final class AppModel {
 
     func showWindow(_ section: SidebarSection = .phone) {
         selectedSection = section
+        // An explicit request must not land on a stale "Code expired"; the view stays expired only while it stays visible.
+        if section == .phone, showsPairing, pairingExpired {
+            pairingExpired = false
+            Task { await ensurePairingCode() }
+        }
         windowRequest = WindowRequest(section: section)
+    }
+
+    /// The user explicitly asked to pair a phone (menu bar "Pair a Phone…").
+    func requestPairing() {
+        awaitingPairRequest = false
+        showWindow(.phone)
+        Task { await ensurePairingCode() }
     }
 
     /// Called whenever the pairing view is visible: make sure there's a code to scan (but don't replace an expired one silently).
     func ensurePairingCode() async {
-        guard showsPairing, invite == nil, !pairingExpired else { return }
+        guard showsPairing, invite == nil, !pairingExpired, !awaitingPairRequest else { return }
         await beginPairing()
     }
 
@@ -106,6 +120,7 @@ final class AppModel {
     }
 
     func forgetPhone() async {
+        awaitingPairRequest = true
         await pairing.forget()
         await hub.disconnect()
     }
@@ -122,6 +137,7 @@ final class AppModel {
         guard let host = LocalAddress.primaryIPv4() else { transientError = "No network connection. Join Wi-Fi and try again."; return }
         transientError = nil
         pairingExpired = false
+        awaitingPairRequest = false
         let window = await pairing.openWindow()
         invite = PairingInvite(host: host, port: port, fingerprint: fingerprint, code: window.code, name: macName)
         inviteExpiresAt = window.expiresAt
