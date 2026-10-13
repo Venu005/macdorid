@@ -36,26 +36,14 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
   - auto-save with a notification; resumable, checksummed transfers, 3 in parallel
 - **Deferred:** the Finder Share extension (a small round after this).
 
-## Plan 3: Notifications (round-1 spec §5.1)
-- **Groundwork:**
-  - Swift `Hello.features` should become tolerant (Kotlin already defaults it).
-  - Android `ConnectionState.Connected` should expose the Mac's features.
-  - The hub message hook and multi-subscriber stream already exist (Plan 2a).
-- **Android:**
-  - `NotificationListenerService`, plus an onboarding step for notification access.
-  - Forward posted and removed notifications, with icons sent once per app and cached by hash.
-  - Mute list.
-- **Mac:**
-  - `UserNotifications` with a thread per app.
-  - Reply via `UNTextInputNotificationAction` and actions mirrored, so reply/action/dismiss sync both ways.
-  - The Notifications sidebar page lists the last 50 notifications and has per-app mute toggles.
-- **Messages:** `notification.posted|removed|action|reply|dismiss|filter`.
-
-## Plan 4: Clipboard (round-1 spec §5.2)
-- **Mac → phone:** automatic, by polling the `NSPasteboard` change count. Concealed (password-manager) items are skipped.
-- **Phone → Mac:** on demand (Quick Settings tile, notification action, Share target), because Android 10+ blocks background clipboard reads.
-- **History** on the Mac (10/20/50 entries) and the Clipboard tabs.
-- **Images** use Plan 2's transfer channel.
+## Next: Plans 3 and 4 — Notifications and Clipboard (one spec)
+- **Spec:** `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md` (approved in brainstorming 2026-10-13; awaiting the owner's review of the written spec). It refines round-1 §5.1/§5.2 and wins where they differ.
+- **Next steps for a new session:**
+  1. Owner reviews and approves the spec.
+  2. Write Plan 3 (groundwork + notifications), then Plan 4 (clipboard), in `docs/superpowers/plans/`.
+  3. Run both subagent-driven on `feat/notifications-clipboard`, then one final review, the owner's hands-on checklist (spec §6) and one merge.
+- **Plan 3 scope:** tolerant `hello.features` and peer features on both sides; `notification.*` messages (phone owns the mute list, `notification.sync` on reconnect); Android `NotificationListenerService`; Mac `UserNotifications` with reply/actions/dismiss; Mac Notifications page (grouped by app) and Settings; Android Notifications tab as a control panel; notification access in the existing setup step.
+- **Plan 4 scope:** `clipboard.set`; `transfer.offer.purpose = clipboard` for images ≤ 10 MB; Mac pasteboard watcher (concealed/transient items never sent) and history page; Android Quick Settings tile, notification action, "Send now" and a "Copy to Mac" share target; Android Clipboard tab.
 
 ## Small round: Finder Share extension
 "Share → Send to phone" in Finder. It needs an app-extension target that hands files to the main app via an app group (the extension never opens network connections).

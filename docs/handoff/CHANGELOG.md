@@ -4,6 +4,13 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Notifications + clipboard spec (Plans 3 and 4)
+- **What:** brainstormed and wrote `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md`: one spec for notification mirroring (Plan 3) and clipboard sync (Plan 4), delivered as two plans on `feat/notifications-clipboard`. Covers the new `notification.*` and `clipboard.set` messages, `transfer.offer.purpose`, behaviour on both sides, UI (Mac page layout A grouped by app; Android Notifications tab as a control panel; Clipboard page/tab), errors and testing.
+- **Why:** next rounds on the roadmap; the owner asked to do them together.
+- **Updated:** README (round table, picking-up note), STATUS (in flight), ROADMAP (Next), DECISIONS (7 rows).
+- **Verified:** spec self-review (no placeholders; consistent with the round-1 and file-transfer specs). No code changed.
+- **Branch:** `main`.
+
 ## 2026-10-13 — File transfer hands-on checklist passed
 - **What:** the owner ran the file-transfer hands-on checklist and everything passed except one item they haven't run yet: a 2 GB+ file in each direction, which they'll check later. The checklist is ticked in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`; STATUS and README are updated.
 - **Next:** Plan 3 (notifications).

@@ -3,7 +3,8 @@
 > **Picking up?** The next action is in [ROADMAP.md](ROADMAP.md) under "Next":
 > 1. File transfer (Plans 2a and 2b) is **merged to `main`**.
 > 2. The owner verified the hands-on checklist except a 2 GB+ file (they'll check it later).
-> 3. Next: Plan 3 (notifications): brainstorm → spec → plan.
+> 3. Plans 3 and 4 (notifications and clipboard) share one spec, written 2026-10-13 and awaiting the owner's review: [../superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md](../superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md).
+> 4. Next: owner approves the spec → write Plan 3, then Plan 4 → subagent-driven on `feat/notifications-clipboard`.
 
 Read this first if you're picking the project up, whether you're a person, a Claude Code session or a Claude Desktop session.
 
@@ -24,8 +25,8 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 | UI/UX redesign | Native Mac (menu-bar popover + sidebar window) and Material 3 Android (setup wizard + 5 tabs) | **Done, merged to `main`** (verified by the owner) |
 | App icons | Peeking-droid icon for both apps | **Done, merged to `main`** |
 | Plan 2 | File transfer both ways (drag-drop, share sheet, resume, checksums) | **Done, merged to `main`** (owner-verified; the 2 GB+ check is still to do) |
-| Plan 3 | Android notifications mirrored to the Mac (reply, dismiss) | Not started |
-| Plan 4 | Clipboard sync (Mac→phone automatic, phone→Mac on demand) | Not started |
+| Plan 3 | Android notifications mirrored to the Mac (reply, buttons, dismiss both ways, mutes) | Spec written (shared with Plan 4), awaiting review |
+| Plan 4 | Clipboard sync (Mac→phone automatic, phone→Mac on demand, Mac history) | Spec written (shared with Plan 3), awaiting review |
 | Later | Photo gallery, SMS, screen mirroring, webcam/mic, USB transport | Out of scope so far |
 
 ## Documents
@@ -37,6 +38,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 - [CHANGELOG.md](CHANGELOG.md): a dated log of every change; read the newest entries first.
 
 ## Source-of-truth documents
+- **Notifications + clipboard spec (next up):** [../superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md](../superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md)
 - **File transfer spec:** [../superpowers/specs/2026-10-13-macdroid-file-transfer-design.md](../superpowers/specs/2026-10-13-macdroid-file-transfer-design.md)
 - Round-1 spec: [../superpowers/specs/2026-10-12-macdroid-round1-design.md](../superpowers/specs/2026-10-12-macdroid-round1-design.md). It covers all of round 1: connection, notifications, clipboard and files.
 - UI redesign spec: [../superpowers/specs/2026-10-13-macdroid-ui-ux-redesign-design.md](../superpowers/specs/2026-10-13-macdroid-ui-ux-redesign-design.md)
