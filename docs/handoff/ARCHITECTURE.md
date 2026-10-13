@@ -72,8 +72,8 @@ Mac app (`mac/MacDroid/`):
   - `service/`: foreground `ConnectionService` (type connectedDevice), notifications, boot receiver, battery and network watchers. File transfers add `TransferNotifications` (progress with Cancel, received with Open, ask-where-to-save prompts) and the `SEND_FILES`/`CANCEL_TRANSFERS` actions; `platform/SendFiles` turns picked or shared URIs into queued transfers.
 - **UI:**
   - `ui/navigation/AppNavHost.kt`: switches setup ⇄ main via `SetupFlow`.
-  - `ui/setup/`: pairing-centred wizard. Step order: Welcome → Local network → Pair → Notifications → Files ("Where should files from your Mac go?", first run only) → Battery. Settings has a Files section (`FilesSettingsViewModel`).
-  - `ui/main/`: 5-tab bottom navigation: Home, Notifications, Clipboard, Files, Settings. Notifications and Clipboard are coming-soon placeholders. Files is live (`ui/files/`: `FilesScreen`, `TransferRow`, `SendPickers`). Home has a Send FAB and the last 3 transfers.
+  - `ui/setup/`: pairing-centred wizard. Step order: Welcome → Local network → Pair → Notifications (POST_NOTIFICATIONS + notification access, skippable) → Files ("Where should files from your Mac go?", first run only) → Battery. Settings has a Files section (`FilesSettingsViewModel`).
+  - `ui/main/`: 5-tab bottom navigation: Home, Notifications, Clipboard, Files, Settings. Clipboard is a coming-soon placeholder. Notifications is live (`ui/notifications/`: a control panel with the "Show on your Mac" switch and per-app switches). Files is live (`ui/files/`: `FilesScreen`, `TransferRow`, `SendPickers`). Home has a Send FAB and the last 3 transfers.
   - `ui/presentation/`: pure status text shared by Home and the notification.
   - `ui/theme/`: Material You, with a fallback palette.
   - `ui/share/ShareActivity`: the "Send to Mac" share target (ACTION_SEND / SEND_MULTIPLE, `*/*`). It has no UI: it hands the URIs to `ConnectionService` with a read grant and shows a toast, or says "Connect to your Mac first" and opens the app.

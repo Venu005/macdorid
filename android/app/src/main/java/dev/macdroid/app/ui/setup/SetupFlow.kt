@@ -14,6 +14,8 @@ data class SetupInputs(
     val batteryDone: Boolean,
     /** The optional first-run step "Where should files from your Mac go?" was answered. */
     val filesStepDone: Boolean = false,
+    /** MacDroid has notification access (spec §3.1). */
+    val hasNotificationAccess: Boolean = false,
 )
 
 /**
@@ -32,7 +34,7 @@ object SetupFlow {
                 add(SetupStep.Welcome)
                 if (i.needsLocalNetwork) add(SetupStep.LocalNetwork)
                 add(SetupStep.PairMac)
-                if (i.needsNotifications) add(SetupStep.Notifications)
+                add(SetupStep.Notifications)
                 add(SetupStep.Files)
                 add(SetupStep.Battery)
             }
@@ -44,7 +46,7 @@ object SetupFlow {
         SetupStep.Welcome -> i.welcomeDone
         SetupStep.LocalNetwork -> !i.needsLocalNetwork || i.hasLocalNetwork
         SetupStep.PairMac -> i.paired
-        SetupStep.Notifications -> !i.needsNotifications || i.hasNotifications || i.notificationsSkipped
+        SetupStep.Notifications -> i.notificationsSkipped || ((!i.needsNotifications || i.hasNotifications) && i.hasNotificationAccess)
         SetupStep.Files -> i.filesStepDone || i.setupDone
         SetupStep.Battery -> i.batteryDone || i.setupDone
     }

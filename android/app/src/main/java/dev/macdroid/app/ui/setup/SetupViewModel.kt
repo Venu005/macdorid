@@ -26,6 +26,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         val hasNotifications: Boolean,
         val notificationsSkipped: Boolean,
         val filesStepDone: Boolean,
+        val hasNotificationAccess: Boolean,
     )
 
     private val graph = application.graph
@@ -61,6 +62,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Re-read permissions and preferences (call on resume and after a permission prompt). */
     fun refresh() {
+        graph.notificationBridge.refreshAccess()
         local.value = readLocal()
     }
 
@@ -103,6 +105,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         notificationsSkipped = l.notificationsSkipped,
         batteryDone = battery,
         filesStepDone = l.filesStepDone,
+        hasNotificationAccess = l.hasNotificationAccess,
     )
 
     private fun readLocal(): Local {
@@ -113,6 +116,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
             hasNotifications = Permissions.hasNotifications(app),
             notificationsSkipped = graph.uiPrefs.notificationsSkipped,
             filesStepDone = graph.filesPrefs.filesStepDone,
+            hasNotificationAccess = Permissions.hasNotificationAccess(app),
         )
     }
 

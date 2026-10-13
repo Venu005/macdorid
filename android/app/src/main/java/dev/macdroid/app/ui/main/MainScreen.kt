@@ -23,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.macdroid.app.ui.files.FilesScreen
+import dev.macdroid.app.ui.notifications.NotificationsScreen
 
 enum class MainTab(val route: String, val label: String, val icon: ImageVector) {
     Home("home", "Home", Icons.Rounded.Home),
@@ -59,9 +60,7 @@ fun MainScreen(onForget: () -> Unit) {
     ) { padding ->
         NavHost(tabs, startDestination = MainTab.Home.route, modifier = Modifier.padding(padding).consumeWindowInsets(padding)) {
             composable(MainTab.Home.route) { HomeScreen(onPairAgain = onForget) }
-            composable(MainTab.Notifications.route) {
-                ComingSoonScreen(MainTab.Notifications.icon, "Notifications", "See your phone's notifications on your Mac, reply to messages, and dismiss them on both devices.")
-            }
+            composable(MainTab.Notifications.route) { NotificationsScreen() }
             composable(MainTab.Clipboard.route) {
                 ComingSoonScreen(MainTab.Clipboard.icon, "Clipboard", "Copy on your Mac, paste on your phone — and send what you copied back with one tap.")
             }

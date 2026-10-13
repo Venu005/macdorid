@@ -17,6 +17,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 6: Mac `NotificationRouter` (the only notification delegate; received-file and phone categories together), `PhoneNotifier` (banners with reply/buttons/dismiss, icon attachment), `AppModel` wiring and the `showPhoneNotifications` setting. Verified: Mac app build, no compiler warnings.
 - Task 7: Mac Notifications page (grouped by app, hover Reply/buttons/✕, Clear all), Muted apps sheet, Settings → General → Notifications, Phone page line "Notifications off on phone". Verified: Mac app build.
 - Task 8: Android `MacDroidNotificationListener` + `NotificationBridge` (reads notifications, carries out reply/action/dismiss, reports `gone`/`failed`), icons, settings persistence, launcher `<queries>` for app names and icons. Verified: Android gates, `NotificationTextTest`.
+- Task 9: Android Notifications tab (master switch, apps with switches and daily counts, access card), and the setup Notifications step now also asks for notification access (still 6 steps). Verified: Android gates (`NotificationsPresentationTest`, `SetupFlowTest`).
 
 ## 2026-10-13 — Spec self-review and Plans 3 and 4 written
 - **What:**
