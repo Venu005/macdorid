@@ -1,14 +1,10 @@
 package dev.macdroid.app.ui.navigation
 
 import android.content.Context
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -19,7 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dev.macdroid.app.AppGraph
 import dev.macdroid.app.service.ConnectionService
-import dev.macdroid.app.ui.HomeScreen
+import dev.macdroid.app.ui.main.MainScreen
 import dev.macdroid.app.ui.setup.SetupScreen
 import dev.macdroid.app.ui.setup.SetupViewModel
 
@@ -58,12 +54,10 @@ fun AppNavHost(graph: AppGraph) {
     NavHost(nav, startDestination = start) {
         composable(Routes.SETUP) { SetupScreen(setupViewModel) }
         composable(Routes.MAIN) {
-            Box(Modifier.fillMaxSize().safeDrawingPadding()) {
-                HomeScreen(graph, onForget = {
-                    forgetMac(context, graph)
-                    setupViewModel.refresh()
-                })
-            }
+            MainScreen(onForget = {
+                forgetMac(context, graph)
+                setupViewModel.refresh()
+            })
         }
     }
 }
