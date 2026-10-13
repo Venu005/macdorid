@@ -57,6 +57,7 @@ Mac app (`mac/MacDroid/`):
 | tls | `Fingerprint.kt`, `TrustManagers.kt` (pinned/capturing), `TlsClientFactory.kt`, `TrustFailures.kt` | Pinned mTLS OkHttp, classifying "wrong Mac / rejected" errors |
 | pairing | `PairingInvite.kt`, `PairingStore.kt`, `PairingClient.kt` | QR parse, pair POST, fingerprint probe |
 | connection | `ConnectionManager.kt`, `Backoff.kt`, `MacLocator.kt` | WS loop, reconnect, nudges, generation-guarded state, `Waiting.retryAtNanos` deadline |
+| transfer | `TransferClient.kt`, `FileEndpoint.kt` | File bytes over pinned mTLS HTTPS (HTTP/1.1, resume headers, running SHA-256) |
 
 `android/app`:
 - **Glue:**

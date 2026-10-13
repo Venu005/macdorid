@@ -45,6 +45,7 @@ class MockMac(val macName: String = "Test Mac", trustsPhone: Boolean = true) : j
                 .sslSocketFactory(),
         )
         requireClientAuth()
+        protocols = listOf(okhttp3.Protocol.HTTP_1_1) // the real Mac (Hummingbird http1) speaks HTTP/1.1 only
     }
 
     fun start() = server.start()
