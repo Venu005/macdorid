@@ -20,6 +20,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 - [DEV-GUIDE.md](DEV-GUIDE.md): toolchains, build, test, run, device setup and known gotchas.
 - [ROADMAP.md](ROADMAP.md): next rounds and the required groundwork for each.
 - [DECISIONS.md](DECISIONS.md): the key decisions and why, so they don't get relitigated.
+- [CHANGELOG.md](CHANGELOG.md): a dated log of every change; read the newest entries first.
 
 ## Source-of-truth documents
 - Round-1 spec: [../superpowers/specs/2026-10-12-macdroid-round1-design.md](../superpowers/specs/2026-10-12-macdroid-round1-design.md). It covers all of round 1: connection, notifications, clipboard and files.

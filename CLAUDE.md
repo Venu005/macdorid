@@ -13,6 +13,18 @@ A LinkMyMac-style app pair: a sandboxed **Mac menu-bar app** and an **Android ap
 - `docs/superpowers/specs|plans/`: design specs, implementation plans and follow-up lists.
 - `scripts/cross-platform-test.sh`: the real Swift server against the real Kotlin client.
 
+## Keep the handoff current (required)
+Every change to this repo must update `docs/handoff/` in the **same commit or PR** as the change. That covers features, fixes, refactors, dependency or tooling changes, and decisions. Someone opening the folder should always be able to tell what has been built.
+- **CHANGELOG.md:** always add a dated entry at the top with what changed, why, the branch, and how it was verified.
+- **STATUS.md:** update it when something becomes working, verified, pending or known-broken, and when branches are merged or created.
+- **ARCHITECTURE.md:** update it when components, files, message types, routes, the trust model or extension points change.
+- **DEV-GUIDE.md:** update it when build, test or run steps, toolchains, device setup or gotchas change.
+- **ROADMAP.md:** update it when a round starts or finishes, or scope changes.
+- **DECISIONS.md:** update it when a meaningful design decision or ruling is made, with the reason and the rejected alternatives.
+- **README.md:** update the round table when a round's state changes.
+
+A change isn't done until the handoff reflects it. If nothing in the handoff needs to change, still add the CHANGELOG entry.
+
 ## Rules of the road
 - The protocol is a contract. Changing a message means updating `protocol/fixtures` and both codecs, and both test suites must pass.
 - Keep logic in `MacDroidCore` / `android/core` (tested) and views thin.
