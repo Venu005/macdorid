@@ -56,6 +56,13 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
 - **Share target and URI grants:** shared URIs are handed to `ConnectionService` in an intent with `FLAG_GRANT_READ_URI_PERMISSION`. Files without a persistable grant are copied to `cache/outgoing/` only up to 100 MB, and the copies are deleted when the transfer finishes.
 
+- **MediaStore part files:** a newly inserted MediaStore item has no file until it's opened for writing, so reading it first fails with `ENOENT`. `MediaStoreSaveTarget.createPart` opens it once with `"w"`. This broke every Mac → phone transfer until 2026-10-13. The on-device test `MediaStoreSaveTargetTest` covers it.
+- **Running on-device tests without uninstalling the app:** don't use `connectedDebugAndroidTest`, which uninstalls the app (and its pairing) afterwards. Instead run:
+  ```bash
+  ANDROID_SERIAL=<serial> ./gradlew :app:installDebugAndroidTest
+  adb shell am instrument -w -e class dev.macdroid.app.<TestClass> dev.macdroid.app.test/androidx.test.runner.AndroidJUnitRunner
+  ```
+
 ## Conventions
 - Swift Testing (`@Test`, `#expect`) on the Mac and JUnit4 on Android; TDD for logic.
 - Pure presentation and state logic lives in testable types; views stay thin.

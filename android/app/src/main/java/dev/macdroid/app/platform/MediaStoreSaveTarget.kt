@@ -27,8 +27,15 @@ class MediaStoreSaveTarget(private val context: Context) : SaveTarget {
             put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/MacDroid")
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
-        val uri = runCatching { context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) }.getOrNull() ?: return null
-        return MediaStorePart(context.contentResolver, uri)
+        val resolver = context.contentResolver
+        val uri = runCatching { resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) }.getOrNull() ?: return null
+        // A new MediaStore item has no file until it's opened for writing; reading it first (the engine re-hashes the part) fails with ENOENT.
+        val created = runCatching { requireNotNull(resolver.openOutputStream(uri, "w")).close() }.isSuccess
+        if (!created) {
+            runCatching { resolver.delete(uri, null, null) }
+            return null
+        }
+        return MediaStorePart(resolver, uri)
     }
 }
 

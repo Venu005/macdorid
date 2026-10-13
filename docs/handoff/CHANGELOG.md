@@ -4,6 +4,18 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Fix: Mac → phone transfers failed at 0 bytes
+- **Symptom:** the owner's testing showed every Mac → phone transfer ending "Transfer failed". Phone → Mac worked.
+- **Root cause:**
+  - Both sides recorded `Io` at 0 bytes, with a MediaStore part created on the phone.
+  - A new MediaStore item has no file until it's opened for writing.
+  - The engine re-hashes the part before downloading, by opening it for reading, which threw `ENOENT`.
+- **Fix:** `MediaStoreSaveTarget.createPart` creates the empty file (opens it once with `"w"`), and deletes the row if that fails.
+- **Verified:**
+  - The new on-device test `MediaStoreSaveTargetTest` covers create → read → append → reopen → resume → finish. It failed with `ENOENT` before the fix and passes after.
+  - Installed on the phone.
+- **Branch:** `feat/file-transfer`.
+
 ## 2026-10-13 — Plan 2b: file transfer UI (done on feat/file-transfer; waiting for the owner's check)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`.
 - **Verified:**
