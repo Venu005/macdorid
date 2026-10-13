@@ -42,3 +42,9 @@ func eventually(
     }
     Issue.record("condition not met within \(timeout)")
 }
+
+/// Collects values from a stream so tests can poll them with `eventually`.
+actor Collector<T: Sendable> {
+    private(set) var items: [T] = []
+    func append(_ item: T) { items.append(item) }
+}

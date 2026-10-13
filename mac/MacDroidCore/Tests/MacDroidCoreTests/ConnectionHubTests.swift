@@ -177,6 +177,43 @@ actor SlowCloseTransport: MessageTransport {
         await #expect(throws: HubError.notConnected) { try await hub.send(.deviceStatus(DeviceStatus(battery: 1, charging: false))) }
         continuation.finish()
     }
+
+    @Test func twoStatusSubscribersBothSeeTheConnection() async throws {
+        let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
+        let first = Collector<ConnectionStatus>(), second = Collector<ConnectionStatus>()
+        let streamA = hub.statusUpdates, streamB = hub.statusUpdates
+        let listeners = [
+            Task { for await status in streamA { await first.append(status) } },
+            Task { for await status in streamB { await second.append(status) } },
+        ]
+        let transport = FakeTransport()
+        let task = start(hub, transport)
+        try transport.receive(phoneHello)
+        let connected = ConnectionStatus.connected(PeerInfo(device: "Nothing Phone (3)", app: "0.1.0", features: []))
+        try await eventually {
+            let (a, b) = (await first.items, await second.items)
+            return a.contains(connected) && b.contains(connected)
+        }
+        #expect(await first.items.first == .disconnected) // each subscription starts with the current status
+        transport.hangUp(); await task.value
+        listeners.forEach { $0.cancel() }
+    }
+
+    @Test func transferMessagesReachTheMessagesStream() async throws {
+        let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
+        let received = Collector<Message>()
+        let stream = hub.messages
+        let listener = Task { for await message in stream { await received.append(message) } }
+        let transport = FakeTransport()
+        let task = start(hub, transport)
+        let offer = Message.transferOffer(TransferOffer(transferId: "t1", name: "a.txt", size: 3, mime: "text/plain"))
+        try transport.receive(phoneHello)
+        try transport.receive(.deviceStatus(DeviceStatus(battery: 50, charging: false)))
+        try transport.receive(offer)
+        try await eventually { await received.items == [offer] } // hello and device.status are not forwarded
+        transport.hangUp(); await task.value
+        listener.cancel()
+    }
 }
 
 /// Holds the hello send until released, so a session can be caught before it is published.

@@ -37,6 +37,7 @@ Android (client)                                  Mac (server, advertised as _ma
 | Pairing | `Pairing/PairingManager.swift` (actor), `PairedDeviceStore.swift`, `PairingInvite.swift` | Pairing window, code, trust decisions, persistence, QR URI |
 | Network | `Network/LocalAddress.swift`, `BonjourAdvertiser.swift` | LAN IPv4 for the QR code; DNS-SD advertising |
 | Session | `Session/ConnectionHub.swift` (actor) | One live session, hello-first ordering, the newest session wins, status stream |
+| Session | `Session/Broadcast.swift` | Multi-subscriber stream fan-out |
 | Server | `Server/MacDroidServer.swift` | Hummingbird 2 + mTLS callback, routes, WS bridge |
 | Presentation | `Presentation/StatusPresentation.swift` | Pure status → icon/text mapping for the UI |
 | Dev server | `Sources/MacDroidDevServer/main.swift` | Headless server for the cross-platform test |
@@ -76,7 +77,7 @@ Mac app (`mac/MacDroid/`):
 
 ## Extension points for Plans 2–4
 - **New message types:** add a fixture, then a case in both codecs and tests.
-  - Mac: `ConnectionHub` currently has a single-consumer status stream and no incoming-message hook. **Plan 2 must add a multi-subscriber status stream plus a message hook first.**
+  - Mac: feature managers subscribe to `ConnectionHub.messages` and `statusUpdates` (each access is an independent subscription).
   - Android: `ConnectionManager.incoming` is a `SharedFlow`.
 - **New HTTP routes** (files): Routes registered after `router.add(middleware:)` in `makeRouter()` are automatically paired-phone-only.
 - **UI:**
