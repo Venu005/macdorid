@@ -13,6 +13,7 @@ import dev.macdroid.app.platform.SaveTargets
 import dev.macdroid.app.platform.clipboard.ClipboardBridge
 import dev.macdroid.app.platform.clipboard.ClipboardImages
 import dev.macdroid.app.platform.clipboard.ClipboardPrefs
+import dev.macdroid.app.platform.extras.MediaWatcher
 import dev.macdroid.app.platform.notifications.NotificationBridge
 import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
@@ -85,6 +86,9 @@ class AppGraph(private val context: Context) {
     val clipboardPrefs = ClipboardPrefs(context)
     /** Clipboard sync (spec §4.2–4.3); runs for the whole process. */
     val clipboardBridge = ClipboardBridge(context, connectionManager, transferEngine, clipboardPrefs, appScope).also { it.start() }
+
+    /** Media controls for the Mac's Now Playing card (spec §3.3). */
+    val mediaWatcher = MediaWatcher(context, connectionManager, appScope).also { it.start() }
 
     fun pairingClient() = PairingClient(identity, httpClient)
 }

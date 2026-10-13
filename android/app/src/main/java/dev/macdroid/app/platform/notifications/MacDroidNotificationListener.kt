@@ -8,7 +8,10 @@ import dev.macdroid.app.graph
 class MacDroidNotificationListener : NotificationListenerService() {
     private val bridge get() = graph.notificationBridge
 
-    override fun onListenerConnected() = bridge.listenerConnected(this)
+    override fun onListenerConnected() {
+        bridge.listenerConnected(this)
+        graph.mediaWatcher.refresh()
+    }
 
     override fun onListenerDisconnected() = bridge.listenerDisconnected()
 
