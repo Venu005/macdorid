@@ -80,6 +80,28 @@ import Testing
         #expect(Set(await manager.snapshot.active.map(\.name)) == ["same.txt", "same (1).txt"])
     }
 
+    // Final review: APFS is case-insensitive, so names differing only in case must never share a part file.
+    @Test func caseOnlyDifferentNamesGetDistinctParts() async throws {
+        for _ in 0..<20 {
+            let f = try TransferFixture()
+            let manager = f.manager()
+            await manager.handle(makeOffer("t1", name: "IMG_1.JPG", size: 1))
+            await manager.handle(makeOffer("t2", name: "img_1.jpg", size: 1))
+            try await eventually { await manager.snapshot.active.count == 2 }
+            let names = await manager.snapshot.active.map { $0.name.lowercased() }
+            #expect(Set(names).count == 2, "names: \(names)")
+        }
+    }
+
+    @Test func twoSavePanelsPickingTheSameFileDoNotShareAPart() async throws {
+        let f = try TransferFixture()
+        let manager = f.manager(location: FixedLocation(.file(f.file("same.txt"))))
+        await manager.handle(makeOffer("t1", name: "a.txt", size: 1))
+        await manager.handle(makeOffer("t2", name: "b.txt", size: 1))
+        try await eventually { await manager.snapshot.active.count == 2 }
+        #expect(Set(await manager.snapshot.active.map(\.name)) == ["same.txt", "same (1).txt"])
+    }
+
     @Test func savePanelChoiceReplacesThatFile() async throws {
         let f = try TransferFixture()
         try Data("old".utf8).write(to: f.file("chosen.txt"))

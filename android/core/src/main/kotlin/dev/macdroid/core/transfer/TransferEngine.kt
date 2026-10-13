@@ -157,7 +157,14 @@ class TransferEngine(
                 else -> restored += record.copy(phase = Phase.Paused)
             }
         }
-        _snapshot.value = TransferSnapshot(restored, history.take(HISTORY_LIMIT))
+        // Merge, don't replace: files enqueued before or while loading (e.g. a share that cold-started the app) must survive.
+        _snapshot.update { current ->
+            TransferSnapshot(
+                active = restored + current.active.filter { early -> restored.none { it.id == early.id } },
+                history = (history + current.history).distinctBy { it.id }.take(HISTORY_LIMIT),
+                rates = current.rates,
+            )
+        }
         persist()
     }
 
@@ -179,8 +186,8 @@ class TransferEngine(
         connected = isConnected
         if (!isConnected) {
             // Stop moving bytes; transfers resume after the reconnect (spec §5 "Paused — waiting for connection").
+            // Keep the handles: the next start of each transfer joins its cancelled job before touching the same files.
             jobs.values.forEach { it.cancel() }
-            jobs.clear()
             for (record in active) {
                 if (record.phase == Phase.Active || record.phase == Phase.Offered) update(record.id) { it.copy(phase = Phase.Paused) }
                 clearRate(record.id)
@@ -193,7 +200,7 @@ class TransferEngine(
         queued.forEach(::sendOrQueue)
         // Offer every unfinished outgoing transfer again under its id (spec §2.2), then fill free slots.
         for (record in active.filter { it.direction == Direction.ToMac && it.occupiesSlot }) {
-            jobs.remove(record.id)?.cancel()
+            jobs[record.id]?.cancel() // kept in the map so the next upload joins it
             update(record.id) { it.copy(phase = Phase.Offered) }
             offer(record)
         }

@@ -21,6 +21,8 @@ class FakeMacFiles : FileTransport {
     /** Downloads wait for this before sending bytes. */
     @Volatile var gate: CompletableDeferred<Unit>? = null
     @Volatile var headStatus: Int? = null
+    /** The next download blocks this thread (ignoring coroutine cancellation) until counted down, like a write stuck in the kernel. */
+    @Volatile var blockNextDownload: java.util.concurrent.CountDownLatch? = null
 
     override suspend fun uploadOffset(id: String): Long {
         headStatus?.let { throw TransferHttpException(it) }
@@ -52,6 +54,7 @@ class FakeMacFiles : FileTransport {
     override suspend fun download(id: String, size: Long, offset: Long, output: OutputStream, digest: MessageDigest, onProgress: (Long) -> Unit): Long {
         downloadOffsets += offset
         gate?.await()
+        blockNextDownload?.let { latch -> blockNextDownload = null; latch.await() }
         val bytes = served[id] ?: throw TransferHttpException(404)
         val limit = failNextAfter.also { failNextAfter = null }
         var have = offset

@@ -37,6 +37,31 @@ class TransferEngineSendTest {
         eventually { h.active().count { it.phase == Phase.Queued } == 2 }
     }
 
+    // Final review: files queued before the saved state finishes loading (a share cold-starting the service) must survive.
+    @Test fun enqueueWhileLoadingSurvivesLoading() {
+        repeat(10) { round ->
+            // Expired state with a part file makes load() suspend on IO to delete it: the window an early enqueue lands in.
+            val dir = java.nio.file.Files.createTempDirectory("load").toFile()
+            val part = File(dir, "old.bin.macdroid-part").apply { writeText("x") }
+            val store = InMemoryTransferStore(StoredTransfers(active = listOf(
+                TransferRecord(id = "old", direction = Direction.FromMac, name = "old.bin", size = 1, mime = "x",
+                    phase = Phase.Active, part = part.path, createdAt = 0, updatedAt = 0),
+            )))
+            val harness = EngineHarness(store = store, dir = dir, now = 25L * 3600 * 1000)
+            try {
+                val source = File(dir, "early.bin").apply { writeBytes(testBytes(10)) }
+                harness.engine.start(harness.incoming, harness.connected)
+                val id = harness.engine.enqueue(listOf(OutgoingFile(source.path, source.name, 10, "x"))).single()
+                eventually { harness.history().any { it.id == "old" } }
+                eventually { harness.sentOf<Message.TransferOffer>().any { it.body.transferId == id } }
+            } catch (e: AssertionError) {
+                throw AssertionError("round $round: the enqueued file was lost while loading", e)
+            } finally {
+                harness.close()
+            }
+        }
+    }
+
     @Test fun acceptUploadsAndSendsTheWholeFileChecksum() {
         h.start()
         val bytes = testBytes(300_000)

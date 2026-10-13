@@ -242,8 +242,14 @@ public actor TransferManager {
             replaces = false
         case .file(let url):
             folder = url.deletingLastPathComponent()
-            finalName = url.lastPathComponent
-            replaces = true
+            if isClaimed(url.lastPathComponent, in: folder) {
+                // Two save panels picked the same file: never let two transfers share one part file.
+                finalName = FileNaming.unique(url.lastPathComponent) { isTaken($0, in: folder) }
+                replaces = false
+            } else {
+                finalName = url.lastPathComponent
+                replaces = true
+            }
         }
         if let free = freeSpace(folder), free < offer.size {
             await reject(offer, name: finalName, reason: .noSpace)
@@ -273,7 +279,12 @@ public actor TransferManager {
         let fm = FileManager.default
         return fm.fileExists(atPath: folder.appending(path: name).path(percentEncoded: false))
             || fm.fileExists(atPath: folder.appending(path: name + FileNaming.partSuffix).path(percentEncoded: false))
-            || active.contains { $0.direction == .fromPhone && $0.folder == folder && $0.name == name }
+            || isClaimed(name, in: folder)
+    }
+
+    /// Another incoming transfer already writes to this name. APFS is case-insensitive by default, so compare that way.
+    private func isClaimed(_ name: String, in folder: URL) -> Bool {
+        active.contains { $0.direction == .fromPhone && $0.folder == folder && $0.name.caseInsensitiveCompare(name) == .orderedSame }
     }
 
     private func reject(_ offer: TransferOffer, name: String, reason: TransferRejectReason) async {

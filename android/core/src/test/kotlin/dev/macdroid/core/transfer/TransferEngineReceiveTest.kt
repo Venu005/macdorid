@@ -174,6 +174,30 @@ class TransferEngineReceiveTest {
         assertEquals(2, h.sentOf<Message.TransferAccept>().size)
     }
 
+    // Final review: a resumed download must not write the part file while the cancelled one still can.
+    @Test fun aResumedDownloadWaitsForTheCancelledOneToStop() {
+        h.start()
+        val release = java.util.concurrent.CountDownLatch(1)
+        h.mac.blockNextDownload = release
+        val bytes = testBytes(50_000)
+        try {
+            h.offer("t1", "a.bin", bytes)
+            eventually { h.mac.downloadOffsets.size == 1 }
+            h.connected.value = false
+            eventually { h.active().firstOrNull()?.phase == Phase.Paused }
+            h.connected.value = true
+            h.offer("t1", "a.bin", bytes) // the Mac re-offers after reconnecting
+            eventually { h.sentOf<Message.TransferAccept>().size == 2 }
+            Thread.sleep(200)
+            assertEquals("a second download started while the first could still write", 1, h.mac.downloadOffsets.size)
+        } finally {
+            release.countDown()
+        }
+        h.finish("t1", bytes)
+        eventually { h.sentOf<Message.TransferResult>().any { it.body.ok } }
+        assertArrayEquals(bytes, File(h.folder, "a.bin").readBytes())
+    }
+
     // Review Focus #1
     @Test fun reofferOfDoneIdReplaysResult() {
         h.start()
