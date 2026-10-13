@@ -1,6 +1,7 @@
 import Foundation
 import NIOConcurrencyHelpers
 import Testing
+@testable import MacDroidCore
 
 enum Fixtures {
     static let directory: URL = URL(fileURLWithPath: #filePath)
@@ -58,4 +59,67 @@ func makeTemporaryDirectory() throws -> URL {
 /// Deterministic bytes, so failures are reproducible.
 func testBytes(_ count: Int, seed: UInt8 = 7) -> Data {
     Data((0..<count).map { UInt8(truncatingIfNeeded: $0 &* 31 &+ Int(seed)) })
+}
+
+/// Stands in for the WebSocket to the phone: records what the Mac sends, and fails sends while offline.
+actor FakePhoneLink {
+    private(set) var sent: [Message] = []
+    private(set) var online = true
+    func send(_ message: Message) throws {
+        guard online else { throw HubError.notConnected }
+        sent.append(message)
+    }
+    func setOnline(_ value: Bool) { online = value }
+}
+
+struct FixedLocation: ReceiveLocationProvider {
+    let location: SaveLocation?
+    init(_ location: SaveLocation?) { self.location = location }
+    func saveLocation(forName name: String, size: Int64) async -> SaveLocation? { location }
+}
+
+/// Fresh state and Downloads folders, a fake phone link and a fake clock for TransferManager tests.
+struct TransferFixture {
+    let state: URL
+    let downloads: URL
+    let phone = FakePhoneLink()
+    let clock = FakeClock()
+
+    init() throws {
+        let root = try makeTemporaryDirectory()
+        state = root.appending(path: "state", directoryHint: .isDirectory)
+        downloads = root.appending(path: "Downloads/MacDroid", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: downloads, withIntermediateDirectories: true)
+    }
+
+    func manager(location: (any ReceiveLocationProvider)? = nil, freeSpace: @escaping @Sendable (URL) -> Int64? = { _ in nil }) -> TransferManager {
+        let phone = self.phone, clock = self.clock
+        return TransferManager(
+            stateDirectory: state, location: location ?? FixedLocation(.folder(downloads)),
+            freeSpace: freeSpace, now: { clock.now }, send: { try await phone.send($0) }
+        )
+    }
+
+    func file(_ name: String) -> URL { downloads.appending(path: name) }
+    func exists(_ name: String) -> Bool { FileManager.default.fileExists(atPath: file(name).path(percentEncoded: false)) }
+}
+
+func makeOffer(_ id: String, name: String = "a.txt", size: Int64, mime: String = "text/plain") -> Message {
+    .transferOffer(TransferOffer(transferId: id, name: name, size: size, mime: mime))
+}
+
+/// Uploads `data` the way the PUT route does.
+func upload(_ data: Data, to manager: TransferManager, id: String, from start: Int64 = 0) async throws {
+    let upload = try await manager.beginUpload(id: id, start: start)
+    try await upload.writer.append(data, session: upload.session)
+    await upload.writer.flush()
+}
+
+extension Message {
+    var acceptedID: String? { if case .transferAccept(let body) = self { return body.transferId }; return nil }
+    var rejection: TransferReject? { if case .transferReject(let body) = self { return body }; return nil }
+    var result: TransferResult? { if case .transferResult(let body) = self { return body }; return nil }
+    var offerBody: TransferOffer? { if case .transferOffer(let body) = self { return body }; return nil }
+    var finishBody: TransferFinish? { if case .transferFinish(let body) = self { return body }; return nil }
+    var cancelledID: String? { if case .transferCancel(let body) = self { return body.transferId }; return nil }
 }

@@ -39,6 +39,7 @@ Android (client)                                  Mac (server, advertised as _ma
 | Session | `Session/ConnectionHub.swift` (actor) | One live session, hello-first ordering, the newest session wins, status stream |
 | Session | `Session/Broadcast.swift` | Multi-subscriber stream fan-out |
 | Server | `Server/MacDroidServer.swift` | Hummingbird 2 + mTLS callback, routes, WS bridge |
+| Transfer | `Transfer/TransferManager.swift` (actor), `PartFileWriter.swift`, `SourceReader.swift`, `FileNaming.swift`, `TransferModel.swift`, `JSONFileStore.swift` | File transfers: handshake, part files, checksums, resume, history |
 | Presentation | `Presentation/StatusPresentation.swift` | Pure status → icon/text mapping for the UI |
 | Dev server | `Sources/MacDroidDevServer/main.swift` | Headless server for the cross-platform test |
 
