@@ -7,8 +7,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Set by the app at startup; decides whether to open the window once launch details are known.
     static var onLaunch: (@MainActor () -> Void)?
     private(set) static var launchedAsLoginItem = false
+    /// Set by the app at startup: answers Services → "Open on Phone".
+    static var servicesProvider: NSObject?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let provider = Self.servicesProvider {
+            NSApp.servicesProvider = provider
+            NSUpdateDynamicServices()
+        }
         let event = NSAppleEventManager.shared().currentAppleEvent
         Self.launchedAsLoginItem = event?.eventID == AEEventID(kAEOpenApplication)
             && event?.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue == OSType(keyAELaunchedAsLogInItem)

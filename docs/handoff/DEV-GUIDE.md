@@ -18,7 +18,7 @@ open mac/build/Build/Products/Debug/MacDroid.app
 cd android && ./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug
 ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
-# Swift server ↔ Kotlin client end to end (pairing, battery, a notification with a reply, clipboard text both ways and an image, and 24 MiB files both ways with a mid-file disconnect; ~1 min)
+# Swift server ↔ Kotlin client end to end (pairing, battery, a notification with a reply, clipboard text both ways and an image, ring, links both ways, media state and a command, and 24 MiB files both ways with a mid-file disconnect; ~1 min)
 ./scripts/cross-platform-test.sh
 # The dev server alone: --receive-dir <dir> saves files from the phone there; --send-on-connect <file> sends that file when a phone connects
 #   mac/MacDroidCore/.build/debug/macdroid-devserver --host 127.0.0.1 --port 47999 --receive-dir /tmp/in --send-on-connect /tmp/out.bin
@@ -56,6 +56,8 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
 - **Share target and URI grants:** shared URIs are handed to `ConnectionService` in an intent with `FLAG_GRANT_READ_URI_PERMISSION`. Files without a persistable grant are copied to `cache/outgoing/` only up to 100 MB, and the copies are deleted when the transfer finishes.
 
+- **Services → "Open on Phone":** a fresh dev build may need `/System/Library/CoreServices/pbs -update`, or a log-out and back in, before the item appears in right-click → Services.
+- **Ring my phone:** use the bell in the Mac popover. It plays even on silent when Do Not Disturb allows alarms (the default). The alarm volume is set to full while ringing and restored after.
 - **Clipboard:** the owner adds the "Send clipboard" tile from the Quick Settings edit screen. Android shows its own "copied" preview when the Mac's clipboard arrives; that's expected. Android only lets the focused app read the clipboard, hence the invisible `ClipboardSendActivity`.
 - **Notification access:** the owner grants it in the setup step or in Android Settings → Notifications → Device & app notifications. Never grant it from adb automation. The listener only runs once access is granted; app names and icons come through the launcher `<queries>` entry (no `QUERY_ALL_PACKAGES`).
 - **MediaStore part files:** a newly inserted MediaStore item has no file until it's opened for writing, so reading it first fails with `ENOENT`. `MediaStoreSaveTarget.createPart` opens it once with `"w"`. This broke every Mac → phone transfer until 2026-10-13. The on-device test `MediaStoreSaveTargetTest` covers it.

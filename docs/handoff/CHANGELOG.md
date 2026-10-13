@@ -4,6 +4,27 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Plan 5: small wins (done on feat/small-wins)
+- **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md` (executed inline).
+- Task 1: `device.ring`, `device.ringState`, `link.open`, `media.state`, `media.art` and `media.command` in both codecs (7 fixtures); features `ring`, `links`, `media`. Verified: `swift test` 218, Android gates.
+- Task 2: mirrored link rules, Swift `LinkRules` and Kotlin `LinkExtractor` (first http/https link, trailing punctuation trimmed, ≤ 8 KB). Verified: 4 tests on each side.
+- Task 3: Android core `RingSession` (one ring, 30 s timeout) and `MediaTracker` (session choice, change detection, art once per connection, commands to the shown app). Verified: 11 tests.
+- Task 4: Mac core `PhoneExtras` (ring state, media state + art cache, incoming links validated, Open on Phone results) and `MediaPresentation` (position projected from the Mac's receive time). Verified: `swift test` 232.
+- Task 5: Android `Ringer`: alarm tone at full alarm volume (restored after), torch flash, volume keys caught by a temporary MediaSession, a Stop notification, 30 s, and it stops on a disconnect. Runs in `ConnectionService`. Verified: Android gates.
+- Task 6: Android "Open on Mac" share target (`OpenOnMacActivity` + pure `OpenOnMacDecision`) and tap-to-open "Link from your Mac" notifications. Verified: `OpenOnMacDecisionTest`, Android gates.
+- Task 7: Android `MediaWatcher` (media sessions via the notification listener; artwork encoded off the main thread; Mac commands applied to the shown app). Verified: Android gates.
+- Task 8: Mac Services "Open on Phone" (`ServicesProvider` + `NSServices` in project.yml), ring button (popover + Phone page), Now Playing card with seek, incoming links open in the default browser. Verified: Mac app build; NSServices present in the built Info.plist.
+- Task 9: the cross-platform run covers a ring round trip, a link each way, and media state → a pause command. Verified: `./scripts/cross-platform-test.sh` passed.
+- Task 10: all gates pass from scratch (`swift test` 232, Mac app build, Android with `--rerun-tasks`, cross-platform). Owner checklist: `docs/superpowers/plans/2026-10-13-macdroid-small-wins-followups.md`.
+- Final review fixes:
+  - Links keep a closing bracket they opened (Wikipedia `Mercury_(planet)`). Verified: `balancedBracketsStay` RED→GREEN on both sides.
+  - A paused media session is hidden after 5 minutes (`MediaTracker.tick` every 60 s). Verified: `aLongPausedSessionIsHiddenOnTheNextTick` RED→GREEN.
+  - Media updates go through one ordered lane, and the artwork cache keeps 8 tracks. Verified: build.
+  - 11 minors deferred to the follow-ups file.
+- Owner feedback fixes:
+  - **Play/pause icon was stale on the Mac.** Logs showed the Mac received every play/pause change, but the popover's Now Playing card never redrew from the shared model. It now gets the state passed in as a value, so every change redraws it.
+  - **⏮ restarted the song instead of going back** (Media3 apps treat "previous" after 3 s as a restart). Past 3 s the phone now seeks to 0, then skips to previous (`PreviousTrack`). Verified: `rewindsFirstOnlyPastTheRestartWindow` RED→GREEN, all gates.
+
 ## 2026-10-13 — Plan 5 (small wins) written
 - **What:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md`, 10 tasks:
   - protocol; link rules on both sides

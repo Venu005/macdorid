@@ -36,6 +36,12 @@ public enum MessageCodec {
         case .notificationMute(let body): return try encode(type: "notification.mute", id: id, body: body)
         case .notificationError(let body): return try encode(type: "notification.error", id: id, body: body)
         case .clipboardSet(let body): return try encode(type: "clipboard.set", id: id, body: body)
+        case .deviceRing(let body): return try encode(type: "device.ring", id: id, body: body)
+        case .ringState(let body): return try encode(type: "device.ringState", id: id, body: body)
+        case .linkOpen(let body): return try encode(type: "link.open", id: id, body: body)
+        case .mediaState(let body): return try encode(type: "media.state", id: id, body: body)
+        case .mediaArt(let body): return try encode(type: "media.art", id: id, body: body)
+        case .mediaCommand(let body): return try encode(type: "media.command", id: id, body: body)
         case .unknown(let type): throw MessageCodecError.cannotEncodeUnknown(type)
         }
     }
@@ -64,6 +70,12 @@ public enum MessageCodec {
             case "notification.mute": return .notificationMute(try decoder.decode(Incoming<NotificationMute>.self, from: data).body)
             case "notification.error": return .notificationError(try decoder.decode(Incoming<NotificationError>.self, from: data).body)
             case "clipboard.set": return .clipboardSet(try decoder.decode(Incoming<ClipboardSet>.self, from: data).body)
+            case "device.ring": return .deviceRing(try decoder.decode(Incoming<DeviceRing>.self, from: data).body)
+            case "device.ringState": return .ringState(try decoder.decode(Incoming<RingState>.self, from: data).body)
+            case "link.open": return .linkOpen(try decoder.decode(Incoming<LinkOpen>.self, from: data).body)
+            case "media.state": return .mediaState(try decoder.decode(Incoming<MediaState>.self, from: data).body)
+            case "media.art": return .mediaArt(try decoder.decode(Incoming<MediaArt>.self, from: data).body)
+            case "media.command": return .mediaCommand(try decoder.decode(Incoming<MediaCommand>.self, from: data).body)
             case let other: return .unknown(type: other)
             }
         } catch {

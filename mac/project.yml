@@ -22,6 +22,15 @@ targets:
         LSUIElement: true
         NSLocalNetworkUsageDescription: MacDroid connects to your Android phone over your local network.
         NSBonjourServices: [_macdroid._tcp]
+        NSServices:
+          - NSMenuItem:
+              default: Open on Phone
+            NSMessage: openOnPhone
+            NSPortName: MacDroid
+            NSSendTypes:
+              - public.utf8-plain-text
+              - public.url
+            NSRequiredContext: {}
     entitlements:
       path: MacDroid/MacDroid.entitlements
       properties:

@@ -14,6 +14,14 @@ import dev.macdroid.core.protocol.DeviceStatusBody
 import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.HelloBody
 import dev.macdroid.core.protocol.Message
+import dev.macdroid.core.protocol.RingStateBody
+import dev.macdroid.core.protocol.RingAction
+import dev.macdroid.core.protocol.MediaCommandKind
+import dev.macdroid.core.protocol.LinkOpenBody
+import dev.macdroid.core.extras.MediaTracker
+import dev.macdroid.core.extras.MediaSnapshot
+import dev.macdroid.core.extras.MediaControl
+import dev.macdroid.core.extras.MediaArtwork
 import dev.macdroid.core.notifications.InMemoryNotificationSettingsStore
 import dev.macdroid.core.notifications.NotificationCommand
 import dev.macdroid.core.notifications.NotificationForwarder
@@ -99,12 +107,31 @@ class CrossPlatformTest {
             delay(500)
             exchangeANotification(manager, received)
             exchangeClipboard(manager, engine, received)
+            exchangeSmallWins(manager, received)
             if (phoneFile != null && receiveDir != null) sendFilesBothWaysWithADrop(manager, engine, transport, File(phoneFile))
         } finally {
             collector.cancel()
             manager.stop()
             scope.cancel()
         }
+    }
+
+    /** The Mac rings and sends a link; the phone answers, sends a link back, and shares its media. */
+    private suspend fun exchangeSmallWins(manager: ConnectionManager, received: List<Message>) {
+        withTimeout(10_000) { while (received.none { it is Message.DeviceRing }) delay(50) }
+        assertEquals(RingAction.Start, received.filterIsInstance<Message.DeviceRing>().first().body.action)
+        assertTrue(manager.send(Message.RingState(RingStateBody(true))))
+        withTimeout(10_000) { while (received.none { it is Message.LinkOpen }) delay(50) }
+        assertEquals("https://example.com/mac", received.filterIsInstance<Message.LinkOpen>().first().body.url)
+        assertTrue(manager.send(Message.LinkOpen(LinkOpenBody("https://example.com/phone"))))
+        val tracker = MediaTracker(manager::send)
+        tracker.connected()
+        tracker.update(listOf(MediaSnapshot("com.example.music", "Music", "Song", "Artist", 200_000, 1_000, System.currentTimeMillis(),
+            playing = true, canPrevious = true, canNext = true, canSeek = true,
+            art = MediaArtwork("0123456789abcdef", "/9j/4AAQ"), lastActiveAt = System.currentTimeMillis())))
+        withTimeout(10_000) { while (received.none { it is Message.MediaCommand }) delay(50) }
+        assertEquals(MediaControl("com.example.music", MediaCommandKind.Pause, null),
+            tracker.handle(received.filterIsInstance<Message.MediaCommand>().first()))
     }
 
     /** The Mac's copy arrives; the phone sends text and a small image back. */

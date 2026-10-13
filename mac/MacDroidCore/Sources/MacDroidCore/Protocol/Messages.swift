@@ -4,7 +4,7 @@ public enum ProtocolInfo {
     public static let version = 1
     public static let serviceType = "_macdroid._tcp"
     /// Features this app implements, sent in `hello` (spec §2.1).
-    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard]
+    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media]
 }
 
 /// Names used in `hello.features`. A feature is active only when both sides list it.
@@ -12,6 +12,9 @@ public enum Feature {
     public static let files = "files"
     public static let notifications = "notifications"
     public static let clipboard = "clipboard"
+    public static let ring = "ring"
+    public static let links = "links"
+    public static let media = "media"
 }
 
 public struct Hello: Codable, Equatable, Sendable {
@@ -147,6 +150,91 @@ public struct TransferResult: Codable, Equatable, Sendable {
         self.transferId = transferId
         self.ok = ok
         self.error = error
+    }
+}
+
+// MARK: Small wins (Plan 5)
+
+public enum RingAction: String, Codable, Sendable { case start, stop }
+
+public struct DeviceRing: Codable, Equatable, Sendable {
+    public var action: RingAction
+    public init(action: RingAction) { self.action = action }
+}
+
+public struct RingState: Codable, Equatable, Sendable {
+    public var ringing: Bool
+    public init(ringing: Bool) { self.ringing = ringing }
+}
+
+public struct LinkOpen: Codable, Equatable, Sendable {
+    public var url: String
+    public init(url: String) { self.url = url }
+}
+
+/// What's playing on the phone. `active == false` means nothing; the other fields are then nil (omitted on the wire).
+public struct MediaState: Codable, Equatable, Sendable {
+    public var active: Bool
+    public var packageName: String?
+    public var appName: String?
+    public var title: String?
+    public var artist: String?
+    public var durationMs: Int64?
+    public var positionMs: Int64?
+    /// Phone epoch milliseconds when `positionMs` was read.
+    public var positionAt: Int64?
+    public var playing: Bool?
+    public var canPrevious: Bool?
+    public var canNext: Bool?
+    public var canSeek: Bool?
+    public var artHash: String?
+
+    enum CodingKeys: String, CodingKey {
+        case active, packageName = "package", appName, title, artist, durationMs, positionMs, positionAt, playing, canPrevious, canNext, canSeek, artHash
+    }
+
+    public init(
+        active: Bool, packageName: String? = nil, appName: String? = nil, title: String? = nil, artist: String? = nil,
+        durationMs: Int64? = nil, positionMs: Int64? = nil, positionAt: Int64? = nil, playing: Bool? = nil,
+        canPrevious: Bool? = nil, canNext: Bool? = nil, canSeek: Bool? = nil, artHash: String? = nil
+    ) {
+        self.active = active
+        self.packageName = packageName
+        self.appName = appName
+        self.title = title
+        self.artist = artist
+        self.durationMs = durationMs
+        self.positionMs = positionMs
+        self.positionAt = positionAt
+        self.playing = playing
+        self.canPrevious = canPrevious
+        self.canNext = canNext
+        self.canSeek = canSeek
+        self.artHash = artHash
+    }
+
+    public static let idle = MediaState(active: false)
+}
+
+public struct MediaArt: Codable, Equatable, Sendable {
+    public var hash: String
+    /// Base64 JPEG, at most 300 px on the longest side.
+    public var jpeg: String
+    public init(hash: String, jpeg: String) {
+        self.hash = hash
+        self.jpeg = jpeg
+    }
+}
+
+public enum MediaCommandKind: String, Codable, Sendable { case play, pause, next, previous, seek }
+
+public struct MediaCommand: Codable, Equatable, Sendable {
+    public var command: MediaCommandKind
+    /// Seek only.
+    public var positionMs: Int64?
+    public init(command: MediaCommandKind, positionMs: Int64? = nil) {
+        self.command = command
+        self.positionMs = positionMs
     }
 }
 
@@ -354,6 +442,12 @@ public enum Message: Equatable, Sendable {
     case notificationMute(NotificationMute)
     case notificationError(NotificationError)
     case clipboardSet(ClipboardSet)
+    case deviceRing(DeviceRing)
+    case ringState(RingState)
+    case linkOpen(LinkOpen)
+    case mediaState(MediaState)
+    case mediaArt(MediaArt)
+    case mediaCommand(MediaCommand)
     /// A type this version doesn't understand. Decoded so callers can ignore it; never encoded.
     case unknown(type: String)
 }

@@ -30,6 +30,9 @@ struct PairedDeviceView: View {
                 if let line = NotificationPresentation.phonePageLine(model.notifications) {
                     LabeledContent("Notifications", value: line)
                 }
+                if model.notifications.phoneAccess == false {
+                    Text("Media controls need notification access on your phone.").font(.callout).foregroundStyle(.secondary)
+                }
                 if let device = model.pairedDevice {
                     LabeledContent("Model", value: device.model)
                     LabeledContent("Paired", value: device.pairedAt.formatted(date: .abbreviated, time: .omitted))
@@ -37,6 +40,11 @@ struct PairedDeviceView: View {
             }
             Section {
                 HStack {
+                    if model.extras.supportsRing {
+                        Button(model.extras.ringing ? "Stop Ringing" : "Ring Phone") {
+                            model.extras.ringing ? model.stopRingingPhone() : model.ringPhone()
+                        }
+                    }
                     Button("Pair a Different Phone…") { Task { await model.startRepair() } }
                     Spacer()
                     Button("Forget This Phone…", role: .destructive) { confirmForget = true }

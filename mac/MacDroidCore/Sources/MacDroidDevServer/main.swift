@@ -86,6 +86,34 @@ let clipboard = ClipboardSync(
 )
 await clipboard.attach(to: hub)
 
+let extras = PhoneExtras(
+    art: IconCache(directory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-art-\(UUID().uuidString)")),
+    send: { try await hub.send($0) }
+)
+await extras.attach(to: hub)
+
+let extrasPrinter = Task {
+    var commanded = false
+    var lastRinging = false
+    for await state in extras.states {
+        if state.ringing != lastRinging {
+            lastRinging = state.ringing
+            print("RING state ringing=\(state.ringing)")
+        }
+        if state.media.active, !commanded {
+            commanded = true
+            print("MEDIA state title=\(state.media.title ?? "") playing=\(state.media.playing ?? false) art=\(state.media.artHash ?? "")")
+            await extras.command(.pause)
+        }
+    }
+}
+
+let linkPrinter = Task {
+    for await event in extras.events {
+        if case .openLink(let url) = event { print("LINK open \(url.absoluteString)") }
+    }
+}
+
 let window = await pairing.openWindow()
 print("PAIRING_URI \(PairingInvite(host: host, port: port, fingerprint: identity.fingerprint, code: window.code, name: macName).uri)")
 
@@ -107,6 +135,8 @@ let statusPrinter = Task {
                 Task {
                     try? await Task.sleep(for: .milliseconds(500))
                     await clipboard.localChange(.text("hello from mac"), changeCount: 1)
+                    await extras.ring()
+                    _ = await extras.sendLink(in: "see https://example.com/mac")
                 }
             }
         }
@@ -143,3 +173,5 @@ transferPrinter.cancel()
 sentPrinter.cancel()
 notificationPrinter.cancel()
 appsPrinter.cancel()
+extrasPrinter.cancel()
+linkPrinter.cancel()

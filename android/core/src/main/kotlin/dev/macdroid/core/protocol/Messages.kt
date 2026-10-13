@@ -68,6 +68,51 @@ enum class TransferResultError {
 @Serializable
 data class TransferResultBody(val transferId: String, val ok: Boolean, val error: TransferResultError? = null)
 
+@Serializable
+enum class RingAction { @SerialName("start") Start, @SerialName("stop") Stop }
+
+@Serializable
+data class DeviceRingBody(val action: RingAction)
+
+@Serializable
+data class RingStateBody(val ringing: Boolean)
+
+@Serializable
+data class LinkOpenBody(val url: String)
+
+/** What's playing; `active = false` means nothing (other fields null, so they're left off the wire). */
+@Serializable
+data class MediaStateBody(
+    val active: Boolean,
+    @SerialName("package") val packageName: String? = null,
+    val appName: String? = null,
+    val title: String? = null,
+    val artist: String? = null,
+    val durationMs: Long? = null,
+    val positionMs: Long? = null,
+    val positionAt: Long? = null,
+    val playing: Boolean? = null,
+    val canPrevious: Boolean? = null,
+    val canNext: Boolean? = null,
+    val canSeek: Boolean? = null,
+    val artHash: String? = null,
+)
+
+@Serializable
+data class MediaArtBody(val hash: String, val jpeg: String)
+
+@Serializable
+enum class MediaCommandKind {
+    @SerialName("play") Play,
+    @SerialName("pause") Pause,
+    @SerialName("next") Next,
+    @SerialName("previous") Previous,
+    @SerialName("seek") Seek,
+}
+
+@Serializable
+data class MediaCommandBody(val command: MediaCommandKind, val positionMs: Long? = null)
+
 object ClipboardLimits {
     /** An encoded `clipboard.set` frame must fit the Mac's WebSocket frame limit (spec §8.1). */
     const val MAX_FRAME_BYTES = 1_048_576
@@ -85,8 +130,11 @@ object Features {
     const val FILES = "files"
     const val NOTIFICATIONS = "notifications"
     const val CLIPBOARD = "clipboard"
+    const val RING = "ring"
+    const val LINKS = "links"
+    const val MEDIA = "media"
     /** What this app implements. */
-    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD)
+    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD, RING, LINKS, MEDIA)
 }
 
 @Serializable
@@ -161,6 +209,12 @@ sealed interface Message {
     data class NotificationMute(val body: NotificationMuteBody) : Message
     data class NotificationError(val body: NotificationErrorBody) : Message
     data class ClipboardSet(val body: ClipboardSetBody) : Message
+    data class DeviceRing(val body: DeviceRingBody) : Message
+    data class RingState(val body: RingStateBody) : Message
+    data class LinkOpen(val body: LinkOpenBody) : Message
+    data class MediaState(val body: MediaStateBody) : Message
+    data class MediaArt(val body: MediaArtBody) : Message
+    data class MediaCommand(val body: MediaCommandBody) : Message
     /** A type this version doesn't understand; decoded so callers can ignore it, never encoded. */
     data class Unknown(val type: String) : Message
 }

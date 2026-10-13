@@ -5,7 +5,9 @@
 - `main` also has notifications and clipboard (Plans 3 and 4, merged 2026-10-13 as `db85323`), version 0.4.0. All gates pass on `main`.
 
 - `main` also has the 9 deferred-minor fixes (merged 2026-10-13 as `bd6c661`; `swift test` 217).
+- `feat/small-wins`: Plan 5 (ring, links, media controls) done, all gates pass. Final review next, then the owner's checklist. Not merged.
 ## In flight
+- **Small wins (Plan 5):** executed on `feat/small-wins`; owner checklist in `docs/superpowers/plans/2026-10-13-macdroid-small-wins-followups.md`.
 - **Notifications + clipboard (Plans 3 and 4):** merged to `main` on 2026-10-13 after the owner's hands-on check. Deferred minors: `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
 - **File transfer (Plan 2):** merged to `main` on 2026-10-13. The remaining hands-on checks are in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`; fix anything they turn up on a new branch.
   - Spec: `docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`.

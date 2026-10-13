@@ -15,6 +15,7 @@ struct MenuBarPopover: View {
             } else {
                 deviceCard
                 tiles
+                if model.extras.supportsMedia && model.extras.media.active { NowPlayingCard(model: model, extras: model.extras) }
                 transfers
             }
             ForEach(model.warnings, id: \.self) { warning in
@@ -58,6 +59,16 @@ struct MenuBarPopover: View {
                 }
             }
             Spacer(minLength: 0)
+            if model.extras.supportsRing {
+                let ringing = model.extras.ringing
+                Button { ringing ? model.stopRingingPhone() : model.ringPhone() } label: {
+                    Image(systemName: ringing ? "bell.slash.fill" : "bell.and.waves.left.and.right")
+                        .font(.system(size: 15))
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(ringing ? Color.red : Color.secondary)
+                .help(ringing ? "Stop ringing" : "Ring your phone")
+            }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.1)))

@@ -21,6 +21,8 @@ import Testing
         "notification.apps.json", "notification.reply.json", "notification.action.json", "notification.dismiss.json",
         "notification.mute.json", "notification.error.json",
         "clipboard.set.json", "transfer.offer.clipboard.json",
+        "device.ring.json", "device.ringState.json", "link.open.json", "media.state.json", "media.state.idle.json",
+        "media.art.json", "media.command.json",
     ]
 
     @Test(arguments: messageFixtures)
@@ -95,8 +97,22 @@ import Testing
         #expect(throws: MessageCodecError.malformed) { try MessageCodec.decode(text) }
     }
 
-    @Test func supportedFeaturesIncludeClipboard() {
-        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard])
+    @Test func supportedFeaturesIncludeTheSmallWins() {
+        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media])
+    }
+
+    @Test func smallWinsFixturesDecode() throws {
+        #expect(try MessageCodec.decode(Fixtures.text("device.ring.json")) == .deviceRing(DeviceRing(action: .start)))
+        #expect(try MessageCodec.decode(Fixtures.text("device.ringState.json")) == .ringState(RingState(ringing: true)))
+        #expect(try MessageCodec.decode(Fixtures.text("link.open.json")) == .linkOpen(LinkOpen(url: "https://github.com/Venu005/macdroid")))
+        #expect(try MessageCodec.decode(Fixtures.text("media.state.json")) == .mediaState(MediaState(
+            active: true, packageName: "com.spotify.music", appName: "Spotify", title: "Song", artist: "Artist",
+            durationMs: 215_000, positionMs: 61_000, positionAt: 1_791_892_800_000, playing: true,
+            canPrevious: true, canNext: true, canSeek: true, artHash: "0123456789abcdef"
+        )))
+        #expect(try MessageCodec.decode(Fixtures.text("media.state.idle.json")) == .mediaState(.idle))
+        #expect(try MessageCodec.decode(Fixtures.text("media.art.json")) == .mediaArt(MediaArt(hash: "0123456789abcdef", jpeg: "/9j/4AAQSkZJRg==")))
+        #expect(try MessageCodec.decode(Fixtures.text("media.command.json")) == .mediaCommand(MediaCommand(command: .seek, positionMs: 93_000)))
     }
 
     @Test func clipboardFixturesDecode() throws {

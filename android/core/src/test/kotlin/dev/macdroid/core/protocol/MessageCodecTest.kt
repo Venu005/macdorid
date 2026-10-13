@@ -27,6 +27,8 @@ class MessageCodecTest {
         "notification.apps.json", "notification.reply.json", "notification.action.json", "notification.dismiss.json",
         "notification.mute.json", "notification.error.json",
         "clipboard.set.json", "transfer.offer.clipboard.json",
+        "device.ring.json", "device.ringState.json", "link.open.json", "media.state.json", "media.state.idle.json",
+        "media.art.json", "media.command.json",
     )
 
     @Test fun fixturesRoundTrip() {
@@ -112,8 +114,23 @@ class MessageCodecTest {
         }
     }
 
-    @Test fun supportedFeaturesIncludeClipboard() {
-        assertEquals(listOf("files", "notifications", "clipboard"), Features.SUPPORTED)
+    @Test fun supportedFeaturesIncludeTheSmallWins() {
+        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media"), Features.SUPPORTED)
+    }
+
+    @Test fun smallWinsFixturesDecode() {
+        assertEquals(Message.DeviceRing(DeviceRingBody(RingAction.Start)), MessageCodec.decode(Fixtures.text("device.ring.json")))
+        assertEquals(Message.RingState(RingStateBody(true)), MessageCodec.decode(Fixtures.text("device.ringState.json")))
+        assertEquals(Message.LinkOpen(LinkOpenBody("https://github.com/Venu005/macdroid")), MessageCodec.decode(Fixtures.text("link.open.json")))
+        assertEquals(
+            Message.MediaState(MediaStateBody(active = true, packageName = "com.spotify.music", appName = "Spotify", title = "Song", artist = "Artist",
+                durationMs = 215_000, positionMs = 61_000, positionAt = 1_791_892_800_000, playing = true,
+                canPrevious = true, canNext = true, canSeek = true, artHash = "0123456789abcdef")),
+            MessageCodec.decode(Fixtures.text("media.state.json")),
+        )
+        assertEquals(Message.MediaState(MediaStateBody(active = false)), MessageCodec.decode(Fixtures.text("media.state.idle.json")))
+        assertEquals(Message.MediaArt(MediaArtBody("0123456789abcdef", "/9j/4AAQSkZJRg==")), MessageCodec.decode(Fixtures.text("media.art.json")))
+        assertEquals(Message.MediaCommand(MediaCommandBody(MediaCommandKind.Seek, 93_000)), MessageCodec.decode(Fixtures.text("media.command.json")))
     }
 
     @Test fun clipboardFixturesDecode() {
