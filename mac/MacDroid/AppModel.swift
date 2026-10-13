@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import MacDroidCore
 import Observation
@@ -26,6 +27,10 @@ final class AppModel {
     /// Problem with the last user action; cleared when the next action starts.
     private(set) var transientError: String?
     private(set) var windowRequest: WindowRequest?
+    private(set) var transfers: TransferSnapshot = .empty
+    let files: FilesSettings
+    @ObservationIgnored private let transferManager: TransferManager
+    @ObservationIgnored private let notifier: ReceivedNotifier
     var selectedSection: SidebarSection? = .phone
 
     let macName: String
@@ -54,9 +59,21 @@ final class AppModel {
         fingerprint = loaded.fingerprint
         usingTemporaryIdentity = temporary
         let store = UserDefaultsPairedDeviceStore()
-        pairedDevice = store.load()
+        let paired = store.load()
+        pairedDevice = paired
         pairing = PairingManager(store: store)
-        hub = ConnectionHub(macName: name, appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0")
+        let hub = ConnectionHub(macName: name, appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0")
+        self.hub = hub
+        let files = FilesSettings()
+        files.phoneName = paired?.name ?? "Your phone"
+        self.files = files
+        transferManager = TransferManager(
+            stateDirectory: URL.applicationSupportDirectory.appending(path: "Transfers", directoryHint: .isDirectory),
+            location: MacReceiveLocation(settings: files),
+            sourceAccess: SecurityScopedSourceAccess(),
+            send: { message in try await hub.send(message) }
+        )
+        notifier = ReceivedNotifier()
         if temporary {
             warnings.append("MacDroid couldn't open its keychain, so pairing is unavailable until you restart MacDroid.")
         }
@@ -67,7 +84,7 @@ final class AppModel {
 
     func start() {
         guard tasks.isEmpty else { return }
-        let server = MacDroidServer(identity: identity, pairing: pairing, hub: hub, macName: macName)
+        let server = MacDroidServer(identity: identity, pairing: pairing, hub: hub, macName: macName, transfers: transferManager)
         tasks.append(Task { [weak self] in
             do {
                 try await server.run { [weak self] port in await self?.serverStarted(port: port) }
@@ -80,6 +97,14 @@ final class AppModel {
         })
         tasks.append(Task { [weak self, pairing] in
             for await event in pairing.events { await self?.handle(event) }
+        })
+        notifier.setUp()
+        tasks.append(Task { [transferManager, hub] in await transferManager.attach(to: hub) })
+        tasks.append(Task { [weak self, transferManager] in
+            for await snapshot in transferManager.snapshots { self?.transfers = snapshot }
+        })
+        tasks.append(Task { [weak self, transferManager] in
+            for await event in transferManager.events { await self?.handle(event) }
         })
     }
 
@@ -123,6 +148,50 @@ final class AppModel {
         awaitingPairRequest = true
         await pairing.forget()
         await hub.disconnect()
+    }
+
+    var canSendFiles: Bool {
+        if case .connected = status { return true }
+        return false
+    }
+
+    var phoneName: String { pairedDevice?.name ?? "your phone" }
+
+    /// Queues dropped or picked files. Folders aren't supported yet (spec §1, out of scope).
+    func sendFiles(_ urls: [URL]) {
+        let files = urls.filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory != true }
+        transientError = files.count < urls.count ? "Folders can't be sent yet — send the files inside instead." : nil
+        guard !files.isEmpty else { return }
+        Task { _ = await transferManager.send(files: files) }
+    }
+
+    func pickFilesToSend() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.prompt = "Send"
+        panel.message = "Choose files to send to \(phoneName)."
+        NSApp.activate()
+        guard panel.runModal() == .OK else { return }
+        sendFiles(panel.urls)
+    }
+
+    func cancelTransfer(_ id: String) { Task { await transferManager.cancel(id: id) } }
+    func retryTransfer(_ id: String) { Task { await transferManager.retry(id: id) } }
+
+    func revealReceived(_ record: TransferRecord) {
+        if let url = record.savedURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+    }
+
+    func openReceived(_ record: TransferRecord) {
+        if let url = record.savedURL { NSWorkspace.shared.open(url) }
+    }
+
+    private func handle(_ event: TransferEvent) async {
+        switch event {
+        case .received(let record): await notifier.notifyReceived(record, from: pairedDevice?.name ?? "your phone")
+        }
     }
 
     private func beginPairing() async {
@@ -174,6 +243,7 @@ final class AppModel {
             inviteExpiresAt = nil
         case .paired(let device):
             pairedDevice = device
+            files.phoneName = device.name
             isRepairing = false
             pairingExpired = false
             transientError = nil

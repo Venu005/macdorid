@@ -47,6 +47,7 @@ Android (client)                                  Mac (server, advertised as _ma
 Mac app (`mac/MacDroid/`):
 - `AppModel` (`@MainActor @Observable`) is the single state owner: warnings vs transient errors, the pairing code lifecycle, re-pair, and window requests.
 - `MenuBarLabel` owns opening the `Window("main")`. `AppDelegate` handles reopen and login-launch detection. `DockPolicy` sets the Dock icon only while the window is open.
+- `Files/`: `FilesSettings` (save folder bookmark, ask-each-time, cancellable save panel; `MacReceiveLocation`), `SecurityScopedSourceAccess` (read-only bookmarks for outgoing files), `ReceivedNotifier` (UserNotifications with Show in Finder / Open). `AppModel` owns the `TransferManager` and exposes `transfers` plus the file actions.
 - Views live in `Views/`: the popover, `MainWindow` (sidebar), Phone (pairing/paired), Settings (General/Security/About), and Shared.
 
 ## Android components
