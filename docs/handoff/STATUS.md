@@ -8,6 +8,7 @@
 - **File transfer (Plan 2):** the 2a engine and the 2b UI are complete on `feat/file-transfer`. It's waiting for the owner's hands-on checklist (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`); merge after it passes.
   - Spec: `docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`.
   - Android 0.3.0 is installed on the phone. Build and open the Mac app with the commands in DEV-GUIDE.md.
+  - **Owner-verified so far:** phone → Mac (photos, a 49 MB video); Mac → phone via Send Files…, drag to the Files page, and drag to the popover (after the drag-pasteboard fix). The rest of the checklist is still open.
 
 ## Working and verified
 - Pairing by QR code and by manual entry, with a fingerprint check.
