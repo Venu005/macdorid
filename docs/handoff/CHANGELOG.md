@@ -9,6 +9,8 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
   - Mac: `TransferManager.cancelClipboardTransfers`, `ClipboardSync(cancelImages:)`.
   - Android: `TransferEngine.cancelClipboard`, `ClipboardHub(cancelImages:)`.
   - Verified: RED→GREEN `aNewClipboardImageCancelsTheOlderOne`, `cancellingClipboardTransfersLeavesFilesAlone`, `disconnectingCancelsOutgoingClipboardTransfers`, `clipboardTransfersAreNotRestoredAfterARelaunch`/`…Restart` (both sides) and `sendingTextCancelsPendingImages` (both sides). All gates pass.
+- **"Copy to Mac" only reads images other apps shared with it.** The share target is exported, so it now refuses `file:` URIs and MacDroid's own FileProvider (which serves its private clipboard files). Verified: `SharedImageSourceTest` RED→GREEN.
+- **Styled shared text works.** "Copy to Mac" reads `EXTRA_TEXT` as a `CharSequence`; before, styled text arrived as "Clipboard is empty". Verified: Android build only (no instrumentation harness).
 
 ## 2026-10-13 — Plan 4: clipboard (done on feat/notifications-clipboard)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-clipboard-4.md` (executed inline).
