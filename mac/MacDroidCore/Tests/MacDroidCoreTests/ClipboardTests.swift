@@ -241,3 +241,18 @@ import Testing
         #expect(ClipboardPresentation.pageNotice(ClipboardState(connected: false)) == nil)
     }
 }
+
+@Suite struct ClipboardNewerContentTests {
+    // Final review Important 1: a text copy replaces an image still on its way.
+    @Test func sendingTextCancelsPendingImages() async throws {
+        let cancels = Collector<Int>()
+        let sync = ClipboardSync(
+            history: ClipboardHistory(directory: try makeTemporaryDirectory()),
+            send: { _ in }, sendImage: { _ in true }, apply: { _ in 1 },
+            cancelImages: { await cancels.append(1) }
+        )
+        await sync.connectionChanged(.connected(PeerInfo(device: "Phone", app: "0.4.0", features: ProtocolInfo.features)))
+        await sync.localChange(.text("newer"), changeCount: 5)
+        #expect(await cancels.items.count == 1)
+    }
+}

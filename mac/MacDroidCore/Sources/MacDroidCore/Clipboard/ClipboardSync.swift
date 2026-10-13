@@ -52,6 +52,7 @@ public actor ClipboardSync {
     private let send: @Sendable (Message) async throws -> Void
     private let sendImage: @Sendable (URL) async -> Bool
     private let apply: @Sendable (ClipboardContent) async -> Int
+    private let cancelImages: @Sendable () async -> Void
     private var tasks: [Task<Void, Never>] = []
 
     public init(
@@ -59,7 +60,8 @@ public actor ClipboardSync {
         now: @escaping @Sendable () -> Date = { Date() },
         send: @escaping @Sendable (Message) async throws -> Void,
         sendImage: @escaping @Sendable (URL) async -> Bool,
-        apply: @escaping @Sendable (ClipboardContent) async -> Int
+        apply: @escaping @Sendable (ClipboardContent) async -> Int,
+        cancelImages: @escaping @Sendable () async -> Void = {}
     ) {
         self.history = history
         self.sendOn = sendToPhone
@@ -68,6 +70,7 @@ public actor ClipboardSync {
         self.send = send
         self.sendImage = sendImage
         self.apply = apply
+        self.cancelImages = cancelImages
         self.state = Self.makeState(history, sendToPhone, receiveFromPhone, false, false, nil)
         stateBroadcast.yield(state)
     }
@@ -93,6 +96,7 @@ public actor ClipboardSync {
         case .text(let text):
             guard !text.isEmpty else { return }
             guard ClipboardRules.fitsInAFrame(text) else { return setNote("Not sent to your phone: text over 1 MB") }
+            await cancelImages() // newer content wins over an image still on its way
             do {
                 try await send(.clipboardSet(ClipboardSet(itemId: Self.newID(), text: text)))
             } catch {

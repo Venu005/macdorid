@@ -70,4 +70,11 @@ class ClipboardHubTest {
         assertEquals(ClipItem.Kind.Link, ClipboardHub.kindOf("https://github.com/Venu005/macdroid"))
         assertEquals(ClipItem.Kind.Text, ClipboardHub.kindOf("see https://example.com"))
     }
+    // Final review Important 1: a text copy replaces an image still on its way.
+    @Test fun sendingTextCancelsPendingImages() {
+        var cancels = 0
+        val hub = ClipboardHub({ true }, { }, { true }, clock = { 1L }, cancelImages = { cancels++ })
+        assertEquals(SendResult.Sent, hub.sendText("newer", connected))
+        assertEquals(1, cancels)
+    }
 }

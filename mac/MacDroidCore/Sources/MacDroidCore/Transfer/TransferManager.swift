@@ -153,6 +153,11 @@ public actor TransferManager {
         for var record in stored {
             // An offer still waiting for "where to save" when MacDroid quit was never accepted; the phone's re-offer starts fresh.
             if record.direction == .fromPhone && record.folder == nil { continue }
+            // Clipboard content is never resumed later: by then it's stale (spec §4.1 "not queued").
+            if record.isClipboard {
+                if record.direction == .fromPhone, let part = record.partURL { try? FileManager.default.removeItem(at: part) }
+                continue
+            }
             if record.updatedAt < cutoff {
                 if let part = record.partURL { try? FileManager.default.removeItem(at: part) }
                 record.phase = .failed(.expired)
@@ -198,6 +203,10 @@ public actor TransferManager {
         guard connected != isConnected else { return }
         isConnected = connected
         guard connected else {
+            // Clipboard content isn't queued while disconnected (spec §4.1); the phone hears the cancel on reconnect.
+            for record in active where record.isClipboard && record.direction == .toPhone {
+                await cancel(id: record.id)
+            }
             for index in active.indices where active[index].phase == .active || active[index].phase == .verifying {
                 active[index].phase = .paused
             }

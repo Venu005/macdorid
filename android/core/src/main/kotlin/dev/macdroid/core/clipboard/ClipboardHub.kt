@@ -37,6 +37,8 @@ class ClipboardHub(
     private val enqueueImage: (OutgoingFile) -> Unit,
     private val receiveEnabled: () -> Boolean,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Cancels clipboard images still on their way, so newer content wins (spec §4.1). */
+    private val cancelImages: () -> Unit = {},
 ) {
     companion object {
         const val RECENT_LIMIT = 10
@@ -58,6 +60,7 @@ class ClipboardHub(
         val value = text?.takeIf { it.isNotEmpty() } ?: return SendResult.Empty
         reachable(state)?.let { return it }
         if (!fitsInAFrame(value)) return SendResult.TooLarge
+        cancelImages()
         if (!send(Message.ClipboardSet(ClipboardSetBody(UUID.randomUUID().toString(), text = value)))) return SendResult.NotConnected
         record(ClipItem(UUID.randomUUID().toString(), kindOf(value), value, null, ClipItem.Direction.ToMac, clock()))
         return SendResult.Sent

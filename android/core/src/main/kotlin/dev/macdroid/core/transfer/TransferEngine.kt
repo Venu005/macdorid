@@ -103,6 +103,11 @@ class TransferEngine(
         scope.launch(control) { cancelLocally(id) }
     }
 
+    /** Newer clipboard content replaces older (spec §4.1): cancels clipboard images still on their way to the Mac. */
+    fun cancelClipboard() {
+        scope.launch(control) { cancelOutgoingClipboard() }
+    }
+
     fun cancelAll() {
         scope.launch(control) { active.map { it.id }.forEach { cancelLocally(it) } }
     }
@@ -168,6 +173,8 @@ class TransferEngine(
             when {
                 // An offer still waiting for "where to save" when the app died was never accepted; the Mac's re-offer starts fresh.
                 record.direction == Direction.FromMac && record.part == null -> Unit
+                // Clipboard content is never resumed later: by then it's stale (spec §4.1).
+                record.isClipboard -> record.part?.let { handle -> withContext(Dispatchers.IO) { runCatching { parts(handle)?.delete() } } }
                 record.updatedAt < cutoff -> {
                     record.part?.let { handle -> withContext(Dispatchers.IO) { runCatching { parts(handle)?.delete() } } }
                     history.add(0, record.copy(phase = Phase.Failed, failure = Failure.Expired, updatedAt = clock()))
@@ -201,9 +208,11 @@ class TransferEngine(
         }
     }
 
-    private fun onConnectionChanged(isConnected: Boolean) {
+    private suspend fun onConnectionChanged(isConnected: Boolean) {
         connected = isConnected
         if (!isConnected) {
+            // Clipboard content isn't queued while disconnected (spec §4.1); the Mac hears the cancel on reconnect.
+            cancelOutgoingClipboard()
             // Stop moving bytes; transfers resume after the reconnect (spec §5 "Paused — waiting for connection").
             // Keep the handles: the next start of each transfer joins its cancelled job before touching the same files.
             jobs.values.forEach { it.cancel() }
@@ -229,6 +238,10 @@ class TransferEngine(
 
     private fun sendOrQueue(message: Message) {
         if (!send(message)) outbox += message
+    }
+
+    private suspend fun cancelOutgoingClipboard() {
+        active.filter { it.isClipboard && it.direction == Direction.ToMac }.map { it.id }.forEach { cancelLocally(it) }
     }
 
     private suspend fun cancelLocally(id: String) {
@@ -446,6 +459,7 @@ class TransferEngine(
         val record = TransferRecord(id = UUID.randomUUID().toString(), direction = Direction.ToMac, name = file.name, size = file.size,
             mime = file.mime, phase = Phase.Queued, source = file.source, purpose = TransferPurpose.Clipboard, createdAt = now, updatedAt = now)
         scope.launch(control) {
+            cancelOutgoingClipboard()
             add(record)
             persist()
             pump()

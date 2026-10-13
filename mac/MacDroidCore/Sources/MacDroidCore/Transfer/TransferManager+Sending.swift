@@ -50,6 +50,7 @@ extension TransferManager {
         guard let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize,
               size <= ClipboardLimits.maxImageBytes,
               let bookmark = try? sourceAccess.bookmark(for: url) else { return false }
+        await cancelClipboardTransfers()
         active.append(TransferRecord(
             id: Self.newID(), direction: .toPhone, name: "clipboard.png", size: Int64(size), mime: "image/png",
             phase: .queued, sourceBookmark: bookmark, createdAt: now(), updatedAt: now(), purpose: .clipboard
@@ -58,6 +59,13 @@ extension TransferManager {
         publish(force: true)
         await pump()
         return true
+    }
+
+    /// Newer clipboard content replaces older (spec §4.1): an older clipboard image still on its way is cancelled.
+    public func cancelClipboardTransfers() async {
+        for record in active where record.isClipboard && record.direction == .toPhone {
+            await cancel(id: record.id)
+        }
     }
 
     /// Sends a failed or cancelled outgoing file again, as a new transfer.

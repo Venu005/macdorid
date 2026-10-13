@@ -64,4 +64,56 @@ class TransferEngineClipboardTest {
         assertTrue(h.engine.snapshot.value.files().active.isEmpty())
         assertEquals(1, h.engine.snapshot.value.active.size)
     }
+    // Final review Important 1: newer clipboard content must win.
+    @Test fun aNewClipboardImageCancelsTheOlderOne() {
+        h.start()
+        val a = File(h.dir, "a.png").apply { writeBytes(testBytes(100)) }
+        val b = File(h.dir, "b.png").apply { writeBytes(testBytes(200)) }
+        val first = h.engine.enqueueClipboard(OutgoingFile(a.path, "clipboard.png", a.length(), "image/png"))
+        eventually { h.sentOf<Message.TransferOffer>().any { it.body.transferId == first } }
+        h.engine.enqueueClipboard(OutgoingFile(b.path, "clipboard.png", b.length(), "image/png"))
+        eventually { h.sentOf<Message.TransferCancel>().any { it.body.transferId == first } }
+    }
+
+    @Test fun cancellingClipboardTransfersLeavesFilesAlone() {
+        h.start()
+        val img = File(h.dir, "a.png").apply { writeBytes(testBytes(100)) }
+        val doc = File(h.dir, "doc.txt").apply { writeBytes(testBytes(100)) }
+        val file = h.engine.enqueue(listOf(OutgoingFile(doc.path, doc.name, doc.length(), "text/plain"))).single()
+        val clip = h.engine.enqueueClipboard(OutgoingFile(img.path, "clipboard.png", img.length(), "image/png"))
+        eventually { h.sentOf<Message.TransferOffer>().size == 2 }
+        h.engine.cancelClipboard()
+        eventually { h.sentOf<Message.TransferCancel>().any { it.body.transferId == clip } }
+        Thread.sleep(100)
+        assertTrue(h.sentOf<Message.TransferCancel>().none { it.body.transferId == file })
+        assertEquals(listOf(file), h.active().map { it.id })
+    }
+
+    @Test fun disconnectingCancelsOutgoingClipboardTransfers() {
+        h.start()
+        val img = File(h.dir, "a.png").apply { writeBytes(testBytes(100)) }
+        val id = h.engine.enqueueClipboard(OutgoingFile(img.path, "clipboard.png", img.length(), "image/png"))
+        eventually { h.sentOf<Message.TransferOffer>().any { it.body.transferId == id } }
+        h.online = false
+        h.connected.value = false
+        eventually { h.active().isEmpty() }
+        h.online = true
+        h.connected.value = true
+        eventually { h.sentOf<Message.TransferCancel>().any { it.body.transferId == id } }
+        assertEquals(1, h.sentOf<Message.TransferOffer>().count { it.body.transferId == id })
+    }
+
+    @Test fun clipboardTransfersAreNotRestoredAfterARestart() {
+        val record = TransferRecord(id = "c1", direction = Direction.ToMac, name = "clipboard.png", size = 10, mime = "image/png",
+            phase = Phase.Active, source = "/x.png", createdAt = h.now, updatedAt = h.now, purpose = TransferPurpose.Clipboard)
+        val harness = EngineHarness(store = InMemoryTransferStore(StoredTransfers(active = listOf(record))))
+        try {
+            harness.start()
+            Thread.sleep(200)
+            assertTrue(harness.active().isEmpty())
+            assertTrue(harness.sentOf<Message.TransferOffer>().isEmpty())
+        } finally {
+            harness.close()
+        }
+    }
 }

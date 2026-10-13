@@ -26,7 +26,7 @@ class ClipboardBridge(
     val prefs: ClipboardPrefs,
     private val scope: CoroutineScope,
 ) {
-    val hub = ClipboardHub(connection::send, { engine.enqueueClipboard(it) }, { prefs.receiveFromMac.value })
+    val hub = ClipboardHub(connection::send, { engine.enqueueClipboard(it) }, { prefs.receiveFromMac.value }, cancelImages = engine::cancelClipboard)
     private val clipboard = context.getSystemService(ClipboardManager::class.java)
 
     fun start() {

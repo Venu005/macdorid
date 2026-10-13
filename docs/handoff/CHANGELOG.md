@@ -4,6 +4,12 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Final review fixes (feat/notifications-clipboard)
+- **Newer clipboard content always wins (both directions).** A clipboard image still queued or in flight is cancelled when newer content is sent (text or image), when the connection drops, and on relaunch (never restored). Before, an old screenshot could land after a newer copy and overwrite it.
+  - Mac: `TransferManager.cancelClipboardTransfers`, `ClipboardSync(cancelImages:)`.
+  - Android: `TransferEngine.cancelClipboard`, `ClipboardHub(cancelImages:)`.
+  - Verified: RED→GREEN `aNewClipboardImageCancelsTheOlderOne`, `cancellingClipboardTransfersLeavesFilesAlone`, `disconnectingCancelsOutgoingClipboardTransfers`, `clipboardTransfersAreNotRestoredAfterARelaunch`/`…Restart` (both sides) and `sendingTextCancelsPendingImages` (both sides). All gates pass.
+
 ## 2026-10-13 — Plan 4: clipboard (done on feat/notifications-clipboard)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-clipboard-4.md` (executed inline).
 - Task 1: `clipboard.set`, optional `transfer.offer.purpose`, `ClipboardLimits`; both sides now announce `clipboard`. Verified: `swift test` 181, Android gates.

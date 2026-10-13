@@ -111,7 +111,8 @@ final class AppModel {
             receiveFromPhone: defaults.object(forKey: Self.clipboardReceiveKey) as? Bool ?? true,
             send: { message in try await hub.send(message) },
             sendImage: { url in await manager.sendClipboardImage(url) },
-            apply: { content in await MainActor.run { PasteboardWatcher.write(content) } }
+            apply: { content in await MainActor.run { PasteboardWatcher.write(content) } },
+            cancelImages: { await manager.cancelClipboardTransfers() }
         )
         let icons = IconCache(directory: URL.applicationSupportDirectory.appending(path: "NotificationIcons", directoryHint: .isDirectory))
         self.icons = icons

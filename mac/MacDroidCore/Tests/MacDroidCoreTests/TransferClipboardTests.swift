@@ -77,4 +77,60 @@ import Testing
         try Data(count: ClipboardLimits.maxImageBytes + 1).write(to: file)
         #expect(await m.sendClipboardImage(file) == false)
     }
+    // Final review Important 1: newer clipboard content must win.
+    @Test func aNewClipboardImageCancelsTheOlderOne() async throws {
+        let f = try TransferFixture()
+        let m = manager(f, clipboard: try makeTemporaryDirectory(), location: FixedLocation(.folder(f.downloads)))
+        await m.connectionChanged(true)
+        let first = f.file("one.png"), second = f.file("two.png")
+        try testBytes(100).write(to: first)
+        try testBytes(200).write(to: second)
+        #expect(await m.sendClipboardImage(first))
+        try await eventually { await f.phone.sent.compactMap(\.offerBody).count == 1 }
+        let firstID = try #require(await f.phone.sent.compactMap(\.offerBody).first?.transferId)
+        #expect(await m.sendClipboardImage(second))
+        try await eventually { await f.phone.sent.contains { $0.cancelledID == firstID } }
+    }
+
+    @Test func cancellingClipboardTransfersLeavesFilesAlone() async throws {
+        let f = try TransferFixture()
+        let m = manager(f, clipboard: try makeTemporaryDirectory(), location: FixedLocation(.folder(f.downloads)))
+        await m.connectionChanged(true)
+        let image = f.file("one.png"), file = f.file("doc.txt")
+        try testBytes(100).write(to: image)
+        try testBytes(100).write(to: file)
+        _ = await m.send(files: [file])
+        #expect(await m.sendClipboardImage(image))
+        try await eventually { await f.phone.sent.compactMap(\.offerBody).count == 2 }
+        await m.cancelClipboardTransfers()
+        let cancelled = await f.phone.sent.compactMap(\.cancelledID)
+        let clipboardID = try #require(await f.phone.sent.compactMap(\.offerBody).first { $0.purpose == .clipboard }?.transferId)
+        #expect(cancelled == [clipboardID])
+        #expect(await m.snapshot.active.count == 1)
+    }
+
+    @Test func disconnectingCancelsOutgoingClipboardTransfers() async throws {
+        let f = try TransferFixture()
+        let m = manager(f, clipboard: try makeTemporaryDirectory(), location: FixedLocation(.folder(f.downloads)))
+        await m.connectionChanged(true)
+        let image = f.file("one.png")
+        try testBytes(100).write(to: image)
+        #expect(await m.sendClipboardImage(image))
+        try await eventually { await f.phone.sent.compactMap(\.offerBody).count == 1 }
+        let id = try #require(await f.phone.sent.compactMap(\.offerBody).first?.transferId)
+        await m.connectionChanged(false)
+        // Not resumed later: the cancel waits in the outbox for the next connection.
+        await m.connectionChanged(true)
+        try await eventually { await f.phone.sent.contains { $0.cancelledID == id } }
+        #expect(await f.phone.sent.compactMap(\.offerBody).count == 1)
+    }
+
+    @Test func clipboardTransfersAreNotRestoredAfterARelaunch() {
+        let now = Date()
+        let record = TransferRecord(id: "c1", direction: .toPhone, name: "clipboard.png", size: 10, mime: "image/png",
+                                    phase: .active, createdAt: now, updatedAt: now, purpose: .clipboard)
+        let (active, history) = TransferManager.restore(active: [record], history: [], now: now)
+        #expect(active.isEmpty)
+        #expect(history.isEmpty)
+    }
 }
