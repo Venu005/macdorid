@@ -73,6 +73,13 @@ public struct ClipboardHistory: Sendable {
         save()
     }
 
+    /// Removes one item and its image file.
+    public mutating func remove(id: String) {
+        guard let index = items.firstIndex(where: { $0.id == id }) else { return }
+        removeFiles(items.remove(at: index))
+        save()
+    }
+
     public func item(id: String) -> ClipboardItem? { items.first { $0.id == id } }
 
     public func content(of item: ClipboardItem) -> ClipboardContent? {

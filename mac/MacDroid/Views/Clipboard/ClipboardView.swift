@@ -14,7 +14,7 @@ struct ClipboardView: View {
             if let notice = ClipboardPresentation.pageNotice(state) { BannerView(kind: .warning, message: notice) }
             if let note = state.note { BannerView(kind: .warning, message: note) }
             if state.items.isEmpty {
-                ContentUnavailableView("Nothing yet", systemImage: "doc.on.clipboard", description: Text("Things you copy appear here."))
+                ContentUnavailableView("Nothing yet", systemImage: "doc.on.clipboard", description: Text("Items you sync between your Mac and phone appear here."))
             } else if items.isEmpty {
                 ContentUnavailableView.search(text: query)
             } else {

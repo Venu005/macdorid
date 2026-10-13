@@ -316,3 +316,16 @@ import Testing
         #expect(await sync.state.note == "Not sent to your phone: text over 1 MB")
     }
 }
+
+@Suite struct ClipboardFailedSendTests {
+    // Review minor 9: an image that couldn't be queued isn't shown as sent.
+    @Test func failedImageSendIsNotRecorded() async throws {
+        let sync = ClipboardSync(
+            history: ClipboardHistory(directory: try makeTemporaryDirectory()),
+            send: { _ in }, sendImage: { _ in false }, apply: { _ in 1 }
+        )
+        await sync.connectionChanged(.connected(PeerInfo(device: "Phone", app: "0.4.0", features: ProtocolInfo.features)))
+        await sync.localChange(.image(testBytes(300)), changeCount: 5)
+        #expect(await sync.state.items.isEmpty)
+    }
+}

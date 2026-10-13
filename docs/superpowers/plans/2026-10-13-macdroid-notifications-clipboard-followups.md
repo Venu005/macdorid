@@ -50,4 +50,4 @@ Both plans ran inline ("native"), with one final whole-branch review on Opus. It
 - [x] (fixed) History "Send" skips `fitsInAFrame`.
 - An update the flood gate suppresses leaves an already-delivered banner with the old text.
 - Mac TIFF→PNG conversion runs on the main thread.
-- A failed Mac image send is still recorded "→ phone"; the empty-state text overstates what's recorded.
+- [x] (fixed) A failed Mac image send is still recorded "→ phone"; the empty-state text overstates what's recorded.
