@@ -4,6 +4,19 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Owner feedback: Mac window layout, notification cards, toolbar buttons
+- **Fix: window content slid under the title bar** (the sidebar was behind the traffic lights and banners over the title) until a restart. Cause: the Dock icon was turned on (`setActivationPolicy(.regular)`) after the window was already showing, and AppKit's re-layout lost the split view's title-bar insets. Now `DockPolicy.prepareToShowWindow()` switches first, then opens the window.
+- **Fix: clicking a notification banner opened the Phone page.** The click also sends a "reopen", which always showed Phone. Reopen now shows the page last asked for (`selectedSection`), so the Notifications page stays.
+- **Notifications page redesign:**
+  - cards with the app icon, title, time and text
+  - bordered buttons for the app's actions
+  - an inline reply composer (Return sends, Esc cancels, "Reply sent" confirmation)
+  - ✕ on hover
+  - group headers with a count badge and a hover "Clear" for one app
+- **Toolbar buttons are icons with tooltips** (no more text pills): Notifications "Muted Apps…" and "Clear All"; the Clipboard page's "Sync to phone: On" is now a real "Send to Phone" toggle.
+- **Verified:** Mac app build with no warnings; `swift test` 212. The UI is checked by the owner (no UI test harness).
+- **Branch:** `feat/notifications-clipboard`.
+
 ## 2026-10-13 — Final review fixes (feat/notifications-clipboard)
 - **Newer clipboard content always wins (both directions).** A clipboard image still queued or in flight is cancelled when newer content is sent (text or image), when the connection drops, and on relaunch (never restored). Before, an old screenshot could land after a newer copy and overwrite it.
   - Mac: `TransferManager.cancelClipboardTransfers`, `ClipboardSync(cancelImages:)`.

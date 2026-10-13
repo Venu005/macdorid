@@ -10,7 +10,9 @@ struct MacDroidApp: App {
         LoggingSystem.bootstrap(OSLogHandler.init)
         let model = AppModel()
         model.start()
-        AppDelegate.onReopen = { model.showWindow(.phone) }
+        // Keep the page last asked for: clicking a notification banner also sends a reopen, which must not
+        // replace the Notifications page it just asked for.
+        AppDelegate.onReopen = { model.showWindow(model.selectedSection ?? .phone) }
         AppDelegate.onLaunch = {
             if AppDelegate.shouldOpenWindowAtLaunch(paired: model.pairedDevice != nil) { model.showWindow(.phone) }
         }

@@ -56,7 +56,7 @@ struct GeneralSettingsView: View {
             Section {
                 Toggle("Show phone notifications", isOn: Binding(get: { model.showPhoneNotifications }, set: { model.setShowPhoneNotifications($0) }))
                 LabeledContent("Apps") {
-                    Button("Muted apps…") { showingMutedApps = true }
+                    Button("Muted Apps…") { showingMutedApps = true }
                 }
             } header: {
                 Text("Notifications")

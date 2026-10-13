@@ -294,6 +294,11 @@ final class AppModel {
         Task { await phoneNotifications.dismiss(key: key) }
     }
 
+    /// Dismisses several notifications (one app's group) on both devices.
+    func dismissNotifications(_ keys: [String]) {
+        Task { for key in keys { await phoneNotifications.dismiss(key: key) } }
+    }
+
     func clearAllNotifications() {
         Task { await phoneNotifications.clearAll() }
     }

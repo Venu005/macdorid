@@ -24,7 +24,12 @@ struct ClipboardView: View {
         .navigationTitle("Clipboard")
         .searchable(text: $query, placement: .toolbar, prompt: "Search clipboard history")
         .toolbar {
-            ToolbarItem { Text("Sync to phone: \(state.sendToPhone ? "On" : "Off")").foregroundStyle(.secondary) }
+            ToolbarItem {
+                Toggle(isOn: Binding(get: { state.sendToPhone }, set: { model.setClipboardSendToPhone($0) })) {
+                    Label("Send to Phone", systemImage: "iphone.and.arrow.forward")
+                }
+                .help(state.sendToPhone ? "What you copy on this Mac goes to your phone. Click to stop." : "Copies stay on this Mac. Click to send them to your phone.")
+            }
         }
     }
 }
