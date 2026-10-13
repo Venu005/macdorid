@@ -55,7 +55,7 @@ fun HomeScreen(onPairAgain: () -> Unit, viewModel: HomeViewModel = viewModel()) 
         AlertDialog(
             onDismissRequest = { confirmPairAgain = false },
             title = { Text("Pair again?") },
-            text = { Text("This phone will forget ${ui.macName ?: "your Mac"}. Then choose Pair a Phone on your Mac and scan the new code.") },
+            text = { Text("This phone will forget ${ui.macName ?: "your Mac"}. Then, on your Mac, open MacDroid → Phone and choose Pair a Phone (or Pair a Different Phone), and scan the new code.") },
             confirmButton = {
                 TextButton(onClick = {
                     confirmPairAgain = false

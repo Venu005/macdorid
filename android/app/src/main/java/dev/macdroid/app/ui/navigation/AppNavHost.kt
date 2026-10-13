@@ -45,9 +45,9 @@ fun AppNavHost(graph: AppGraph) {
         }
     }
     LaunchedEffect(setup.readyToConnect) {
-        if (setup.readyToConnect) {
+        // Re-check the live pref: a recreated activity can see a stale setup snapshot.
+        if (setup.readyToConnect && graph.uiPrefs.keepConnected) {
             ConnectionService.start(context)
-            graph.connectionManager.nudge()
         }
     }
 

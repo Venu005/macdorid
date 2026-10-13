@@ -66,7 +66,7 @@ fun PairStep(viewModel: PairingViewModel, macName: String?) {
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Pair with your Mac", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 24.dp))
         Text(
-            "On your Mac, open MacDroid from the menu bar and choose Pair a Phone.",
+            "On your Mac, open MacDroid → Phone and choose Pair a Phone (or Pair a Different Phone).",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 20.dp),

@@ -23,7 +23,6 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         val hasLocalNetwork: Boolean,
         val hasNotifications: Boolean,
         val notificationsSkipped: Boolean,
-        val keepConnected: Boolean,
     )
 
     private val graph = application.graph
@@ -40,7 +39,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         .transformLatest { isPaired ->
             if (isPaired && sawUnpaired) delay(SUCCESS_PAUSE_MS)
             sawUnpaired = !isPaired
-            // Pairing can change prefs (keepConnected), so re-read them with each pairing change.
+            // Pairing can change prefs, so re-read them with each pairing change.
             local.value = readLocal()
             emit(isPaired)
         }
@@ -49,12 +48,12 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         .map { it?.name }
         .stateIn(viewModelScope, SharingStarted.Eagerly, graph.pairingStore.paired.value?.name)
 
-    val state: StateFlow<SetupUiState> = combine(local, welcomeDone, batteryDone, paired) { l, welcome, battery, isPaired ->
-        SetupUiState.from(inputs(l, welcome, battery, isPaired), l.keepConnected)
+    val state: StateFlow<SetupUiState> = combine(local, welcomeDone, batteryDone, paired, graph.uiPrefs.keepConnectedFlow) { l, welcome, battery, isPaired, keep ->
+        SetupUiState.from(inputs(l, welcome, battery, isPaired), keep)
     }.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
-        SetupUiState.from(inputs(local.value, false, false, graph.pairingStore.paired.value != null), local.value.keepConnected),
+        SetupUiState.from(inputs(local.value, false, false, graph.pairingStore.paired.value != null), graph.uiPrefs.keepConnected),
     )
 
     /** Re-read permissions and preferences (call on resume and after a permission prompt). */
@@ -96,7 +95,6 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
             hasLocalNetwork = Permissions.hasLocalNetwork(app),
             hasNotifications = Permissions.hasNotifications(app),
             notificationsSkipped = graph.uiPrefs.notificationsSkipped,
-            keepConnected = graph.uiPrefs.keepConnected,
         )
     }
 

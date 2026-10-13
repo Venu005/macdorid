@@ -29,7 +29,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val graph = application.graph
     private val local = MutableStateFlow(read())
 
-    val ui: StateFlow<SettingsUi> = combine(graph.pairingStore.paired, local) { mac, l -> l.copy(mac = mac) }
+    val ui: StateFlow<SettingsUi> = combine(graph.pairingStore.paired, local, graph.uiPrefs.keepConnectedFlow) { mac, l, keep ->
+        l.copy(mac = mac, keepConnected = keep)
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), local.value)
 
     fun refresh() {
@@ -41,7 +43,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         graph.uiPrefs.keepConnected = on
         if (on) {
             ConnectionService.start(app)
-            graph.connectionManager.nudge()
         } else {
             ConnectionService.stop(app)
             graph.connectionManager.stop()

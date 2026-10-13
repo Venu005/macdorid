@@ -47,6 +47,5 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun connect() {
         graph.uiPrefs.keepConnected = true
         ConnectionService.start(getApplication())
-        graph.connectionManager.nudge()
     }
 }

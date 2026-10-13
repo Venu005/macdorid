@@ -118,7 +118,7 @@ class PairingViewModel(application: Application) : AndroidViewModel(application)
                 } catch (e: Exception) {
                     UiState.Error("Paired, but couldn't save the pairing on this phone (${e.message ?: e.javaClass.simpleName}). Try again.")
                 }
-                PairResult.CodeRejected -> UiState.Error("The Mac rejected the code — it may have expired. Choose Pair a Phone on the Mac again.")
+                PairResult.CodeRejected -> UiState.Error("The Mac rejected the code — it may have expired. On your Mac, open MacDroid → Phone and choose Pair a Phone (or Pair a Different Phone) again.")
                 PairResult.FingerprintMismatch -> UiState.Error("Security check failed: this isn't the Mac that showed the code.")
                 is PairResult.Failed -> UiState.Error("Couldn't reach the Mac (${result.reason}). Make sure both devices are on the same Wi-Fi.")
             }
