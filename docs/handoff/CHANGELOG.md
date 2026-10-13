@@ -4,6 +4,18 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Repository README
+- **What:** added a root `README.md` for the GitHub repo. It covers:
+  - what MacDroid is and its feature status
+  - file-transfer behaviour
+  - how it works (topology and protocol) and the security and privacy model
+  - requirements, building, running and pairing
+  - tests and the project layout
+  - links into `docs/handoff/` and the specs, plus the roadmap
+- **Why:** the repo had no README; the owner asked for a detailed one before pushing.
+- **Verified:** every relative link in the README points to an existing file.
+- **Branch:** `main`.
+
 ## 2026-10-13 — File transfer merged to main
 - **What:** merged `feat/file-transfer` into `main`: Plan 2a (engine), Plan 2b (UI), the owner-found fixes (MediaStore part file, Mac drag-and-drop in the sandbox) and the final-review fixes.
 - **Verified on the merged `main`:**
