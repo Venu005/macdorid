@@ -111,6 +111,7 @@ class PairingViewModel(application: Application) : AndroidViewModel(application)
             val next = when (result) {
                 is PairResult.Success -> try {
                     graph.pairingStore.save(result.mac)
+                    graph.uiPrefs.keepConnected = true
                     UiState.Paired
                 } catch (e: CancellationException) {
                     throw e
