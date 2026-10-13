@@ -24,6 +24,8 @@ import java.security.MessageDigest
 import java.util.Base64
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -33,6 +35,7 @@ import kotlinx.coroutines.withContext
  * Watches the phone's media sessions (available through MacDroid's notification access) and feeds [MediaTracker]
  * (spec §3.3). Session callbacks run on the main thread; artwork is encoded off it.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class MediaWatcher(private val context: Context, private val connection: ConnectionManager, private val scope: CoroutineScope) {
     val tracker = MediaTracker(connection::send)
     private val sessions = context.getSystemService(MediaSessionManager::class.java)
@@ -40,7 +43,12 @@ class MediaWatcher(private val context: Context, private val connection: Connect
     private val main = Handler(Looper.getMainLooper())
     private val controllers = LinkedHashMap<String, Pair<MediaController, MediaController.Callback>>() // by package
     private val lastActive = HashMap<String, Long>()
-    private val artCache = HashMap<String, MediaArtwork?>()
+    /** Only recent tracks matter; a long-running process must not keep every track's artwork (final review I-4). */
+    private val artCache = object : LinkedHashMap<String, MediaArtwork?>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, MediaArtwork?>?) = size > ART_CACHE_SIZE
+    }
+    /** One ordered lane for tracker updates, so an older snapshot can never land after a newer one (final review I-1). */
+    private val worker = Dispatchers.Default.limitedParallelism(1)
     private var watching = false
     private val changed = MediaSessionManager.OnActiveSessionsChangedListener { rebind(it.orEmpty()) }
 
@@ -57,6 +65,12 @@ class MediaWatcher(private val context: Context, private val connection: Connect
             }
         }
         main.post { refresh() }
+        scope.launch(worker) {
+            while (true) {
+                delay(TICK_MS)
+                tracker.tick() // a paused app sends nothing more; hide it after 5 minutes (final review I-2)
+            }
+        }
     }
 
     /** (Re)reads the sessions; call when notification access may have changed. Main thread. */
@@ -99,7 +113,7 @@ class MediaWatcher(private val context: Context, private val connection: Connect
     private fun publish() {
         val now = System.currentTimeMillis()
         val raw = controllers.values.mapNotNull { (controller, _) -> read(controller, now) }
-        scope.launch(Dispatchers.Default) {
+        scope.launch(worker) {
             tracker.update(raw.map { (snapshot, bitmap, key) -> snapshot.copy(art = artwork(key, bitmap)) })
         }
     }
@@ -168,5 +182,7 @@ class MediaWatcher(private val context: Context, private val connection: Connect
 
     private companion object {
         const val ART_PX = 300
+        const val ART_CACHE_SIZE = 8
+        const val TICK_MS = 60_000L
     }
 }

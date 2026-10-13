@@ -7,10 +7,17 @@ object LinkExtractor {
     const val MAX_BYTES = 8_192
     private val PATTERN = Regex("""(?i)\bhttps?://[^\s<>"']+""")
     private const val TRAILING = ".,;:!?)]}'\""
+    private val OPENERS = mapOf(')' to '(', ']' to '[', '}' to '{')
 
     fun firstLink(text: String?): String? {
         val found = PATTERN.find(text ?: return null)?.value ?: return null
-        val link = found.trimEnd { it in TRAILING }
+        var link = found
+        while (link.isNotEmpty() && link.last() in TRAILING) {
+            // A closing bracket the link itself opened (Wikipedia's "Mercury_(planet)") belongs to it.
+            val opener = OPENERS[link.last()]
+            if (opener != null && link.count { it == opener } >= link.count { it == link.last() }) break
+            link = link.dropLast(1)
+        }
         return link.takeIf(::isAllowed)
     }
 

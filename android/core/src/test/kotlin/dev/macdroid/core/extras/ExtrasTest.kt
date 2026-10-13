@@ -33,6 +33,13 @@ class LinkExtractorTest {
         assertFalse(LinkExtractor.isAllowed("https://x.com/" + "a".repeat(8_200)))
     }
 
+    // Final review I-3: a closing bracket that belongs to the link stays.
+    @Test fun balancedBracketsStay() {
+        assertEquals("https://en.m.wikipedia.org/wiki/Mercury_(planet)", LinkExtractor.firstLink("https://en.m.wikipedia.org/wiki/Mercury_(planet)"))
+        assertEquals("https://en.m.wikipedia.org/wiki/Mercury_(planet)", LinkExtractor.firstLink("(https://en.m.wikipedia.org/wiki/Mercury_(planet))"))
+        assertEquals("https://x.com/a", LinkExtractor.firstLink("(see https://x.com/a)."))
+    }
+
     @Test fun oversizedLinksAreNotFound() {
         assertNull(LinkExtractor.firstLink("https://x.com/" + "a".repeat(8_200)))
     }
@@ -138,6 +145,16 @@ class MediaTrackerTest {
         tracker.update(emptyList())
         tracker.update(emptyList())
         assertEquals(1, sentOf<Message.MediaState>().count { !it.body.active })
+    }
+
+    // Final review I-2: a paused session disappears after 5 minutes even if the app sends nothing more.
+    @Test fun aLongPausedSessionIsHiddenOnTheNextTick() {
+        tracker.connected()
+        tracker.update(listOf(song(playing = false, lastActiveAt = now)))
+        assertEquals(true, sentOf<Message.MediaState>().last().body.active)
+        now += 301_000
+        tracker.tick()
+        assertEquals(false, sentOf<Message.MediaState>().last().body.active)
     }
 
     @Test fun commandsTargetTheShownSession() {

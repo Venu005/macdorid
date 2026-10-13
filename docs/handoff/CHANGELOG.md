@@ -16,6 +16,11 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 8: Mac Services "Open on Phone" (`ServicesProvider` + `NSServices` in project.yml), ring button (popover + Phone page), Now Playing card with seek, incoming links open in the default browser. Verified: Mac app build; NSServices present in the built Info.plist.
 - Task 9: the cross-platform run covers a ring round trip, a link each way, and media state → a pause command. Verified: `./scripts/cross-platform-test.sh` passed.
 - Task 10: all gates pass from scratch (`swift test` 232, Mac app build, Android with `--rerun-tasks`, cross-platform). Owner checklist: `docs/superpowers/plans/2026-10-13-macdroid-small-wins-followups.md`.
+- Final review fixes:
+  - Links keep a closing bracket they opened (Wikipedia `Mercury_(planet)`). Verified: `balancedBracketsStay` RED→GREEN on both sides.
+  - A paused media session is hidden after 5 minutes (`MediaTracker.tick` every 60 s). Verified: `aLongPausedSessionIsHiddenOnTheNextTick` RED→GREEN.
+  - Media updates go through one ordered lane, and the artwork cache keeps 8 tracks. Verified: build.
+  - 11 minors deferred to the follow-ups file.
 
 ## 2026-10-13 — Plan 5 (small wins) written
 - **What:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md`, 10 tasks:

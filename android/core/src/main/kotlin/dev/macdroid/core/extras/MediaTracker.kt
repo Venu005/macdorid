@@ -64,6 +64,11 @@ class MediaTracker(private val send: (Message) -> Boolean, private val clock: ()
         }
     }
 
+    /** Re-checks the 5-minute rule; the app calls this periodically (a paused app sends no more callbacks). */
+    fun tick() {
+        synchronized(lock) { publish(force = false) }
+    }
+
     fun handle(message: Message): MediaControl? {
         if (message !is Message.MediaCommand) return null
         val target = synchronized(lock) { shown } ?: return null

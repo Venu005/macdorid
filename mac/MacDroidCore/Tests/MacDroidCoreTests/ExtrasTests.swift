@@ -25,6 +25,13 @@ import Testing
         #expect(LinkRules.allowedURL("https://x.com/" + String(repeating: "a", count: 8_200)) == nil)
     }
 
+    // Final review I-3: a closing bracket that belongs to the link stays.
+    @Test func balancedBracketsStay() {
+        #expect(LinkRules.firstLink(in: "https://en.m.wikipedia.org/wiki/Mercury_(planet)") == "https://en.m.wikipedia.org/wiki/Mercury_(planet)")
+        #expect(LinkRules.firstLink(in: "(https://en.m.wikipedia.org/wiki/Mercury_(planet))") == "https://en.m.wikipedia.org/wiki/Mercury_(planet)")
+        #expect(LinkRules.firstLink(in: "(see https://x.com/a).") == "https://x.com/a")
+    }
+
     @Test func oversizedLinksAreNotFound() {
         #expect(LinkRules.firstLink(in: "https://x.com/" + String(repeating: "a", count: 8_200)) == nil)
     }

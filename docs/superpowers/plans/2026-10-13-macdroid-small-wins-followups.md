@@ -13,3 +13,19 @@ Install the new builds. Media controls need the notification access you already 
 
 ## Deferred / rulings
 - Task 4: the Mac projects the media position from its own receive time (clock skew); `positionAt` is still sent.
+- Final review (Opus): no Critical issues; all 5 review-focus items pass. Fixed: I-1 media updates serialized; I-2 a paused session is hidden after 5 minutes (60 s tick); I-3 balanced `)`/`]`/`}` kept in links; I-4 artwork cache bounded to 8.
+- Rulings: I-1 and I-4 have no unit tests (Android platform code), so they're verified by the build; the reviewer couldn't judge whether a remote `VolumeProvider` catches volume keys on Nothing OS while the alarm plays, which is on the checklist.
+
+## Deferred minors (final review)
+- Playback speed isn't modelled: at 1.5x the Mac's seek bar drifts between updates (the protocol has no `speed`).
+- Kotlin `java.net.URI` rejects some links Swift accepts (`|`, `{`, `^`, IDN hosts), so the Mac may say "sent" while the phone drops the link. Use `android.net.Uri`.
+- Swiping away the ring notification (Android 14+) leaves no Stop button; add a delete intent with `ACTION_STOP_RING`.
+- The seek bar snaps back after release until the phone's new state arrives.
+- Any app on the phone can open http(s) pages on the Mac via the exported "Open on Mac" (no throttle).
+- The art cache key `pkg|title|artist` can keep a low-res placeholder, or share art between untitled items.
+- `appName(pkg)` runs a PackageManager lookup on the main thread on every media callback; cache it.
+- The Mac's `MediaArt` folder is never pruned.
+- `url.hashCode()` notification ids could, rarely, collide with fixed ids.
+- `RingSession.timedOut` is unused (the app uses `delay`).
+- Play/pause is always enabled (the protocol has no `canPlay`).
+

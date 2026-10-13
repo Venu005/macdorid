@@ -5,13 +5,18 @@ import Foundation
 public enum LinkRules {
     public static let maxBytes = 8_192
     private static let pattern = try! NSRegularExpression(pattern: #"(?i)\bhttps?://[^\s<>"']+"#)
+    private static let openers: [Character: Character] = [")": "(", "]": "[", "}": "{"]
     private static let trailing: Set<Character> = [".", ",", ";", ":", "!", "?", ")", "]", "}", "'", "\""]
 
     public static func firstLink(in text: String) -> String? {
         let range = NSRange(text.startIndex..., in: text)
         guard let match = pattern.firstMatch(in: text, range: range), let found = Range(match.range, in: text) else { return nil }
         var link = String(text[found])
-        while let last = link.last, trailing.contains(last) { link.removeLast() }
+        while let last = link.last, trailing.contains(last) {
+            // A closing bracket the link itself opened (Wikipedia's "Mercury_(planet)") belongs to it.
+            if let opener = openers[last], link.filter({ $0 == opener }).count >= link.filter({ $0 == last }).count { break }
+            link.removeLast()
+        }
         return allowedURL(link) == nil ? nil : link
     }
 
