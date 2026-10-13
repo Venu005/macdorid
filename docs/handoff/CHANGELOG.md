@@ -4,6 +4,12 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Small wins merged to main
+- **What:** merged `feat/small-wins` into `main` (`c9d202d`): ring my phone, links both ways, media controls, the final-review fixes and the owner's play/pause and previous fixes.
+- **Verified on the merged `main`:** `swift test` 233, Mac app build with no warnings, Android gates. The owner tested on device.
+- **Deferred:** 11 minors in `docs/superpowers/plans/2026-10-13-macdroid-small-wins-followups.md`.
+- **Next (agreed order):** photo browsing and transfer.
+
 ## 2026-10-13 — Plan 5: small wins (done on feat/small-wins)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md` (executed inline).
 - Task 1: `device.ring`, `device.ringState`, `link.open`, `media.state`, `media.art` and `media.command` in both codecs (7 fixtures); features `ring`, `links`, `media`. Verified: `swift test` 218, Android gates.
