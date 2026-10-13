@@ -56,6 +56,7 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
 - **Share target and URI grants:** shared URIs are handed to `ConnectionService` in an intent with `FLAG_GRANT_READ_URI_PERMISSION`. Files without a persistable grant are copied to `cache/outgoing/` only up to 100 MB, and the copies are deleted when the transfer finishes.
 
+- **Notification access:** the owner grants it in the setup step or in Android Settings → Notifications → Device & app notifications. Never grant it from adb automation. The listener only runs once access is granted; app names and icons come through the launcher `<queries>` entry (no `QUERY_ALL_PACKAGES`).
 - **MediaStore part files:** a newly inserted MediaStore item has no file until it's opened for writing, so reading it first fails with `ENOENT`. `MediaStoreSaveTarget.createPart` opens it once with `"w"`. This broke every Mac → phone transfer until 2026-10-13. The on-device test `MediaStoreSaveTargetTest` covers it.
 - **Running on-device tests without uninstalling the app:** don't use `connectedDebugAndroidTest`, which uninstalls the app (and its pairing) afterwards. Instead run:
   ```bash

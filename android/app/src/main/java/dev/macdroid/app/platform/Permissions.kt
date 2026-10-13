@@ -17,4 +17,8 @@ object Permissions {
 
     fun hasLocalNetwork(context: Context) = !needsLocalNetwork || granted(context, ACCESS_LOCAL_NETWORK)
     fun hasNotifications(context: Context) = !needsNotifications || granted(context, Manifest.permission.POST_NOTIFICATIONS)
+
+    /** The user granted MacDroid "Notification access" (spec §3.1). */
+    fun hasNotificationAccess(context: Context): Boolean =
+        androidx.core.app.NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
 }

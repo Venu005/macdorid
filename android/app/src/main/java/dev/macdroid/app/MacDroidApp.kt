@@ -10,6 +10,7 @@ import dev.macdroid.app.platform.NsdMacLocator
 import dev.macdroid.app.platform.PrefsPairingStore
 import dev.macdroid.app.platform.SavePrompter
 import dev.macdroid.app.platform.SaveTargets
+import dev.macdroid.app.platform.notifications.NotificationBridge
 import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.pairing.PairingClient
@@ -72,6 +73,9 @@ class AppGraph(private val context: Context) {
         parts = saveTargets::reopen,
         send = connectionManager::send,
     ).also { it.start(connectionManager.incoming, connectionManager.state.map { state -> state is ConnectionState.Connected }) }
+
+    /** Mirrors notifications to the Mac (spec §3.1); runs for the whole process like the transfer engine. */
+    val notificationBridge = NotificationBridge(context, connectionManager, appScope).also { it.start() }
 
     fun pairingClient() = PairingClient(identity, httpClient)
 }

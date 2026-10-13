@@ -16,6 +16,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 5: Mac core `PhoneNotifications` actor (entries, apps, banners via the flood gate, sync, errors, mute requests), `IconCache` (hash-validated file names), `NotificationPresentation`. Verified: `swift test` 179.
 - Task 6: Mac `NotificationRouter` (the only notification delegate; received-file and phone categories together), `PhoneNotifier` (banners with reply/buttons/dismiss, icon attachment), `AppModel` wiring and the `showPhoneNotifications` setting. Verified: Mac app build, no compiler warnings.
 - Task 7: Mac Notifications page (grouped by app, hover Reply/buttons/✕, Clear all), Muted apps sheet, Settings → General → Notifications, Phone page line "Notifications off on phone". Verified: Mac app build.
+- Task 8: Android `MacDroidNotificationListener` + `NotificationBridge` (reads notifications, carries out reply/action/dismiss, reports `gone`/`failed`), icons, settings persistence, launcher `<queries>` for app names and icons. Verified: Android gates, `NotificationTextTest`.
 
 ## 2026-10-13 — Spec self-review and Plans 3 and 4 written
 - **What:**
