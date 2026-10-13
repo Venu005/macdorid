@@ -1,0 +1,1 @@
+{ "v": 1, "type": "transfer.offer", "id": "6f1c2a0e-0000-4000-8000-000000000021", "body": { "transferId": "5c1d9e2a-3b4f-4a6c-8d7e-0f1a2b3c4d5e", "name": "clipboard.png", "size": 48213, "mime": "image/png", "purpose": "clipboard" } }

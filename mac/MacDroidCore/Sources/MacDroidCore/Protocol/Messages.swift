@@ -3,8 +3,8 @@ import Foundation
 public enum ProtocolInfo {
     public static let version = 1
     public static let serviceType = "_macdroid._tcp"
-    /// Features this app implements, sent in `hello` (spec §2.1). Plan 4 adds `Feature.clipboard`.
-    public static let features: [String] = [Feature.files, Feature.notifications]
+    /// Features this app implements, sent in `hello` (spec §2.1).
+    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard]
 }
 
 /// Names used in `hello.features`. A feature is active only when both sides list it.
@@ -75,17 +75,26 @@ public struct ServerInfo: Codable, Equatable, Sendable {
     }
 }
 
+/// What a transfer is for. Absent on the wire means `.file` (spec §8.9).
+public enum TransferPurpose: String, Codable, Sendable {
+    case file
+    case clipboard
+}
+
 public struct TransferOffer: Codable, Equatable, Sendable {
     public var transferId: String
     public var name: String
     public var size: Int64
     public var mime: String
+    /// nil for files (kept off the wire); `.clipboard` for clipboard images (spec §2.3).
+    public var purpose: TransferPurpose?
 
-    public init(transferId: String, name: String, size: Int64, mime: String) {
+    public init(transferId: String, name: String, size: Int64, mime: String, purpose: TransferPurpose? = nil) {
         self.transferId = transferId
         self.name = name
         self.size = size
         self.mime = mime
+        self.purpose = purpose
     }
 }
 
@@ -138,6 +147,31 @@ public struct TransferResult: Codable, Equatable, Sendable {
         self.transferId = transferId
         self.ok = ok
         self.error = error
+    }
+}
+
+// MARK: Clipboard (spec §2.3)
+
+public enum ClipboardLimits {
+    /// A `clipboard.set` frame, encoded, must fit the WebSocket frame limit (spec §8.1).
+    public static let maxFrameBytes = 1 << 20
+    /// Clipboard images, as PNG.
+    public static let maxImageBytes = 10 * 1024 * 1024
+}
+
+public enum ClipboardKind: String, Codable, Sendable {
+    case text
+}
+
+public struct ClipboardSet: Codable, Equatable, Sendable {
+    public var itemId: String
+    public var kind: ClipboardKind
+    public var text: String
+
+    public init(itemId: String, kind: ClipboardKind = .text, text: String) {
+        self.itemId = itemId
+        self.kind = kind
+        self.text = text
     }
 }
 
@@ -319,6 +353,7 @@ public enum Message: Equatable, Sendable {
     case notificationDismiss(NotificationKey)
     case notificationMute(NotificationMute)
     case notificationError(NotificationError)
+    case clipboardSet(ClipboardSet)
     /// A type this version doesn't understand. Decoded so callers can ignore it; never encoded.
     case unknown(type: String)
 }

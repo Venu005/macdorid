@@ -3,6 +3,7 @@ package dev.macdroid.core.protocol
 import dev.macdroid.core.Fixtures
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
@@ -25,6 +26,7 @@ class MessageCodecTest {
         "notification.posted.json", "notification.removed.json", "notification.sync.json", "notification.icon.json",
         "notification.apps.json", "notification.reply.json", "notification.action.json", "notification.dismiss.json",
         "notification.mute.json", "notification.error.json",
+        "clipboard.set.json", "transfer.offer.clipboard.json",
     )
 
     @Test fun fixturesRoundTrip() {
@@ -110,7 +112,20 @@ class MessageCodecTest {
         }
     }
 
-    @Test fun supportedFeaturesAreFilesAndNotifications() {
-        assertEquals(listOf("files", "notifications"), Features.SUPPORTED)
+    @Test fun supportedFeaturesIncludeClipboard() {
+        assertEquals(listOf("files", "notifications", "clipboard"), Features.SUPPORTED)
+    }
+
+    @Test fun clipboardFixturesDecode() {
+        assertEquals(
+            Message.ClipboardSet(ClipboardSetBody("9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d", ClipboardKind.Text, "https://github.com/Venu005/macdroid")),
+            MessageCodec.decode(Fixtures.text("clipboard.set.json")),
+        )
+        assertEquals(
+            Message.TransferOffer(TransferOfferBody("5c1d9e2a-3b4f-4a6c-8d7e-0f1a2b3c4d5e", "clipboard.png", 48_213, "image/png", TransferPurpose.Clipboard)),
+            MessageCodec.decode(Fixtures.text("transfer.offer.clipboard.json")),
+        )
+        assertFalse(MessageCodec.encode(Message.TransferOffer(TransferOfferBody("t", "a", 1, "x/y"))).contains("purpose"))
+        assertEquals(1_048_576, ClipboardLimits.MAX_FRAME_BYTES)
     }
 }

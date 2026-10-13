@@ -23,8 +23,22 @@ data class PairResponse(val macName: String)
 @Serializable
 data class ServerInfo(val macName: String, val protocol: Int)
 
+/** What a transfer is for; absent on the wire means a file (spec §8.9). */
 @Serializable
-data class TransferOfferBody(val transferId: String, val name: String, val size: Long, val mime: String)
+enum class TransferPurpose {
+    @SerialName("file") File,
+    @SerialName("clipboard") Clipboard,
+}
+
+@Serializable
+data class TransferOfferBody(
+    val transferId: String,
+    val name: String,
+    val size: Long,
+    val mime: String,
+    /** null for files, so it's left off the wire; Clipboard for clipboard images (spec §2.3). */
+    val purpose: TransferPurpose? = null,
+)
 
 /** Body of `transfer.accept` and `transfer.cancel`. */
 @Serializable
@@ -54,13 +68,25 @@ enum class TransferResultError {
 @Serializable
 data class TransferResultBody(val transferId: String, val ok: Boolean, val error: TransferResultError? = null)
 
+object ClipboardLimits {
+    /** An encoded `clipboard.set` frame must fit the Mac's WebSocket frame limit (spec §8.1). */
+    const val MAX_FRAME_BYTES = 1_048_576
+    const val MAX_IMAGE_BYTES = 10L * 1024 * 1024
+}
+
+@Serializable
+enum class ClipboardKind { @SerialName("text") Text }
+
+@Serializable
+data class ClipboardSetBody(val itemId: String, val kind: ClipboardKind = ClipboardKind.Text, val text: String)
+
 /** Names used in `hello.features`; a feature is active only when both sides list it (spec §2.1). */
 object Features {
     const val FILES = "files"
     const val NOTIFICATIONS = "notifications"
     const val CLIPBOARD = "clipboard"
-    /** What this app implements. Plan 4 adds [CLIPBOARD]. */
-    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS)
+    /** What this app implements. */
+    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD)
 }
 
 @Serializable
@@ -134,6 +160,7 @@ sealed interface Message {
     data class NotificationDismiss(val body: NotificationKeyBody) : Message
     data class NotificationMute(val body: NotificationMuteBody) : Message
     data class NotificationError(val body: NotificationErrorBody) : Message
+    data class ClipboardSet(val body: ClipboardSetBody) : Message
     /** A type this version doesn't understand; decoded so callers can ignore it, never encoded. */
     data class Unknown(val type: String) : Message
 }

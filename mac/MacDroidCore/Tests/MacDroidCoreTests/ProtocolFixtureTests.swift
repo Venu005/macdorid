@@ -20,6 +20,7 @@ import Testing
         "notification.posted.json", "notification.removed.json", "notification.sync.json", "notification.icon.json",
         "notification.apps.json", "notification.reply.json", "notification.action.json", "notification.dismiss.json",
         "notification.mute.json", "notification.error.json",
+        "clipboard.set.json", "transfer.offer.clipboard.json",
     ]
 
     @Test(arguments: messageFixtures)
@@ -94,7 +95,24 @@ import Testing
         #expect(throws: MessageCodecError.malformed) { try MessageCodec.decode(text) }
     }
 
-    @Test func supportedFeaturesAreFilesAndNotifications() {
-        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications])
+    @Test func supportedFeaturesIncludeClipboard() {
+        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard])
+    }
+
+    @Test func clipboardFixturesDecode() throws {
+        #expect(try MessageCodec.decode(Fixtures.text("clipboard.set.json")) == .clipboardSet(ClipboardSet(
+            itemId: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d", kind: .text, text: "https://github.com/Venu005/macdroid"
+        )))
+        #expect(try MessageCodec.decode(Fixtures.text("transfer.offer.clipboard.json")) == .transferOffer(TransferOffer(
+            transferId: "5c1d9e2a-3b4f-4a6c-8d7e-0f1a2b3c4d5e", name: "clipboard.png", size: 48_213, mime: "image/png", purpose: .clipboard
+        )))
+        // A plain file offer has no purpose on the wire (spec §8.9).
+        let encoded = try MessageCodec.encode(.transferOffer(TransferOffer(transferId: "t", name: "a", size: 1, mime: "x/y")))
+        #expect(!encoded.contains("purpose"))
+    }
+
+    @Test func clipboardLimitMatchesTheServerFrameLimit() {
+        #expect(ClipboardLimits.maxFrameBytes == MacDroidServer.maxMessageSize)
+        #expect(ClipboardLimits.maxImageBytes == 10 * 1024 * 1024)
     }
 }

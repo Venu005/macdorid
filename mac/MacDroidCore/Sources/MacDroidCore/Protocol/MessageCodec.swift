@@ -35,6 +35,7 @@ public enum MessageCodec {
         case .notificationDismiss(let body): return try encode(type: "notification.dismiss", id: id, body: body)
         case .notificationMute(let body): return try encode(type: "notification.mute", id: id, body: body)
         case .notificationError(let body): return try encode(type: "notification.error", id: id, body: body)
+        case .clipboardSet(let body): return try encode(type: "clipboard.set", id: id, body: body)
         case .unknown(let type): throw MessageCodecError.cannotEncodeUnknown(type)
         }
     }
@@ -62,6 +63,7 @@ public enum MessageCodec {
             case "notification.dismiss": return .notificationDismiss(try decoder.decode(Incoming<NotificationKey>.self, from: data).body)
             case "notification.mute": return .notificationMute(try decoder.decode(Incoming<NotificationMute>.self, from: data).body)
             case "notification.error": return .notificationError(try decoder.decode(Incoming<NotificationError>.self, from: data).body)
+            case "clipboard.set": return .clipboardSet(try decoder.decode(Incoming<ClipboardSet>.self, from: data).body)
             case let other: return .unknown(type: other)
             }
         } catch {

@@ -39,6 +39,7 @@ object MessageCodec {
             is Message.NotificationDismiss -> "notification.dismiss" to json.encodeToJsonElement(NotificationKeyBody.serializer(), message.body)
             is Message.NotificationMute -> "notification.mute" to json.encodeToJsonElement(NotificationMuteBody.serializer(), message.body)
             is Message.NotificationError -> "notification.error" to json.encodeToJsonElement(NotificationErrorBody.serializer(), message.body)
+            is Message.ClipboardSet -> "clipboard.set" to json.encodeToJsonElement(ClipboardSetBody.serializer(), message.body)
             is Message.Unknown -> throw IllegalArgumentException("cannot encode unknown message type ${message.type}")
         }
         return buildJsonObject {
@@ -74,6 +75,7 @@ object MessageCodec {
                 "notification.dismiss" -> Message.NotificationDismiss(json.decodeFromJsonElement(NotificationKeyBody.serializer(), body))
                 "notification.mute" -> Message.NotificationMute(json.decodeFromJsonElement(NotificationMuteBody.serializer(), body))
                 "notification.error" -> Message.NotificationError(json.decodeFromJsonElement(NotificationErrorBody.serializer(), body))
+                "clipboard.set" -> Message.ClipboardSet(json.decodeFromJsonElement(ClipboardSetBody.serializer(), body))
                 else -> Message.Unknown(type)
             }
         } catch (e: IllegalArgumentException) { // includes SerializationException
