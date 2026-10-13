@@ -30,7 +30,7 @@ final class AppModel {
     private(set) var transfers: TransferSnapshot = .empty
     private(set) var clipboard: ClipboardState = .empty
     @ObservationIgnored private let clipboardSync: ClipboardSync
-    @ObservationIgnored private let watcher = PasteboardWatcher()
+    @ObservationIgnored private let watcher: PasteboardWatcher
     @ObservationIgnored private let clipboardNotifier: ClipboardNotifier
     @ObservationIgnored private let clipboardImages: URL
     private static let clipboardSendKey = "clipboard.sendToPhone"
@@ -99,6 +99,8 @@ final class AppModel {
         self.router = router
         notifier = ReceivedNotifier(router: router)
         clipboardNotifier = ClipboardNotifier(router: router)
+        let watcher = PasteboardWatcher()
+        self.watcher = watcher
         let defaults = UserDefaults.standard
         let history = ClipboardHistory(
             directory: URL.applicationSupportDirectory.appending(path: "Clipboard", directoryHint: .isDirectory),
@@ -111,7 +113,7 @@ final class AppModel {
             receiveFromPhone: defaults.object(forKey: Self.clipboardReceiveKey) as? Bool ?? true,
             send: { message in try await hub.send(message) },
             sendImage: { url in await manager.sendClipboardImage(url) },
-            apply: { content in await MainActor.run { PasteboardWatcher.write(content) } },
+            apply: { content in await MainActor.run { watcher.write(content) } },
             cancelImages: { await manager.cancelClipboardTransfers() }
         )
         let icons = IconCache(directory: URL.applicationSupportDirectory.appending(path: "NotificationIcons", directoryHint: .isDirectory))

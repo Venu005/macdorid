@@ -106,8 +106,11 @@ public actor ClipboardSync {
         case .image(let png):
             guard png.count <= ClipboardLimits.maxImageBytes else { return setNote("Not sent to your phone: image over 10 MB") }
             let item = history.add(content, direction: .toPhone, id: Self.newID(), date: now())
-            guard let url = history.imageURL(item) else { return }
-            _ = await sendImage(url)
+            // Only what actually went on its way is listed as sent "→ phone".
+            guard let url = history.outgoingCopy(of: item), await sendImage(url) else {
+                history.remove(id: item.id)
+                return publish()
+            }
         }
         note = nil
         publish()
@@ -147,9 +150,10 @@ public actor ClipboardSync {
         guard connected, phoneSupports, let item = history.item(id: id) else { return setNote("Your phone isn't connected") }
         switch history.content(of: item) {
         case .text(let text):
+            guard ClipboardRules.fitsInAFrame(text) else { return setNote("Not sent to your phone: text over 1 MB") }
             try? await send(.clipboardSet(ClipboardSet(itemId: Self.newID(), text: text)))
         case .image:
-            if let url = history.imageURL(item) { _ = await sendImage(url) }
+            if let url = history.outgoingCopy(of: item) { _ = await sendImage(url) }
         case nil:
             break
         }

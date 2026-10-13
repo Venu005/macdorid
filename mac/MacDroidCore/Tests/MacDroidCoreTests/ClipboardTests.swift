@@ -12,7 +12,10 @@ import Testing
 
     @Test func filesAreIgnoredImagesBeatTextAndUnknownIsIgnored() {
         #expect(ClipboardRules.kind(of: ["public.file-url", "public.utf8-plain-text"]) == .ignored)
-        #expect(ClipboardRules.kind(of: ["public.tiff", "public.utf8-plain-text"]) == .image)
+        // Review minor 4: apps that put a rendered picture beside the text (Office/iWork tables) mean the text.
+        #expect(ClipboardRules.kind(of: ["public.tiff", "public.utf8-plain-text"]) == .text)
+        // "Copy Image" in a browser carries the image and its link: the image wins.
+        #expect(ClipboardRules.kind(of: ["public.tiff", "public.png", "public.url"]) == .image)
         #expect(ClipboardRules.kind(of: ["public.png"]) == .image)
         #expect(ClipboardRules.kind(of: ["public.html", "public.utf8-plain-text"]) == .text)
         #expect(ClipboardRules.kind(of: ["public.url"]) == .text)
@@ -254,5 +257,78 @@ import Testing
         await sync.connectionChanged(.connected(PeerInfo(device: "Phone", app: "0.4.0", features: ProtocolInfo.features)))
         await sync.localChange(.text("newer"), changeCount: 5)
         #expect(await cancels.items.count == 1)
+    }
+}
+
+@Suite struct PasteboardChangeTrackerTests {
+    // Review minor 1: the watcher must never report a change the app made itself.
+    @Test func ownWritesAreNeverReported() {
+        var tracker = PasteboardChangeTracker(current: 10)
+        tracker.wrote(11)
+        let ownWrite = tracker.isNewChange(11)
+        let someoneElse = tracker.isNewChange(12)
+        let seenAgain = tracker.isNewChange(12)
+        #expect(ownWrite == false)
+        #expect(someoneElse)
+        #expect(seenAgain == false)
+    }
+
+    @Test func unchangedCountIsNotAChange() {
+        var tracker = PasteboardChangeTracker(current: 3)
+        let unchanged = tracker.isNewChange(3)
+        #expect(unchanged == false)
+    }
+}
+
+@Suite struct ClipboardImageSourceTests {
+    // Review minor 2: the file being sent must survive Clear History / a trim while it's on its way.
+    @Test func sentImagesAreCopiesThatSurviveClearingHistory() async throws {
+        let sentURLs = Collector<URL>()
+        let sync = ClipboardSync(
+            history: ClipboardHistory(directory: try makeTemporaryDirectory()),
+            send: { _ in }, sendImage: { url in await sentURLs.append(url); return true }, apply: { _ in 1 }
+        )
+        await sync.connectionChanged(.connected(PeerInfo(device: "Phone", app: "0.4.0", features: ProtocolInfo.features)))
+        await sync.localChange(.image(testBytes(500)), changeCount: 5)
+        let id = try #require(await sync.state.items.first?.id)
+        await sync.sendToPhone(id: id)
+        await sync.clearHistory()
+        let urls = await sentURLs.items
+        #expect(urls.count == 2)
+        // The newest send's file survives; an older one may go, because a newer item cancels its transfer.
+        let newest = try #require(urls.last)
+        #expect(!newest.path(percentEncoded: false).contains("/images/"))
+        #expect(try Data(contentsOf: newest) == testBytes(500))
+    }
+}
+
+@Suite struct ClipboardHistorySendLimitTests {
+    // Review minor 6: history Send gets the same frame-size check as a fresh copy.
+    @Test func oversizedHistoryTextIsNotResent() async throws {
+        let sent = Collector<Message>()
+        let sync = ClipboardSync(
+            history: ClipboardHistory(directory: try makeTemporaryDirectory()),
+            send: { await sent.append($0) }, sendImage: { _ in true }, apply: { _ in 1 }
+        )
+        await sync.connectionChanged(.connected(PeerInfo(device: "Phone", app: "0.4.0", features: ProtocolInfo.features)))
+        // Arrived from the phone (checked there with Kotlin's encoding), but too big to send back from here.
+        await sync.handle(.clipboardSet(ClipboardSet(itemId: "x", text: String(repeating: "\n", count: 600_000))))
+        let id = try #require(await sync.state.items.first?.id)
+        await sync.sendToPhone(id: id)
+        #expect(await sent.items.isEmpty)
+        #expect(await sync.state.note == "Not sent to your phone: text over 1 MB")
+    }
+}
+
+@Suite struct ClipboardFailedSendTests {
+    // Review minor 9: an image that couldn't be queued isn't shown as sent.
+    @Test func failedImageSendIsNotRecorded() async throws {
+        let sync = ClipboardSync(
+            history: ClipboardHistory(directory: try makeTemporaryDirectory()),
+            send: { _ in }, sendImage: { _ in false }, apply: { _ in 1 }
+        )
+        await sync.connectionChanged(.connected(PeerInfo(device: "Phone", app: "0.4.0", features: ProtocolInfo.features)))
+        await sync.localChange(.image(testBytes(300)), changeCount: 5)
+        #expect(await sync.state.items.isEmpty)
     }
 }

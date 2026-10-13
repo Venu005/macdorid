@@ -42,7 +42,7 @@ class NotificationBridge(
     @Volatile private var macReady = false
 
     fun start() {
-        scope.launch(worker) { refreshAccess() }
+        scope.launch(worker) { updateAccess() }
         scope.launch(worker) {
             connection.state.map { it.macSupports(Features.NOTIFICATIONS) }.distinctUntilChanged().collect { ready ->
                 macReady = ready
@@ -57,21 +57,36 @@ class NotificationBridge(
         }
     }
 
+    /** Re-checks notification access. Safe from the main thread: the work (it may render app icons) runs on the worker. */
     fun refreshAccess() {
+        scope.launch(worker) { updateAccess() }
+    }
+
+    /** The "Show on your Mac" switch; runs on the worker (it may render app icons for the Mac's list). */
+    fun setForwarding(on: Boolean) {
+        scope.launch(worker) { forwarder.setForwarding(on) }
+    }
+
+    /** An app's switch on the Notifications tab; runs on the worker. */
+    fun setShown(packageName: String, shown: Boolean) {
+        scope.launch(worker) { forwarder.setMuted(packageName, muted = !shown) }
+    }
+
+    private fun updateAccess() {
         forwarder.accessChanged(Permissions.hasNotificationAccess(context))
     }
 
     fun listenerConnected(service: NotificationListenerService) {
         listener = service
         scope.launch(worker) {
-            refreshAccess()
+            updateAccess()
             if (macReady) forwarder.connected(activeKeys()) // a sync now that the active list is readable
         }
     }
 
     fun listenerDisconnected() {
         listener = null
-        scope.launch(worker) { refreshAccess() }
+        scope.launch(worker) { updateAccess() }
     }
 
     fun posted(sbn: StatusBarNotification, ranking: NotificationListenerService.Ranking?) {

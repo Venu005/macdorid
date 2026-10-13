@@ -4,6 +4,7 @@
 - `main`: Plan 1 (connection core), the UI/UX redesign, the app icons and file transfer (Plan 2, merged 2026-10-13). All gates pass on `main`. The file-transfer hands-on checklist passed except the 2 GB+ file.
 - `main` also has notifications and clipboard (Plans 3 and 4, merged 2026-10-13 as `db85323`), version 0.4.0. All gates pass on `main`.
 
+- `fix/review-minors`: all 9 deferred minors from the Plans 3–4 final review fixed, all gates and the cross-platform run pass (`swift test` 217). Not merged yet.
 ## In flight
 - **Notifications + clipboard (Plans 3 and 4):** merged to `main` on 2026-10-13 after the owner's hands-on check. Deferred minors: `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
 - **File transfer (Plan 2):** merged to `main` on 2026-10-13. The remaining hands-on checks are in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`; fix anything they turn up on a new branch.

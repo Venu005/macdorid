@@ -74,7 +74,7 @@ class ClipboardBridge(
             is ClipboardApply.Image -> imageClip(item.uri)
         } ?: return@withContext
         runCatching { clipboard.setPrimaryClip(clip) } // allowed in the background (spec §4.3)
-        ClipboardImages.prune(ClipboardImages.receivedDir(context))
+        withContext(Dispatchers.IO) { ClipboardImages.prune(ClipboardImages.receivedDir(context)) }
     }
 
     /** Received images are `file:` URIs in the clipboard folder; images we sent are plain paths of PNG copies. */

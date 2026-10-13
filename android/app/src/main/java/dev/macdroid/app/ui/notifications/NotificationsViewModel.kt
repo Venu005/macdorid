@@ -33,6 +33,6 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
     )
 
     fun refreshAccess() = bridge.refreshAccess()
-    fun setForwarding(on: Boolean) = bridge.forwarder.setForwarding(on)
-    fun setShown(packageName: String, shown: Boolean) = bridge.forwarder.setMuted(packageName, muted = !shown)
+    fun setForwarding(on: Boolean) = bridge.setForwarding(on)
+    fun setShown(packageName: String, shown: Boolean) = bridge.setShown(packageName, shown)
 }
