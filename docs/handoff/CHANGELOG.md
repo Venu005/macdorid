@@ -4,6 +4,118 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — Plan 2b final-review fixes
+- **Mac (critical):** with "Ask where to save each time", the file is now written straight into the file chosen in the save panel. The sandbox grants access to that exact file only, so the old sibling `.macdroid-part` failed anywhere outside Downloads. The Mac also keeps earlier save folders accessible for the session.
+- **Android:**
+  - Only completed sends are tidied up: the cache copy is deleted and the read grant is released. Retry of a failed share works again, and grants no longer pile up (choosing a new folder releases the old one).
+  - Undecided incoming rows offer "Choose where to save", and the prompt notification stays until answered.
+  - A deleted chosen folder counts as unreachable (asks, shows the banner).
+  - Only a missing file shows as "Deleted from this phone".
+- **Verified:**
+  - Regression tests RED→GREEN: `savePanelChoiceIsWrittenInPlaceWithoutAPartFile`, `FinishedSendsTest`, `ReceivedFilesTest`, `undecidedIncomingRowOffersChoosingWhereToSave`.
+  - All gates pass.
+  - The deferred minors are listed in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`.
+- **Branch:** `feat/file-transfer`.
+
+## 2026-10-13 — Fix: drag and drop onto the Mac app did nothing
+- **Symptom:** the owner dragged files onto MacDroid to send them to the phone, and nothing happened.
+- **Evidence:** the unified log showed `CFPasteboard … Sandbox extension data required immediately for flavor public.file-url, but failed to obtain`. The popover read dragged file URLs while hovering (to add up their sizes), and the sandbox grants access only at drop.
+- **Fix:**
+  - Both drop targets read file URLs from `NSPasteboard(name: .drag)` at drop time (`Files/DroppedFiles.swift`).
+  - The popover overlay shows only the count while hovering.
+  - The Files page uses `onDrop(of: [.fileURL])` instead of `dropDestination(for: URL.self)`.
+- **Verified:** `dropSummaryWithoutSizesShowsTheCount` (RED→GREEN) and the Mac app build. The owner's retest is pending.
+- **Branch:** `feat/file-transfer`.
+
+## 2026-10-13 — Mac: never drop a file silently; transfer logs in Console
+- **What:**
+  - `TransferManager.sendReporting(files:)` reports files it couldn't queue, with the reason. The Mac shows them in a banner ("Couldn't send “name”: reason") instead of silently doing nothing.
+  - The engine's and server's logs now reach the unified log (subsystem `dev.macdroid.mac`), including why a source file couldn't be reopened for the phone.
+- **Why:** the owner's Mac → phone sends showed nothing at all, and there was no log to diagnose it.
+- **Verified:** `unreadableFilesAreReportedNotDropped` (RED→GREEN), `swift test` 142, Mac app build with no compiler warnings.
+- **Branch:** `feat/file-transfer`.
+
+## 2026-10-13 — Received files that were deleted say so
+- **What (owner's request):** if a received file is deleted after it arrives, its row says so instead of offering to open it.
+  - **Mac:** the row reads "Deleted from this Mac" and has no Show/Open. Show in Finder or Open on a file removed meanwhile shows the banner "“name” is no longer on this Mac — it was deleted or moved".
+  - **Android:** the row reads "Deleted from this phone" (checked off the main thread, and again whenever Files or Home comes back). Tapping a missing file shows the toast "“name” was deleted from this phone".
+- **Where:**
+  - `TransferPresentation.row(…, savedFileExists:)` on both sides.
+  - Mac: `AppModel.receivedFileExists`.
+  - Android: `platform/ReceivedFiles`, `FilesUi.deleted`.
+- **Verified:**
+  - New presentation tests on both sides (RED→GREEN).
+  - The Mac app and Android gates pass with no warnings.
+- **Branch:** `feat/file-transfer`.
+
+## 2026-10-13 — Fix: Mac → phone transfers failed at 0 bytes
+- **Symptom:** the owner's testing showed every Mac → phone transfer ending "Transfer failed". Phone → Mac worked.
+- **Root cause:**
+  - Both sides recorded `Io` at 0 bytes, with a MediaStore part created on the phone.
+  - A new MediaStore item has no file until it's opened for writing.
+  - The engine re-hashes the part before downloading, by opening it for reading, which threw `ENOENT`.
+- **Fix:** `MediaStoreSaveTarget.createPart` creates the empty file (opens it once with `"w"`), and deletes the row if that fails.
+- **Verified:**
+  - The new on-device test `MediaStoreSaveTargetTest` covers create → read → append → reopen → resume → finish. It failed with `ENOENT` before the fix and passes after.
+  - Installed on the phone.
+- **Branch:** `feat/file-transfer`.
+
+## 2026-10-13 — Plan 2b: file transfer UI (done on feat/file-transfer; waiting for the owner's check)
+- **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`.
+- **Verified:**
+  - `swift test`: 140 tests.
+  - The Mac app build succeeds with no compiler warnings.
+  - The Android gates pass with no warnings.
+  - `./scripts/cross-platform-test.sh` passes.
+  - Version 0.3.0 is installed on the Nothing Phone (3).
+  - The owner's hands-on checklist is `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`.
+- Task 1: Mac `TransferManager` shows undecided incoming offers as `.offered` rows, passes `IncomingOffer` (id, name, size, mime) to the save-location provider, and cancels the question when either side cancels; undecided offers are forgotten at relaunch. Verified: `swift test`.
+- Task 2: `TransferPresentation` (row text, popover items, drop summary) in `MacDroidCore`. Verified: `TransferPresentationTests`.
+- Task 3: Android `TransferEngine` shows undecided offers as `Offered`, cancels the save question on either side's cancel, creates parts on IO, forgets undecided offers on restart, and retries paused transfers every 30 s while connected. Verified: `TransferEngineDecisionTest` (stable over 3 reruns).
+- Task 4: the Mac app runs `TransferManager` (security-scoped source bookmarks, Received-files settings with a folder bookmark and a cancellable save panel, notifications with Show in Finder/Open); entitlements for user-selected files, Downloads and app-scope bookmarks; version 0.3.0. Verified: app build with no compiler warnings, and `codesign` shows the three entitlements.
+- Task 5: Mac Files page (drop zone, Send Files…, In progress, Recent with Show in Finder/Open/Retry/cancel) and a Received-files section in Settings → General. Verified: app build with no compiler warnings.
+- Task 6: Mac popover in design A: device card with battery ring, Send Files and Open MacDroid tiles, up to two transfer rows, Settings/Quit icons, and the whole popover as a drop target with a "Drop to send" overlay (count and size). Verified: app build with no compiler warnings.
+- Task 7: Android pure helpers (`TransferPresentation`, `SaveMode`, `ShareSource`, `ShareDecision`, `FolderLabel`) with unit tests. Verified: `:app:testDebugUnitTest` (21 new tests).
+- Task 8: Android save targets (MediaStore Download/MacDroid by default, a chosen SAF folder, or ask each time via a notification and CreateDocument), content-URI sources, and the `TransferEngine` running in `AppGraph`; version 0.3.0. Verified: Android gates.
+- Task 9: Android `SendFiles` (persistable grant, or a cache copy up to 100 MB), a progress notification with Cancel, a "Received <name> from Mac" notification with Open, and `ConnectionService` actions for sending and cancelling. Verified: Android gates.
+- Task 10: Android Files tab (Send to Mac card with Photos/Files, In progress with cancel, Recent with open/retry, folder-problem banner) and Home's Send FAB plus Recent activity (last 3). Verified: Android gates.
+- Task 11: Android share target ("Send to Mac" for one or many files of any type): queues silently with a toast when connected, otherwise "Connect to your Mac first" and opens the app. Verified: Android gates.
+- Task 12: Android Settings → Files (save folder with "Use default", ask-each-time switch, problem text) and an optional first-run setup step "Where should files from your Mac go?". Verified: `SetupFlowTest` (10) and the Android gates.
+
+## 2026-10-13 — Plan 2b written (file transfer UI and platform glue)
+- **What:** wrote `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md`. It has 13 tasks:
+  - **Engine changes, both sides:** pending incoming offers become visible, cancellable rows, and the save-location question gets the offer's details. Android also retries paused transfers while connected.
+  - **Mac:** app wiring with entitlements, the Files page, the Received-files settings and the design-A popover.
+  - **Android:** pure helpers, the MediaStore/SAF/ask save targets, notifications, the Files tab with the Home Send button, the share target, Settings → Files and a setup step.
+  - **Wrap-up:** a final task with the owner's hands-on checklist.
+- **Why:** this is the second half of Plan 2. It also folds in the 2a review minors that 2b needed (save-location API gaps, transfers stuck "Paused" while connected).
+- **Branch:** `feat/file-transfer`.
+- **Verified:** docs only.
+
+## 2026-10-13 — Plan 2a: file transfer engine (done on feat/file-transfer)
+- **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md` (engine); Plan 2b (UI and platform glue) follows.
+- **Verified:**
+  - `swift test`: 127 tests.
+  - The Mac app build succeeds.
+  - `./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug` passes.
+  - `./scripts/cross-platform-test.sh` passed twice in a row.
+  - No warnings anywhere.
+- **Execution:** Tasks 1–2 were run subagent-driven with per-task reviews. At the owner's request, Tasks 3–14 were run natively, with one whole-branch review at the end.
+- Task 1: `TrustedPeerMiddleware` is global; every route except `POST /v1/pair` (and the not-found responder) requires the paired phone. Verified: `swift test`, including `strangerIsForbiddenEverywhereExceptPair`.
+- Task 2: `transfer.*` messages in both codecs with 7 fixtures; `PROTOCOL.md` documents them and the `/v1/files` routes. Verified: both suites.
+- Task 3: `Broadcast` fan-out; `ConnectionHub.statusUpdates` is multi-subscriber (replays the current status), and the new `ConnectionHub.messages` forwards control messages. Verified: `swift test` and the app build.
+- Task 4: Swift `FileNaming`, `ByteRanges`, `TransferText`; shared vectors `file-naming.json` and `transfer-text.json`. Verified: `swift test`.
+- Task 5: transfer model, JSON stores, rate smoothing, and checksummed `PartFileWriter`/`SourceReader` (resume re-hash, session supersede, disk-full detection). Verified: `swift test`.
+- Task 6: `TransferManager` receiving: offer → part file → verify → rename; re-offer resume; outcome replay; 24 h cleanup; history 100; queued cancels. Verified: `TransferReceiveTests`.
+- Task 7: `TransferManager` sending: FIFO queue with 3 slots, offer/accept/reject/result, re-offer on reconnect, source bookmarks, retry. Verified: `TransferSendTests`.
+- Task 8: `HEAD`/`PUT`/`GET /v1/files/:id` with Upload-Offset resume, 409 on offset mismatch, Range/206, empty 206 at the end, 404 for wrong direction. Verified: `FileRouteTests`, `swift test`, app build.
+- Task 9: Kotlin `FileNaming`, `TransferText`, `TransferRate`, passing the same shared vectors as Swift. Verified: `:core:test`.
+- Task 10: Kotlin `TransferClient` (HEAD/PUT/GET with resume headers, running SHA-256, cancel → CancellationException, local vs network errors) and `FileEndpoint`; `MockMac` now speaks HTTP/1.1 like the real Mac. Verified: `TransferClientTest` against the mTLS MockWebServer.
+- Task 11: `TransferEngine` receiving (offer → part → GET with resume → verify in either order → finish), replay, cancel, 24 h cleanup; `JsonFileTransferStore`, `FolderSaveTarget`. Verified: `TransferEngineReceiveTest`, `TransferStoreTest` (stable over 3 reruns).
+- Task 12: `TransferEngine` sending: FIFO with 3 slots, HEAD-offset resume with prefix re-hash, straight-to-finish when the Mac has everything, re-offer on reconnect and on 404, retry, queued cancels. Verified: `TransferEngineSendTest` (stable over 3 reruns).
+- Task 13: cross-platform test sends 24 MiB each way, drops the connection mid-file, and checks both resumed and match byte for byte; the file part runs inside the existing pairing test. Verified: `./scripts/cross-platform-test.sh`.
+- Final review fixes: Mac claims incoming names case-insensitively (APFS), including two save panels picking the same file; Android `TransferEngine.load()` merges with files queued meanwhile; a resumed transfer waits for its cancelled predecessor to stop. Verified: new regression tests RED→GREEN, `swift test` 129, Android gates, cross-platform script.
+
 ## 2026-10-13 — File transfer review points resolved; Plan 2a (engine) written
 - **What:**
   - The owner accepted the suggested answer for all 8 review points. They're folded into the spec, which gains a §8 list of rulings, and recorded in DECISIONS.md.

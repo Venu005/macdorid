@@ -1,0 +1,6 @@
+{
+  "v": 1,
+  "type": "transfer.reject",
+  "id": "6f1c2a0e-0000-4000-8000-000000000005",
+  "body": { "transferId": "0b7e4f52-8c1d-4e0a-9f3b-2d6a1c5e7f90", "reason": "no_space" }
+}

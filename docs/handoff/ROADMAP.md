@@ -18,10 +18,14 @@ Each round follows the same process: brainstorm, then a spec in `docs/superpower
     - Mac: app wiring and entitlements, Files page, design-A popover, Settings → Files, notifications.
     - Android: MediaStore/SAF/ask save targets, content-URI sources, Files tab, Home Send FAB, share target, settings and setup step, progress and received notifications.
 - **Next step for a new session:**
-  1. Have the owner review Plan 2a (see STATUS.md for whether that's done).
-  2. Execute it with `superpowers:subagent-driven-development` (the owner's preferred method).
-  3. Write Plan 2b with `superpowers:writing-plans`. It builds on 2a's public APIs (`TransferManager`, `TransferEngine`, `SaveTarget`/`PartFile`/`SourceOpener`).
-  4. Run 2b, then the owner's hands-on checklist (spec §6), then merge.
+  1. ~~Review and execute Plan 2a~~. Done on 2026-10-13: 2a is complete on `feat/file-transfer`.
+  3. ~~Write Plan 2b~~. Done: `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2b-ui.md` (13 tasks).
+     - It starts with two engine changes: visible, cancellable save decisions on both sides, plus a periodic resume on Android.
+     - Then the Mac app: wiring, Files page, design-A popover.
+     - Then Android: helpers, save targets, notifications, Files tab, share target, settings and setup step.
+     - It ends with a hands-on checklist for the owner.
+  4. ~~Run 2b~~. Done on 2026-10-13.
+  5. **Next:** the owner's hands-on checklist (`docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`), then merge `feat/file-transfer`, then Plan 3 (notifications).
 - **Groundwork tasks the plan must start with:**
   - a global `TrustedPeerMiddleware` (only `/v1/pair` exempt)
   - a `ConnectionHub` incoming-message hook

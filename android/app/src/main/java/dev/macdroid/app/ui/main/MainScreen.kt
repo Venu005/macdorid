@@ -22,6 +22,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import dev.macdroid.app.ui.files.FilesScreen
 
 enum class MainTab(val route: String, val label: String, val icon: ImageVector) {
     Home("home", "Home", Icons.Rounded.Home),
@@ -64,9 +65,7 @@ fun MainScreen(onForget: () -> Unit) {
             composable(MainTab.Clipboard.route) {
                 ComingSoonScreen(MainTab.Clipboard.icon, "Clipboard", "Copy on your Mac, paste on your phone — and send what you copied back with one tap.")
             }
-            composable(MainTab.Files.route) {
-                ComingSoonScreen(MainTab.Files.icon, "Files", "Send files and photos between your phone and your Mac in either direction.")
-            }
+            composable(MainTab.Files.route) { FilesScreen() }
             composable(MainTab.Settings.route) { SettingsScreen(onForget = onForget) }
         }
     }

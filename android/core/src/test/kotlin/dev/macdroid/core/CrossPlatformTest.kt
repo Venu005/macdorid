@@ -11,6 +11,19 @@ import dev.macdroid.core.protocol.DeviceStatusBody
 import dev.macdroid.core.protocol.HelloBody
 import dev.macdroid.core.protocol.Message
 import dev.macdroid.core.tls.ClientIdentity
+import dev.macdroid.core.transfer.*
+import java.io.File
+import java.io.FilterInputStream
+import java.io.FilterOutputStream
+import java.io.InputStream
+import java.io.OutputStream
+import java.security.MessageDigest
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -54,19 +67,75 @@ class CrossPlatformTest {
             stranger.stop()
         }
 
-        val manager = ConnectionManager(
-            InMemoryPairingStore(result.mac),
-            { phone },
-            MacLocator.None,
-            { HelloBody(app = "test", device = "MacDroid Test Phone") },
+        val store = InMemoryPairingStore(result.mac)
+        val manager = ConnectionManager(store, { phone }, MacLocator.None, { HelloBody(app = "test", device = "MacDroid Test Phone") })
+        val phoneFile = System.getProperty("macdroidPhoneFile")
+        val receiveDir = System.getProperty("macdroidPhoneReceiveDir")
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val transport = SlowTransport(TransferClient(FileEndpoint(store, { phone })::current))
+        val engine = TransferEngine(
+            scope = scope, store = InMemoryTransferStore(), files = transport, sources = FileSourceOpener(),
+            saveTarget = { FolderSaveTarget(File(receiveDir ?: System.getProperty("java.io.tmpdir"))) },
+            parts = { FolderSaveTarget.reopen(it) }, send = manager::send, retryDelayMs = 200,
         )
+        engine.start(manager.incoming, manager.state.map { it is ConnectionState.Connected }) // before connecting: incoming has no replay
         manager.start()
         try {
             assertEquals(ConnectionState.Connected("MacDroid Dev Server"), withTimeout(10_000) { manager.state.first { it is ConnectionState.Connected } })
             assertTrue(manager.send(Message.DeviceStatus(DeviceStatusBody(77, false))))
             delay(500)
+            if (phoneFile != null && receiveDir != null) sendFilesBothWaysWithADrop(manager, engine, transport, File(phoneFile))
         } finally {
             manager.stop()
+            scope.cancel()
         }
+    }
+
+    /** The dev server sends its file when the phone connects; the phone sends one back. Cut the link mid-file and expect both to resume. */
+    private suspend fun sendFilesBothWaysWithADrop(manager: ConnectionManager, engine: TransferEngine, transport: SlowTransport, file: File) {
+        engine.enqueue(listOf(OutgoingFile(file.path, file.name, file.length(), "application/octet-stream")))
+        withTimeout(30_000) {
+            engine.snapshot.first { s ->
+                s.active.any { it.direction == Direction.ToMac && it.bytesDone > 2_000_000 } &&
+                    s.active.any { it.direction == Direction.FromMac && it.bytesDone > 2_000_000 }
+            }
+        }
+        manager.stop()
+        delay(500)
+        manager.start()
+        withTimeout(120_000) { engine.snapshot.first { s -> s.history.count { it.phase == Phase.Done } == 2 } }
+        assertTrue("upload resumed: ${transport.uploadStarts}", transport.uploadStarts.any { it > 0 })
+        assertTrue("download resumed: ${transport.downloadStarts}", transport.downloadStarts.any { it > 0 })
+        delay(1_000) // let the final transfer.result reach the Mac before the test stops the socket (stop() drops queued frames)
+    }
+}
+
+/** A slowed-down transport, so the test can cut the connection mid-file. Records which offset each attempt started from. */
+private class SlowTransport(private val delegate: FileTransport) : FileTransport {
+    val uploadStarts = CopyOnWriteArrayList<Long>()
+    val downloadStarts = CopyOnWriteArrayList<Long>()
+
+    override suspend fun uploadOffset(id: String) = delegate.uploadOffset(id)
+
+    override suspend fun upload(id: String, size: Long, offset: Long, input: InputStream, digest: MessageDigest, onProgress: (Long) -> Unit): Long {
+        uploadStarts += offset
+        val slow = object : FilterInputStream(input) {
+            override fun read(b: ByteArray, off: Int, len: Int): Int {
+                Thread.sleep(5)
+                return super.read(b, off, minOf(len, 32 * 1024))
+            }
+        }
+        return delegate.upload(id, size, offset, slow, digest, onProgress)
+    }
+
+    override suspend fun download(id: String, size: Long, offset: Long, output: OutputStream, digest: MessageDigest, onProgress: (Long) -> Unit): Long {
+        downloadStarts += offset
+        val slow = object : FilterOutputStream(output) {
+            override fun write(b: ByteArray, off: Int, len: Int) {
+                Thread.sleep(5)
+                out.write(b, off, len)
+            }
+        }
+        return delegate.download(id, size, offset, slow, digest, onProgress)
     }
 }

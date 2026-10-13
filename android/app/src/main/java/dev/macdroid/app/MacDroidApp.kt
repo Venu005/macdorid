@@ -2,18 +2,32 @@ package dev.macdroid.app
 
 import android.app.Application
 import android.content.Context
+import dev.macdroid.app.platform.ContentSourceOpener
 import dev.macdroid.app.platform.DeviceInfo
+import dev.macdroid.app.platform.FilesPrefs
 import dev.macdroid.app.platform.KeystoreIdentity
 import dev.macdroid.app.platform.NsdMacLocator
 import dev.macdroid.app.platform.PrefsPairingStore
+import dev.macdroid.app.platform.SavePrompter
+import dev.macdroid.app.platform.SaveTargets
 import dev.macdroid.core.connection.ConnectionManager
+import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.pairing.PairingClient
 import dev.macdroid.core.pairing.PairingStore
 import dev.macdroid.core.protocol.HelloBody
 import dev.macdroid.core.tls.ClientIdentity
+import dev.macdroid.core.transfer.FileEndpoint
+import dev.macdroid.core.transfer.JsonFileTransferStore
+import dev.macdroid.core.transfer.TransferClient
+import dev.macdroid.core.transfer.TransferEngine
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import okhttp3.OkHttpClient
 
 class MacDroidApp : Application() {
@@ -41,6 +55,22 @@ class AppGraph(private val context: Context) {
         hello = { HelloBody(app = BuildConfig.VERSION_NAME, device = DeviceInfo.name(context)) },
         baseClient = httpClient,
     )
+
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val filesPrefs = FilesPrefs(context)
+    val savePrompter = SavePrompter(context)
+    val saveTargets = SaveTargets(context, filesPrefs, savePrompter)
+
+    /** Runs for the whole process; transfers move while ConnectionService keeps the connection up (spec §4.2 "Background"). */
+    val transferEngine = TransferEngine(
+        scope = appScope,
+        store = JsonFileTransferStore(File(context.filesDir, "transfers.json")),
+        files = TransferClient(FileEndpoint(pairingStore, { identity }, httpClient)::current),
+        sources = ContentSourceOpener(context.contentResolver),
+        saveTarget = saveTargets::current,
+        parts = saveTargets::reopen,
+        send = connectionManager::send,
+    ).also { it.start(connectionManager.incoming, connectionManager.state.map { state -> state is ConnectionState.Connected }) }
 
     fun pairingClient() = PairingClient(identity, httpClient)
 }

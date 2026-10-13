@@ -33,8 +33,16 @@ public enum HubError: Error, Equatable {
 
 /// Holds the single active phone session. A newer session always replaces an older one.
 public actor ConnectionHub {
-    public nonisolated let statusUpdates: AsyncStream<ConnectionStatus>
-    private let statusContinuation: AsyncStream<ConnectionStatus>.Continuation
+    private let statusBroadcast = Broadcast<ConnectionStatus>(replayLatest: true, initial: .disconnected)
+    private let messageBroadcast = Broadcast<Message>(replayLatest: false)
+
+    /// Status changes. Each access is a new subscription that starts with the current status.
+    public nonisolated var statusUpdates: AsyncStream<ConnectionStatus> { statusBroadcast.stream() }
+
+    /// Control messages for feature managers (transfers now; notifications and clipboard later), in arrival order.
+    /// `hello`, `device.status` and unknown types are handled here and not forwarded.
+    public nonisolated var messages: AsyncStream<Message> { messageBroadcast.stream() }
+
     private let hello: Hello
     private let logger = Logger(label: "dev.macdroid.hub")
     private var current: (id: UUID, transport: any MessageTransport, fingerprint: String)?
@@ -42,13 +50,10 @@ public actor ConnectionHub {
     private var latest: (id: UUID, fingerprint: String)?
 
     public private(set) var status: ConnectionStatus = .disconnected {
-        didSet { if status != oldValue { statusContinuation.yield(status) } }
+        didSet { if status != oldValue { statusBroadcast.yield(status) } }
     }
 
     public init(macName: String, appVersion: String, features: [String] = []) {
-        let (stream, continuation) = AsyncStream.makeStream(of: ConnectionStatus.self)
-        self.statusUpdates = stream
-        self.statusContinuation = continuation
         self.hello = Hello(app: appVersion, device: macName, features: features)
     }
 
@@ -118,6 +123,8 @@ public actor ConnectionHub {
                 peer.charging = update.charging
                 status = .connected(peer)
             }
+        case .transferOffer, .transferAccept, .transferReject, .transferFinish, .transferResult, .transferCancel:
+            messageBroadcast.yield(message)
         case .unknown(let type):
             logger.debug("ignoring message type \(type)")
         }

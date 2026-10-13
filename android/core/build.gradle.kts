@@ -27,4 +27,6 @@ dependencies {
 tasks.test {
     systemProperty("fixturesDir", rootProject.file("../protocol/fixtures").absolutePath)
     providers.environmentVariable("MACDROID_DEV_URI").orNull?.let { systemProperty("macdroidDevUri", it) }
+    providers.environmentVariable("MACDROID_PHONE_FILE").orNull?.let { systemProperty("macdroidPhoneFile", it) }
+    providers.environmentVariable("MACDROID_PHONE_RECEIVE_DIR").orNull?.let { systemProperty("macdroidPhoneReceiveDir", it) }
 }

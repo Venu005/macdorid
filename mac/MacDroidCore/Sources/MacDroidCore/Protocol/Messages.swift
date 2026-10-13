@@ -57,10 +57,82 @@ public struct ServerInfo: Codable, Equatable, Sendable {
     }
 }
 
+public struct TransferOffer: Codable, Equatable, Sendable {
+    public var transferId: String
+    public var name: String
+    public var size: Int64
+    public var mime: String
+
+    public init(transferId: String, name: String, size: Int64, mime: String) {
+        self.transferId = transferId
+        self.name = name
+        self.size = size
+        self.mime = mime
+    }
+}
+
+/// Body of `transfer.accept` and `transfer.cancel`.
+public struct TransferID: Codable, Equatable, Sendable {
+    public var transferId: String
+
+    public init(transferId: String) { self.transferId = transferId }
+}
+
+public enum TransferRejectReason: String, Codable, Sendable {
+    case noSpace = "no_space"
+    case declined
+    case invalid
+}
+
+public struct TransferReject: Codable, Equatable, Sendable {
+    public var transferId: String
+    public var reason: TransferRejectReason
+
+    public init(transferId: String, reason: TransferRejectReason) {
+        self.transferId = transferId
+        self.reason = reason
+    }
+}
+
+public struct TransferFinish: Codable, Equatable, Sendable {
+    public var transferId: String
+    /// Lowercase hex SHA-256 of the whole file.
+    public var sha256: String
+
+    public init(transferId: String, sha256: String) {
+        self.transferId = transferId
+        self.sha256 = sha256
+    }
+}
+
+public enum TransferResultError: String, Codable, Sendable {
+    case checksumMismatch = "checksum_mismatch"
+    case noSpace = "no_space"
+    case io
+}
+
+public struct TransferResult: Codable, Equatable, Sendable {
+    public var transferId: String
+    public var ok: Bool
+    public var error: TransferResultError?
+
+    public init(transferId: String, ok: Bool, error: TransferResultError? = nil) {
+        self.transferId = transferId
+        self.ok = ok
+        self.error = error
+    }
+}
+
 /// A control-channel message. Later plans add cases (notifications, clipboard, transfers).
 public enum Message: Equatable, Sendable {
     case hello(Hello)
     case deviceStatus(DeviceStatus)
+    case transferOffer(TransferOffer)
+    case transferAccept(TransferID)
+    case transferReject(TransferReject)
+    case transferFinish(TransferFinish)
+    case transferResult(TransferResult)
+    case transferCancel(TransferID)
     /// A type this version doesn't understand. Decoded so callers can ignore it; never encoded.
     case unknown(type: String)
 }

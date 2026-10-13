@@ -18,8 +18,10 @@ open mac/build/Build/Products/Debug/MacDroid.app
 cd android && ./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug
 ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
-# Swift server ↔ Kotlin client end to end
+# Swift server ↔ Kotlin client end to end (pairing, battery, and 24 MiB files both ways with a mid-file disconnect; ~1 min)
 ./scripts/cross-platform-test.sh
+# The dev server alone: --receive-dir <dir> saves files from the phone there; --send-on-connect <file> sends that file when a phone connects
+#   mac/MacDroidCore/.build/debug/macdroid-devserver --host 127.0.0.1 --port 47999 --receive-dir /tmp/in --send-on-connect /tmp/out.bin
 
 # App icon: edit design/icon/*.svg, then regenerate the Mac PNGs (Android uses vector drawables directly)
 ./scripts/render-icons.sh
@@ -48,6 +50,21 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 - **NSD addresses:** `getHost()` on API 34+ is `hostAddresses[0]`. The locator scans every address for IPv4. `stopServiceResolution` exists only on 34+.
 - **Gradle wrapper:** `gradle-wrapper.properties` has `validateDistributionUrl=false` (environment workaround). Restore validation and add `distributionSha256Sum` before publishing.
 - **Scratch folder:** `.superpowers/` is gitignored scratch for agent workflows (ledgers, review packages, screenshots, brainstorm mockups).
+
+- **Sandbox file access:** received files go to `~/Downloads/MacDroid` (Downloads entitlement) or a folder chosen in Settings (a security-scoped bookmark, kept open while the app runs). Outgoing files are remembered as read-only security-scoped bookmarks, so a resume survives a relaunch.
+- **xcodebuild noise:** lines about CoreSimulator being out of date, `DVTCoreDeviceCore`, and `appintentsmetadataprocessor` are environment logs, not compiler output. Judge a build by `** BUILD SUCCEEDED **` and by `.swift:line:col: warning|error` lines.
+
+- **Share target and URI grants:** shared URIs are handed to `ConnectionService` in an intent with `FLAG_GRANT_READ_URI_PERMISSION`. Files without a persistable grant are copied to `cache/outgoing/` only up to 100 MB, and the copies are deleted when the transfer finishes.
+
+- **MediaStore part files:** a newly inserted MediaStore item has no file until it's opened for writing, so reading it first fails with `ENOENT`. `MediaStoreSaveTarget.createPart` opens it once with `"w"`. This broke every Mac → phone transfer until 2026-10-13. The on-device test `MediaStoreSaveTargetTest` covers it.
+- **Running on-device tests without uninstalling the app:** don't use `connectedDebugAndroidTest`, which uninstalls the app (and its pairing) afterwards. Instead run:
+  ```bash
+  ANDROID_SERIAL=<serial> ./gradlew :app:installDebugAndroidTest
+  adb shell am instrument -w -e class dev.macdroid.app.<TestClass> dev.macdroid.app.test/androidx.test.runner.AndroidJUnitRunner
+  ```
+
+- **Mac app logs:** MacDroidCore's logs go to the unified log under subsystem `dev.macdroid.mac` (`OSLogHandler`). Watch them with `log stream --predicate 'subsystem == "dev.macdroid.mac"' --style compact`.
+- **Security-scoped bookmarks and ad-hoc builds:** like the keychain, bookmarks made by one ad-hoc-signed build may not resolve in the next build. During development, a Retry of a file queued before a rebuild can fail with "The original file is no longer available".
 
 ## Conventions
 - Swift Testing (`@Test`, `#expect`) on the Mac and JUnit4 on Android; TDD for logic.

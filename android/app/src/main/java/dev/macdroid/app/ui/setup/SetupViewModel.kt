@@ -1,6 +1,8 @@
 package dev.macdroid.app.ui.setup
 
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.macdroid.app.graph
@@ -23,6 +25,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         val hasLocalNetwork: Boolean,
         val hasNotifications: Boolean,
         val notificationsSkipped: Boolean,
+        val filesStepDone: Boolean,
     )
 
     private val graph = application.graph
@@ -70,6 +73,19 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         refresh()
     }
 
+    /** "Where should files from your Mac go?": null keeps Download/MacDroid; a tree URI is a folder the user chose. */
+    fun completeFiles(treeUri: Uri?) {
+        val app = getApplication<Application>()
+        if (treeUri != null) {
+            runCatching {
+                app.contentResolver.takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                graph.filesPrefs.treeUri = treeUri.toString()
+            }
+        }
+        graph.filesPrefs.filesStepDone = true
+        refresh()
+    }
+
     fun completeBattery() {
         graph.uiPrefs.setupDone = true
         batteryDone.value = true
@@ -86,6 +102,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         hasNotifications = l.hasNotifications,
         notificationsSkipped = l.notificationsSkipped,
         batteryDone = battery,
+        filesStepDone = l.filesStepDone,
     )
 
     private fun readLocal(): Local {
@@ -95,6 +112,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
             hasLocalNetwork = Permissions.hasLocalNetwork(app),
             hasNotifications = Permissions.hasNotifications(app),
             notificationsSkipped = graph.uiPrefs.notificationsSkipped,
+            filesStepDone = graph.filesPrefs.filesStepDone,
         )
     }
 

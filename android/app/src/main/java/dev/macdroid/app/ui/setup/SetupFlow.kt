@@ -1,6 +1,6 @@
 package dev.macdroid.app.ui.setup
 
-enum class SetupStep { Welcome, LocalNetwork, PairMac, Notifications, Battery }
+enum class SetupStep { Welcome, LocalNetwork, PairMac, Notifications, Files, Battery }
 
 data class SetupInputs(
     val setupDone: Boolean,
@@ -12,6 +12,8 @@ data class SetupInputs(
     val hasNotifications: Boolean,
     val notificationsSkipped: Boolean,
     val batteryDone: Boolean,
+    /** The optional first-run step "Where should files from your Mac go?" was answered. */
+    val filesStepDone: Boolean = false,
 )
 
 /**
@@ -31,6 +33,7 @@ object SetupFlow {
                 if (i.needsLocalNetwork) add(SetupStep.LocalNetwork)
                 add(SetupStep.PairMac)
                 if (i.needsNotifications) add(SetupStep.Notifications)
+                add(SetupStep.Files)
                 add(SetupStep.Battery)
             }
         }
@@ -42,6 +45,7 @@ object SetupFlow {
         SetupStep.LocalNetwork -> !i.needsLocalNetwork || i.hasLocalNetwork
         SetupStep.PairMac -> i.paired
         SetupStep.Notifications -> !i.needsNotifications || i.hasNotifications || i.notificationsSkipped
+        SetupStep.Files -> i.filesStepDone || i.setupDone
         SetupStep.Battery -> i.batteryDone || i.setupDone
     }
 }
