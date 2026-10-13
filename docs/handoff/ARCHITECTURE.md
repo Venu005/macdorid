@@ -69,7 +69,7 @@ Mac app (`mac/MacDroid/`):
 - **UI:**
   - `ui/navigation/AppNavHost.kt`: switches setup ⇄ main via `SetupFlow`.
   - `ui/setup/`: pairing-centred wizard.
-  - `ui/main/`: 5-tab bottom navigation: Home, Notifications, Clipboard, Files, Settings. The middle three are coming-soon placeholders.
+  - `ui/main/`: 5-tab bottom navigation: Home, Notifications, Clipboard, Files, Settings. Notifications and Clipboard are coming-soon placeholders. Files is live (`ui/files/`: `FilesScreen`, `TransferRow`, `SendPickers`). Home has a Send FAB and the last 3 transfers.
   - `ui/presentation/`: pure status text shared by Home and the notification.
   - `ui/theme/`: Material You, with a fallback palette.
 
