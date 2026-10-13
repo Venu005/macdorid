@@ -8,7 +8,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 | Round | Scope | State |
 |---|---|---|
 | Plan 1 | Protocol + connection core: pairing, encrypted link, auto-reconnect, battery on Mac | **Done, merged to `main`** |
-| UI/UX redesign | Native Mac (menu-bar popover + sidebar window) and Material 3 Android (setup wizard + 5 tabs) | **Done on `feat/ui-ux-redesign`**, waiting for the owner's hands-on check before merge |
+| UI/UX redesign | Native Mac (menu-bar popover + sidebar window) and Material 3 Android (setup wizard + 5 tabs) | **Done, merged to `main`** (verified by the owner) |
 | Plan 2 | Android notifications mirrored to the Mac (reply, dismiss) | Not started |
 | Plan 3 | Clipboard sync (Mac→phone automatic, phone→Mac on demand) | Not started |
 | Plan 4 | File transfer both ways (HTTPS PUT/GET, resume, checksums) | Not started |

@@ -4,6 +4,10 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-13 — UI/UX redesign merged to main
+- **What:** merged `feat/ui-ux-redesign` into `main` (merge commit 1428d95).
+- **Verified:** the owner ran the hands-on checklist on the Mac and the Nothing Phone (3), and everything passed.
+
 ## 2026-10-13 — Handoff folder and the keep-it-current rule
 - **What:**
   - Added `CLAUDE.md` and `docs/handoff/` (README, ARCHITECTURE, STATUS, DEV-GUIDE, ROADMAP, DECISIONS, CHANGELOG).

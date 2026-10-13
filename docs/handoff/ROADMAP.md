@@ -2,9 +2,7 @@
 
 Each round follows the same process: brainstorm, then a spec in `docs/superpowers/specs/`, then a plan in `docs/superpowers/plans/`, then subagent-driven execution with per-task review, then a final review, then the owner's hands-on check, then merge.
 
-## Next: finish the redesign
-1. The owner runs the redesign checklist (plan `2026-10-13-macdroid-ui-ux-redesign.md`, Task 5 Step 6). Fix anything that fails.
-2. Merge `feat/ui-ux-redesign` into `main`.
+## Next: app icons, then Plan 2
 
 ## Plan 2: Notifications (round-1 spec §5.1)
 - **Groundwork first:**

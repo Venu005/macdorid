@@ -1,11 +1,7 @@
-# Status (as of 2026-10-13)
+# Status (as of 2026-10-13, after the redesign merge)
 
 ## Branches
-- `main`: Plan 1 (protocol and connection core) is merged, with an old scaffold UI.
-- `feat/ui-ux-redesign`: the full UI/UX redesign.
-  - All tasks and reviews passed, and the final whole-branch review was clean.
-  - **Not merged yet.** It waits for the owner's hands-on checklist, which is in the redesign plan, Task 5 Step 6.
-  - Merge it into `main` once that checklist passes.
+- `main`: Plan 1 (protocol and connection core) plus the UI/UX redesign. Both are merged and were verified by hand by the owner.
 
 ## Working and verified
 - Pairing by QR code and by manual entry, with a fingerprint check.
@@ -21,14 +17,6 @@
   - Cross-platform script (Swift server ↔ Kotlin client).
 
 ## Pending or unverified
-- Owner's hands-on check of the redesign. Key items:
-  - Window reopen.
-  - Dock icon behaviour.
-  - Countdown and Retry now.
-  - Disconnect, then rotate.
-  - Mac Forget → phone shows "Pairing problem".
-  - First-run wizard after clearing app data.
-  - Dark mode.
 - **Login-item launch.** With a phone paired, MacDroid should start quietly with no window. Not verified. If macOS restores the window at login, disable window restoration.
 - Real login items need a properly signed build. Dev builds are ad-hoc signed (expect a keychain prompt after each rebuild).
 
