@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryChargingFull
+import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Laptop
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Wifi
@@ -61,6 +62,7 @@ fun SetupScreen(viewModel: SetupViewModel, pairingViewModel: PairingViewModel = 
                 SetupStep.LocalNetwork -> LocalNetworkStep(onResult = viewModel::refresh)
                 SetupStep.PairMac -> PairStep(pairingViewModel, macName)
                 SetupStep.Notifications -> NotificationsStep(onResult = viewModel::refresh, onSkip = viewModel::skipNotifications)
+                SetupStep.Files -> FilesStep(onDone = viewModel::completeFiles)
                 SetupStep.Battery -> BatteryStep(onDone = viewModel::completeBattery)
                 null -> Box(Modifier.fillMaxSize())
             }
@@ -105,6 +107,20 @@ private fun NotificationsStep(onResult: () -> Unit, onSkip: () -> Unit) {
         onPrimary = { launcher.launch(Manifest.permission.POST_NOTIFICATIONS) },
         secondaryLabel = "Skip",
         onSecondary = onSkip,
+    )
+}
+
+@Composable
+private fun FilesStep(onDone: (Uri?) -> Unit) {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if (uri != null) onDone(uri) }
+    StepLayout(
+        icon = Icons.Rounded.Folder,
+        title = "Where should files from your Mac go?",
+        body = "Files you send from your Mac are saved automatically. You can change this later in Settings.",
+        primaryLabel = "Use Download/MacDroid",
+        onPrimary = { onDone(null) },
+        secondaryLabel = "Choose a folder",
+        onSecondary = { launcher.launch(null) },
     )
 }
 

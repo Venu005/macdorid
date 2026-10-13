@@ -3,6 +3,8 @@ package dev.macdroid.app.ui.main
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,9 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryChargingFull
+import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Laptop
 import androidx.compose.material.icons.rounded.LinkOff
+import androidx.compose.material.icons.rounded.SaveAs
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.AlertDialog
@@ -39,10 +43,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.macdroid.app.BuildConfig
 
 @Composable
-fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewModel()) {
+fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewModel(), filesViewModel: FilesSettingsViewModel = viewModel()) {
     val context = LocalContext.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
+    val files by filesViewModel.ui.collectAsStateWithLifecycle()
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if (uri != null) filesViewModel.chooseFolder(uri) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { filesViewModel.refresh() }
     var showMac by remember { mutableStateOf(false) }
     var confirmForget by remember { mutableStateOf(false) }
 
@@ -63,6 +70,29 @@ fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewMode
                 supportingContent = { Text("Stays connected while you use other apps") },
                 leadingContent = { Icon(Icons.Rounded.Sync, contentDescription = null) },
                 trailingContent = { Switch(checked = ui.keepConnected, onCheckedChange = viewModel::setKeepConnected) },
+            )
+        }
+        item { SectionHeader("Files") }
+        item {
+            ListItem(
+                headlineContent = { Text("Save files from your Mac to") },
+                supportingContent = {
+                    Text(
+                        if (files.folderProblem) "Can't save to your chosen folder — choose it again" else files.folderLabel,
+                        color = if (files.folderProblem) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                leadingContent = { Icon(Icons.Rounded.Folder, contentDescription = null) },
+                trailingContent = { if (files.customFolder) TextButton(onClick = filesViewModel::useDefaultFolder) { Text("Use default") } },
+                modifier = Modifier.clickable { folderPicker.launch(null) },
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = { Text("Ask where to save each time") },
+                supportingContent = { Text("Choose a place for every file instead of saving automatically") },
+                leadingContent = { Icon(Icons.Rounded.SaveAs, contentDescription = null) },
+                trailingContent = { Switch(checked = files.askEachTime, onCheckedChange = filesViewModel::setAskEachTime) },
             )
         }
         item { SectionHeader("Setup") }
