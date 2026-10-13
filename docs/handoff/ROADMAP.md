@@ -55,7 +55,7 @@ Brainstorming started 2026-10-13, then the owner parked it. Resume at the first 
 - **Open question for the owner:** where should "Send to phone" appear: (A) the Share menu, (B) Finder's right-click only, or (C) both?
 
 ## Agreed order (2026-10-13)
-1. **The 9 deferred minors** from the Plans 3–4 final review (`docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`), one by one.
+1. ~~**The 9 deferred minors**~~ (done, merged 2026-10-13) from the Plans 3–4 final review (`docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`), one by one.
 2. **Small wins:** ring my phone; open a link on the other device; media controls.
 3. **Photo browsing and transfer.**
 4. **Screen mirroring (low latency)**, view-only first; then **remote control**.
