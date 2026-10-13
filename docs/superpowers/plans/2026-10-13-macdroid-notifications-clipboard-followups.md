@@ -15,5 +15,18 @@ Install Android 0.4.0 and build the Mac app (DEV-GUIDE). Grant notification acce
 - [ ] Click a banner → MacDroid opens on the Notifications page.
 - [ ] A login code (OTP) → shows without the code (expected, Android 15+).
 
+## Owner's hands-on checklist — clipboard (spec §6)
+- [ ] Copy text on the Mac → paste on the phone (within about a second).
+- [ ] Take a screenshot to the clipboard on the Mac (⌃⇧⌘4) → paste the image on the phone (e.g. into WhatsApp).
+- [ ] Copy a password from 1Password or the Passwords app → it does **not** reach the phone.
+- [ ] Quick Settings → add "Send clipboard" → copy on the phone, tap the tile → "Sent to Mac"; ⌘V on the Mac works, with a "Clipboard from <phone>" notification.
+- [ ] The "Send clipboard" button on MacDroid's notification → same.
+- [ ] Clipboard tab → Send now → same.
+- [ ] Share text from Chrome → "Copy to Mac" → on the Mac clipboard (not in Downloads). Share a photo → "Copy to Mac" → pastes as an image on the Mac.
+- [ ] Clipboard image transfers never appear in Files on either side.
+- [ ] Mac Clipboard page: search, Copy (does not bounce to the phone), Send; Settings → Keep history 10 trims the list; Clear History empties it.
+- [ ] Turn off "Send to phone" on the Mac and "Get Mac clipboard" on the phone → nothing syncs in that direction.
+- [ ] Send while disconnected → "Not connected to your Mac".
+
 ## Deferred / rulings
 (Execution rulings and deferred review findings go here.)

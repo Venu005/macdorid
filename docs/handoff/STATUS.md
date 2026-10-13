@@ -2,10 +2,10 @@
 
 ## Branches
 - `main`: Plan 1 (connection core), the UI/UX redesign, the app icons and file transfer (Plan 2, merged 2026-10-13). All gates pass on `main`. The file-transfer hands-on checklist passed except the 2 GB+ file.
-- `feat/notifications-clipboard`: Plan 3 (notifications) done, all gates pass; Plan 4 (clipboard) next. Not merged.
+- `feat/notifications-clipboard`: Plans 3 (notifications) and 4 (clipboard) done, all gates pass. A final whole-branch review comes next, then the owner's hands-on checklist. Not merged.
 
 ## In flight
-- **Notifications + clipboard (Plans 3 and 4):** spec written and self-reviewed (§8), plans written. Plan 3 (`docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md`) is executed on `feat/notifications-clipboard` (inline, as the owner chose); Plan 4 (`…-clipboard-4.md`) is next. The owner's checklist: `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
+- **Notifications + clipboard (Plans 3 and 4):** spec written and self-reviewed (§8), plans written. Plan 3 (`docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md`) and Plan 4 (`…-clipboard-4.md`) are executed on `feat/notifications-clipboard` (inline, as the owner chose). The owner's checklist: `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
 - **File transfer (Plan 2):** merged to `main` on 2026-10-13. The remaining hands-on checks are in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`; fix anything they turn up on a new branch.
   - Spec: `docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`.
   - Android 0.3.0 is installed on the phone. Build and open the Mac app with the commands in DEV-GUIDE.md.

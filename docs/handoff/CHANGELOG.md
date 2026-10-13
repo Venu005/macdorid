@@ -4,7 +4,7 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
-## 2026-10-13 — Plan 4: clipboard (in progress on feat/notifications-clipboard)
+## 2026-10-13 — Plan 4: clipboard (done on feat/notifications-clipboard)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-clipboard-4.md` (executed inline).
 - Task 1: `clipboard.set`, optional `transfer.offer.purpose`, `ClipboardLimits`; both sides now announce `clipboard`. Verified: `swift test` 181, Android gates.
 - Task 2: Mac `TransferManager` handles `purpose: clipboard` (fixed clipboard folder, never asks, hidden from snapshots, dropped not archived, `clipboardImageReceived` event, `sendClipboardImage`). Also commits the regenerated `Info.plist` (0.4.0 / 4). Verified: `swift test` 186, Mac app build.
@@ -16,6 +16,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - Task 8: Android clipboard: receive into `ClipboardManager` (images via a FileProvider), invisible `ClipboardSendActivity`, Quick Settings tile, "Send clipboard" notification action, "Copy to Mac" share target; clipboard transfers hidden from Files and the progress notification. Verified: Android gates (`ClipboardPresentationTest`).
 - Task 9: Android Clipboard tab (Send now, "Get Mac clipboard", Recent with tap to copy again). Verified: Android gates.
 - Task 10: the cross-platform run covers clipboard text both ways and a clipboard image to the Mac. Verified: `./scripts/cross-platform-test.sh` passed.
+- Task 11: all gates pass from scratch (`swift test` 207, Mac app build, Android with `--rerun-tasks`, the cross-platform run); the clipboard checklist is appended to the follow-ups file.
 
 ## 2026-10-13 — Plan 3: notifications (done on feat/notifications-clipboard)
 - **Plan:** `docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md` (spec: `docs/superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md`). Executed inline (the owner chose "native").
