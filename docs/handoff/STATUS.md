@@ -2,6 +2,7 @@
 
 ## Branches
 - `main`: Plan 1 (protocol and connection core), the UI/UX redesign and the app icons. All are merged and were verified by hand by the owner.
+- `feat/file-transfer`: Plan 2a in progress.
 
 ## In flight
 - **File transfer (Plan 2):** the spec was written and approved on 2026-10-13 (`docs/superpowers/specs/2026-10-13-macdroid-file-transfer-design.md`). No code yet. The 8 review points were resolved the same day (spec §8). The work is split into Plan 2a (engine; `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-2a-engine.md`, written and waiting for the owner's review) and Plan 2b (UI and platform glue; not written yet).

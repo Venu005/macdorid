@@ -160,4 +160,28 @@ func pairBody(code: String) -> ByteBuffer {
             }
         }
     }
+
+    // Spec §2.4: every route except /v1/pair needs the paired phone, including ones that don't exist yet.
+    @Test func strangerIsForbiddenEverywhereExceptPair() async throws {
+        let stranger = try Identity.generate(commonName: "Stranger")
+        try await ServerHarness.run { harness in
+            _ = await harness.pairing.openWindow() // lets the handshake through; routes must still refuse
+            let client = try harness.client(stranger)
+            for path in ["/v1/info", "/v1/files/abc", "/v1/nothing-here", "/"] {
+                #expect(try await client.get(path).status == .forbidden, "GET \(path)")
+            }
+            #expect(try await client.put("/v1/files/abc", body: ByteBuffer(string: "x")).status == .forbidden)
+            #expect(try await client.head("/v1/files/abc").status == .forbidden)
+            try await client.shutdown()
+        }
+    }
+
+    @Test func pairedPhoneGetsNotFoundForUnknownRoute() async throws {
+        let phone = try Identity.generate(commonName: "Phone")
+        try await ServerHarness.run(pairedPhone: phone) { harness in
+            let client = try harness.client(phone)
+            #expect(try await client.get("/v1/nothing-here").status == .notFound)
+            try await client.shutdown()
+        }
+    }
 }

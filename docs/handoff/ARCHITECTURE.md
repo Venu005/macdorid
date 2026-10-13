@@ -8,7 +8,7 @@ Android (client)                                  Mac (server, advertised as _ma
   NsdMacLocator finds the Mac (TXT fp=16 hex) ───▶ BonjourAdvertiser (dnssd)
   OkHttp, mTLS, pinned ──── WSS  /v1/ws ────────▶ ConnectionHub (one phone session; hello first)
                         ──── POST /v1/pair ──────▶ PairingManager (only while the pairing window is open)
-                        ──── GET  /v1/info ──────▶ TrustedPeerMiddleware (paired phone only)
+                        ──── GET  /v1/info ──────▶ TrustedPeerMiddleware (global: everything but /v1/pair)
 ```
 - Transport: HTTPS + WebSocket over **TLS 1.3, mutual authentication**.
 - Messages: WebSocket text frames shaped `{"v":1,"type":…,"id":…,"body":{…}}`.
@@ -78,7 +78,7 @@ Mac app (`mac/MacDroid/`):
 - **New message types:** add a fixture, then a case in both codecs and tests.
   - Mac: `ConnectionHub` currently has a single-consumer status stream and no incoming-message hook. **Plan 2 must add a multi-subscriber status stream plus a message hook first.**
   - Android: `ConnectionManager.incoming` is a `SharedFlow`.
-- **New HTTP routes** (files): **make `TrustedPeerMiddleware` global first**, with only `/v1/pair` exempt.
+- **New HTTP routes** (files): Routes registered after `router.add(middleware:)` in `makeRouter()` are automatically paired-phone-only.
 - **UI:**
   - Mac: replace a `ComingSoonView` case in `MainWindow.detail(for:)`, and flip `SidebarSection.comingSoonDescription` to nil.
   - Android: replace the `ComingSoonScreen` composable for that tab in `MainScreen`.
