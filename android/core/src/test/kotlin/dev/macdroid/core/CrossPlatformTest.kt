@@ -1,5 +1,7 @@
 package dev.macdroid.core
 
+import dev.macdroid.core.clipboard.ClipboardHub
+import dev.macdroid.core.clipboard.SendResult
 import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.connection.MacLocator
@@ -75,7 +77,7 @@ class CrossPlatformTest {
         }
 
         val store = InMemoryPairingStore(result.mac)
-        val manager = ConnectionManager(store, { phone }, MacLocator.None, { HelloBody(app = "test", device = "MacDroid Test Phone") })
+        val manager = ConnectionManager(store, { phone }, MacLocator.None, { HelloBody(app = "test", device = "MacDroid Test Phone", features = Features.SUPPORTED) })
         val phoneFile = System.getProperty("macdroidPhoneFile")
         val receiveDir = System.getProperty("macdroidPhoneReceiveDir")
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -96,11 +98,26 @@ class CrossPlatformTest {
             assertTrue(manager.send(Message.DeviceStatus(DeviceStatusBody(77, false))))
             delay(500)
             exchangeANotification(manager, received)
+            exchangeClipboard(manager, engine, received)
             if (phoneFile != null && receiveDir != null) sendFilesBothWaysWithADrop(manager, engine, transport, File(phoneFile))
         } finally {
             collector.cancel()
             manager.stop()
             scope.cancel()
+        }
+    }
+
+    /** The Mac's copy arrives; the phone sends text and a small image back. */
+    private suspend fun exchangeClipboard(manager: ConnectionManager, engine: TransferEngine, received: List<Message>) {
+        withTimeout(10_000) { while (received.none { it is Message.ClipboardSet }) delay(50) }
+        assertEquals("hello from mac", received.filterIsInstance<Message.ClipboardSet>().first().body.text)
+        val hub = ClipboardHub(manager::send, { engine.enqueueClipboard(it) }, { true })
+        assertEquals(SendResult.Sent, hub.sendText("hello from phone", manager.state.value))
+        val png = File.createTempFile("clip", ".png").apply { writeBytes(ByteArray(3_000) { it.toByte() }); deleteOnExit() }
+        assertEquals(SendResult.Sent, hub.sendImage(OutgoingFile(png.path, "clipboard.png", png.length(), "image/png"), manager.state.value))
+        // The phone only gets transfer.result for its own uploads, and the file section hasn't started yet.
+        withTimeout(20_000) {
+            while (received.none { it is Message.TransferResult && it.body.ok }) delay(100)
         }
     }
 

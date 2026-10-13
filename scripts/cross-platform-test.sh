@@ -30,6 +30,9 @@ grep -q 'NOTIFICATION apps count=1 access=true' "$LOG" || { echo "the Mac never 
 grep -q 'NOTIFICATION posted key=k1 title=Mom banner=true' "$LOG" || { echo "the Mac never got the notification"; cat "$LOG"; exit 1; }
 grep -q 'NOTIFICATION replied key=k1' "$LOG" || { echo "the Mac never replied"; cat "$LOG"; exit 1; }
 grep -q 'NOTIFICATION removed key=k1' "$LOG" || { echo "the Mac never saw the removal"; cat "$LOG"; exit 1; }
+grep -q 'CLIPBOARD applied text=hello from phone' "$LOG" || { echo "the Mac never applied the phone's clipboard"; cat "$LOG"; exit 1; }
+grep -q 'CLIPBOARD image size=3000' "$LOG" || { echo "the Mac never received the clipboard image"; cat "$LOG"; exit 1; }
+grep -q 'CLIPBOARD applied image bytes=3000' "$LOG" || { echo "the Mac never applied the clipboard image"; cat "$LOG"; exit 1; }
 cmp "$WORK/phone-to-mac.bin" "$WORK/mac-received/phone-to-mac.bin" || { echo "phone → Mac file differs"; exit 1; }
 cmp "$WORK/mac-to-phone.bin" "$WORK/phone-received/mac-to-phone.bin" || { echo "Mac → phone file differs"; exit 1; }
 echo "cross-platform test passed"
