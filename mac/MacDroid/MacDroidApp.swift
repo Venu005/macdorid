@@ -10,6 +10,7 @@ struct MacDroidApp: App {
         LoggingSystem.bootstrap(OSLogHandler.init)
         let model = AppModel()
         model.start()
+        AppDelegate.servicesProvider = ServicesProvider(model: model)
         // Keep the page last asked for: clicking a notification banner also sends a reopen, which must not
         // replace the Notifications page it just asked for.
         AppDelegate.onReopen = { model.showWindow(model.selectedSection ?? .phone) }

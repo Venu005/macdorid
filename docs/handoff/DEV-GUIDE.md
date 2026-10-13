@@ -56,6 +56,7 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
 - **Share target and URI grants:** shared URIs are handed to `ConnectionService` in an intent with `FLAG_GRANT_READ_URI_PERMISSION`. Files without a persistable grant are copied to `cache/outgoing/` only up to 100 MB, and the copies are deleted when the transfer finishes.
 
+- **Services → "Open on Phone":** a fresh dev build may need `/System/Library/CoreServices/pbs -update`, or a log-out and back in, before the item appears in right-click → Services.
 - **Ring my phone:** use the bell in the Mac popover. It plays even on silent when Do Not Disturb allows alarms (the default). The alarm volume is set to full while ringing and restored after.
 - **Clipboard:** the owner adds the "Send clipboard" tile from the Quick Settings edit screen. Android shows its own "copied" preview when the Mac's clipboard arrives; that's expected. Android only lets the focused app read the clipboard, hence the invisible `ClipboardSendActivity`.
 - **Notification access:** the owner grants it in the setup step or in Android Settings → Notifications → Device & app notifications. Never grant it from adb automation. The listener only runs once access is granted; app names and icons come through the launcher `<queries>` entry (no `QUERY_ALL_PACKAGES`).

@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import MacDroidCore
 import Observation
+import UserNotifications
 
 /// A request to show the main window on a given section. A new value (new `id`) triggers the opener.
 struct WindowRequest: Equatable {
@@ -29,6 +30,9 @@ final class AppModel {
     private(set) var windowRequest: WindowRequest?
     private(set) var transfers: TransferSnapshot = .empty
     private(set) var clipboard: ClipboardState = .empty
+    private(set) var extras: PhoneExtrasState = .empty
+    @ObservationIgnored private let phoneExtras: PhoneExtras
+    @ObservationIgnored private let mediaArt: IconCache
     @ObservationIgnored private let clipboardSync: ClipboardSync
     @ObservationIgnored private let watcher: PasteboardWatcher
     @ObservationIgnored private let clipboardNotifier: ClipboardNotifier
@@ -122,6 +126,9 @@ final class AppModel {
         let showPhone = UserDefaults.standard.object(forKey: Self.showPhoneNotificationsKey) as? Bool ?? true
         showPhoneNotifications = showPhone
         phoneNotifications = PhoneNotifications(icons: icons, enabled: showPhone, send: { message in try await hub.send(message) })
+        let mediaArt = IconCache(directory: URL.applicationSupportDirectory.appending(path: "MediaArt", directoryHint: .isDirectory))
+        self.mediaArt = mediaArt
+        phoneExtras = PhoneExtras(art: mediaArt, send: { message in try await hub.send(message) })
         if temporary {
             warnings.append("MacDroid couldn't open its keychain, so pairing is unavailable until you restart MacDroid.")
         }
@@ -148,6 +155,15 @@ final class AppModel {
         })
         router.setUp()
         router.onPhoneResponse = { [weak self] response in self?.handlePhoneResponse(response) }
+        tasks.append(Task { [phoneExtras, hub] in await phoneExtras.attach(to: hub) })
+        tasks.append(Task { [weak self, phoneExtras] in
+            for await state in phoneExtras.states { self?.extras = state }
+        })
+        tasks.append(Task { [phoneExtras] in
+            for await event in phoneExtras.events {
+                if case .openLink(let url) = event { await MainActor.run { _ = NSWorkspace.shared.open(url) } }
+            }
+        })
         tasks.append(Task { [clipboardSync, hub] in await clipboardSync.attach(to: hub) })
         tasks.append(Task { [weak self, clipboardSync] in
             for await state in clipboardSync.states { self?.clipboard = state }
@@ -246,6 +262,33 @@ final class AppModel {
         NSApp.activate()
         guard panel.runModal() == .OK else { return }
         sendFiles(panel.urls)
+    }
+
+    // MARK: Small wins (spec §4)
+
+    func ringPhone() { Task { await phoneExtras.ring() } }
+    func stopRingingPhone() { Task { await phoneExtras.stopRing() } }
+    func mediaCommand(_ kind: MediaCommandKind, positionMs: Int64? = nil) { Task { await phoneExtras.command(kind, positionMs: positionMs) } }
+    func mediaArtURL(_ hash: String?) -> URL? { hash.flatMap(mediaArt.url(for:)) }
+
+    /// Services → "Open on Phone".
+    func sendLinkToPhone(_ text: String) {
+        Task {
+            switch await phoneExtras.sendLink(in: text) {
+            case .sent: break
+            case .noLink: await notifyInfo("No link in the selection")
+            case .notConnected: await notifyInfo("Your phone isn't connected")
+            case .unsupported: await notifyInfo("Update MacDroid on your phone to use this")
+            }
+        }
+    }
+
+    private func notifyInfo(_ text: String) async {
+        guard await router.ensureAuthorized() else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "MacDroid"
+        content.body = text
+        try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "dev.macdroid.info", content: content, trigger: nil))
     }
 
     // MARK: Clipboard (spec §4)
