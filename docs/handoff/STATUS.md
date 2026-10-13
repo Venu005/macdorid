@@ -2,7 +2,7 @@
 
 ## Branches
 - `main`: Plan 1 (connection core), the UI/UX redesign, the app icons and file transfer (Plan 2, merged 2026-10-13). All gates pass on `main`. The file-transfer hands-on checklist passed except the 2 GB+ file.
-- `feat/notifications-clipboard`: Plans 3 (notifications) and 4 (clipboard) done, all gates pass. A final whole-branch review comes next, then the owner's hands-on checklist. Not merged.
+- `feat/notifications-clipboard`: Plans 3 (notifications) and 4 (clipboard) done, all gates pass. The final whole-branch review is done and its fixes are in. Next: the owner's hands-on checklist, then merge. Not merged.
 
 ## In flight
 - **Notifications + clipboard (Plans 3 and 4):** spec written and self-reviewed (§8), plans written. Plan 3 (`docs/superpowers/plans/2026-10-13-macdroid-notifications-3.md`) and Plan 4 (`…-clipboard-4.md`) are executed on `feat/notifications-clipboard` (inline, as the owner chose). The owner's checklist: `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.

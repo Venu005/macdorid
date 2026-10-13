@@ -4,7 +4,7 @@
 > 1. File transfer (Plans 2a and 2b) is **merged to `main`**.
 > 2. The owner verified the hands-on checklist except a 2 GB+ file (they'll check it later).
 > 3. Plans 3 and 4 (notifications and clipboard) share one spec ([../superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md](../superpowers/specs/2026-10-13-macdroid-notifications-clipboard-design.md), self-reviewed, fixes in §8). Both plans are written: [Plan 3](../superpowers/plans/2026-10-13-macdroid-notifications-3.md) (11 tasks) and [Plan 4](../superpowers/plans/2026-10-13-macdroid-clipboard-4.md) (11 tasks).
-> 4. Both plans are executed on `feat/notifications-clipboard`. Next: the final whole-branch review, then the owner's checklist in `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`, then merge.
+> 4. Both plans are executed on `feat/notifications-clipboard`. The final review is done and fixed. Next: the owner's checklist in `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`, then merge.
 
 Read this first if you're picking the project up, whether you're a person, a Claude Code session or a Claude Desktop session.
 

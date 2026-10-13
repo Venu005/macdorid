@@ -29,4 +29,25 @@ Install Android 0.4.0 and build the Mac app (DEV-GUIDE). Grant notification acce
 - [ ] Send while disconnected → "Not connected to your Mac".
 
 ## Deferred / rulings
-(Execution rulings and deferred review findings go here.)
+Both plans ran inline ("native"), with one final whole-branch review on Opus. It found no critical issues; the stale-clipboard-image bug and two "Copy to Mac" problems were fixed (see CHANGELOG "Final review fixes").
+
+**Execution rulings**
+- Plan 3 T1: a flaky pre-existing test (`pausedUploadIsRetriedWhileConnected`, failed 1 in 5 on `main`) now uses a 1 s resume interval.
+- Plan 3 T2: the `ServerTests` hello expectation is updated for the announced features.
+- Plan 3 T4: mutating calls moved out of `#expect`.
+- Plan 3/4: one final review for both plans (they ship together).
+- Plan 4 T2: committed the regenerated `Info.plist` (0.4.0).
+- Plan 4 T7: added `import MacDroidCore`.
+- Plan 4 T8: local variable for a cross-module smart cast.
+- Final: styled shared text fixed without a failing test (no instrumentation harness).
+
+**Deferred minors (from the final review)**
+- Echo prevention can be outrun: the watcher's task can reach `ClipboardSync` before `apply`'s change count is recorded, so a phone item bounces back. Fix: let `PasteboardWatcher.write` update `lastChangeCount` on the MainActor.
+- History "Send" uses the history image file itself as the transfer source; Clear History or a trim mid-transfer fails it silently. Fix: send a temporary copy.
+- Android main-thread work: `refreshAccess`/`setForwarding`/`setMuted` can render app icons under the forwarder lock; `ClipboardImages.prune` runs on Main. Fix: move them to the bridge worker or IO.
+- The pasteboard rule prefers an image over text when an app puts both (Office/iWork tables).
+- The first banner in a new notification category may show without its buttons, because `setNotificationCategories` applies asynchronously. Fix: await `notificationCategories()` before `add`.
+- History "Send" skips `fitsInAFrame`.
+- An update the flood gate suppresses leaves an already-delivered banner with the old text.
+- Mac TIFF→PNG conversion runs on the main thread.
+- A failed Mac image send is still recorded "→ phone"; the empty-state text overstates what's recorded.
