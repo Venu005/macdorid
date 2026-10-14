@@ -24,6 +24,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
   - the pinned `/v1/mirror` stream with one reconnect and the send policy
   - Verified: Android gates; capture is checked on device in the owner checklist.
 - **Task 9:** Mac mirror window (aspect-locked to the phone, remembered frame, Keep on top, latency readout, Stop), `MirrorRenderer` (hardware decode, display immediately, drop to key frame, resync on a new format), `MirrorAudioPlayer` (40 ms cushion, skip ahead), `MirrorPresentation` copy, Mirror buttons on the Phone page and popover, the "Update MacDroid on your phone" line, and Settings → Mirroring (Quality, Frame rate, Phone audio, Show latency).
+- **Task 10:** cross-platform test covers mirroring: the Mac starts a session, a wrong session id is refused, the H.264 fixture is decoded on the Mac (20 frames, 4 key frames), 3 audio chunks arrive, a key-frame request reaches the phone, and the phone's stop is seen. Passed twice.
 
 ## 2026-10-14 — Mirroring plan (Plan 7)
 - **What:** wrote `docs/superpowers/plans/2026-10-14-macdroid-mirroring-7.md` (11 tasks):

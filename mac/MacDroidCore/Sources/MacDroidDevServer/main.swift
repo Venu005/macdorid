@@ -1,3 +1,4 @@
+import CoreMedia
 import Foundation
 import MacDroidCore
 
@@ -138,6 +139,57 @@ let photosPrinter = Task {
     }
 }
 
+/// Counts and decodes what arrives on /v1/mirror (exercises H264 on real frames).
+final class DevMirrorSink: MirrorFrameSink, @unchecked Sendable {
+    private let lock = NSLock()
+    private var format: CMVideoFormatDescription?
+    private var frames = 0, keys = 0, decoded = 0, audio = 0
+
+    func deliver(_ frame: MirrorFrame) {
+        lock.withLock {
+            switch frame.type {
+            case .config:
+                if let sets = H264.parameterSets(in: frame.payload) { format = try? H264.formatDescription(sps: sets.sps, pps: sets.pps) }
+            case .video:
+                frames += 1
+                if frame.keyFrame { keys += 1 }
+                if let format, (try? H264.sampleBuffer(accessUnit: frame.payload, format: format)) != nil { decoded += 1 }
+                if frames == 20 { print("MIRROR video frames=\(frames) keys=\(keys) decoded=\(decoded)") }
+            case .audio:
+                audio += 1
+                if audio == 3 { print("MIRROR audio chunks=\(audio)") }
+            }
+        }
+    }
+}
+
+let mirror = MirrorSession(consentTimeout: .seconds(120), send: { try await hub.send($0) })
+await mirror.attach(to: hub)
+await mirror.setSink(DevMirrorSink())
+
+let mirrorPrinter = Task {
+    var started = false
+    var askedForKey = false
+    for await state in mirror.states {
+        if state.supported, !started {
+            started = true
+            _ = await mirror.start(MirrorOptions(maxSize: 1280, fps: 30, audio: true))
+        }
+        switch state.phase {
+        case .streaming(let width, let height, _):
+            print("MIRROR streaming \(width)x\(height)")
+            if !askedForKey {
+                askedForKey = true
+                await mirror.requestKeyFrame()
+            }
+        case .stopped(let reason):
+            if started { print("MIRROR stopped \(reason)") }
+        default:
+            break
+        }
+    }
+}
+
 let thumbPrinter = Task {
     for await event in photos.events {
         if case .thumbnail(let id, _) = event { print("PHOTOS thumb id=\(id)") }
@@ -204,7 +256,7 @@ let sentPrinter = Task {
 }
 
 let server = MacDroidServer(identity: identity, pairing: pairing, hub: hub, macName: macName,
-                            configuration: ServerConfiguration(host: "0.0.0.0", port: port), transfers: transfers)
+                            configuration: ServerConfiguration(host: "0.0.0.0", port: port), transfers: transfers, mirror: mirror)
 try await server.run { boundPort in print("LISTENING \(boundPort)") }
 statusPrinter.cancel()
 transferPrinter.cancel()
@@ -215,3 +267,4 @@ extrasPrinter.cancel()
 linkPrinter.cancel()
 photosPrinter.cancel()
 thumbPrinter.cancel()
+mirrorPrinter.cancel()
