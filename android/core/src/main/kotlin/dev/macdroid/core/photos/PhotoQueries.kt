@@ -20,6 +20,9 @@ object PhotoQueries {
 
     fun thumbIds(ids: List<String>): List<String> = ids.filter(::isValidId).distinct().take(MAX_THUMBS)
 
+    /** Transfer ids come from the Mac (UUIDs); they become record ids and URL path parts. */
+    fun isValidTransferId(id: String): Boolean = id.length in 1..64 && id.all { it.isLetterOrDigit() || it == '-' }
+
     fun encodeCursor(dateAddedSeconds: Long, id: Long): String = "$dateAddedSeconds:$id"
 
     fun decodeCursor(cursor: String?): Pair<Long, Long>? {

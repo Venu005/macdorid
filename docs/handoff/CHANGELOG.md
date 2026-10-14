@@ -9,6 +9,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Task 2:** Android core `PhotoQueries` (cursor, SQL selection by `date_added`/`_id`, limits, id checks, access level) and `TransferEngine.enqueueWithId`; photo transfers are hidden like clipboard ones (`isHidden`). Verified: `:core:test`.
 - **Task 3:** Mac `TransferManager` photo destinations: only expected transfer ids are accepted (others rejected `invalid`); the cache is hidden and cancelled on disconnect; the save folder is visible and never asks; `photoReceived` / `photoFailed` events; `hidden`/`isHidden` generalises clipboard hiding. Verified: `swift test` 240, Mac app build.
 - **Task 4:** Mac core `ThumbnailCache` (digits-only ids, 200 MB LRU), `PhotosPresentation` (day groups, copy), `PhotoSelection` (click / ⌘ / ⇧) and the `PhotosClient` actor (paging with a stale-response guard, merge on change, thumbnail de-dup with 20 s expiry, fetches three at a time with previews first and a 30 s no-offer timeout). Verified: `swift test` 265 (timing tests ×5), Mac app build.
+- **Task 5:** Android core `PhotoService` answers albums, pages, thumbnails and fetches from a `PhotoSource`; nothing is read without access; invalid photo and transfer ids are refused. Verified: `:core:test`.
 
 ## 2026-10-13 — Photos plan (Plan 6)
 - **What:** self-reviewed the photos spec (§9, `06c1f71`) and wrote the implementation plan `docs/superpowers/plans/2026-10-13-macdroid-photos-6.md`. It has 10 tasks:
