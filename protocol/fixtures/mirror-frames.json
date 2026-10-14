@@ -1,0 +1,7 @@
+{
+  "frames": [
+    { "type": 1, "key": false, "captureMicros": 1000, "payload": "0000000167", "hex": "0100000000000000000003e80000000167" },
+    { "type": 2, "key": true, "captureMicros": 123456789012, "payload": "0000000165aa", "hex": "020100000000001cbe991a140000000165aa" },
+    { "type": 3, "key": false, "captureMicros": 5, "payload": "0102", "hex": "0300000000000000000000050102" }
+  ]
+}

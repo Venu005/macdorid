@@ -106,3 +106,17 @@ malformed frames are dropped without closing the connection. Both sides send `he
 - **Originals:** the phone answers `photos.fetch` by offering the file through the transfer channel with the Mac's `transferId` and `purpose: photo`, or with `photos.fetchFailed`. The Mac accepts a `photo` offer only for a transfer id it asked for; anything else is rejected with `invalid`. The Mac asks for at most 3 originals at a time (the phone's upload limit) and gives up after 30 s without an offer.
 - **No access:** the phone answers `photos.albums` and `photos.query` with `access: none` and empty lists, ignores `photos.thumbs`, and answers `photos.fetch` with `denied`.
 - **Changes:** the phone sends `photos.changed` (debounced 1 s) when MediaStore changes or the access level changes; the Mac reloads its albums and first page.
+
+### Mirroring media stream (`/v1/mirror`)
+- The phone opens a second WebSocket to `/v1/mirror` with the same pinned client certificate and the header `X-MacDroid-Session: <sessionId>`. The Mac upgrades only the paired phone, and only for the session it started while it is `starting` or `streaming`.
+- Every binary message is one frame: a 12-byte big-endian header, then the payload (`fixtures/mirror-frames.json`).
+
+| Bytes | Field |
+|---|---|
+| 0 | type: 1 = video config (SPS+PPS, Annex-B), 2 = video frame (Annex-B access unit), 3 = audio (PCM s16le stereo 48 kHz) |
+| 1 | flags: bit 0 = key frame |
+| 2–3 | reserved (0) |
+| 4–11 | capture time, phone monotonic clock (`System.nanoTime` base), µs |
+
+- A frame over 4 MiB, or of an unknown type, closes the stream.
+- Neither side queues stale video: when behind, both drop to the next key frame and the Mac sends `mirror.keyframe`.

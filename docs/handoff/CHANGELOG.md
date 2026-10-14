@@ -11,6 +11,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
   - capture ends when the phone locks, and the lock screen can't be captured
   - playback capture works with the phone muted
 - **Task 2:** `mirror.*` control messages (start, state, stop, keyframe, ping, pong) in both codecs, 7 fixtures, `mirror` feature on both sides. Verified: `swift test` 275, `:core:test`, `assembleDebug`.
+- **Task 3:** media frame header (`MirrorFrame`) on both sides with the shared `mirror-frames.json` fixture; PROTOCOL.md "Mirroring media stream".
 
 ## 2026-10-14 — Mirroring plan (Plan 7)
 - **What:** wrote `docs/superpowers/plans/2026-10-14-macdroid-mirroring-7.md` (11 tasks):
