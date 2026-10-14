@@ -151,6 +151,7 @@ let transferPrinter = Task {
             let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? -1
             print("CLIPBOARD image size=\(size)")
             await clipboard.imageReceived(url)
+        case .photoReceived, .photoFailed: break // Task 9
         }
     }
 }

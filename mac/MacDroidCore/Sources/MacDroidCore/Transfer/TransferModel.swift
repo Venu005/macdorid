@@ -84,13 +84,15 @@ public struct TransferRecord: Codable, Equatable, Sendable, Identifiable {
     public var savedURL: URL?
     /// nil for files; `.clipboard` for clipboard images (spec §2.3).
     public var purpose: TransferPurpose?
+    /// Photos fetched into the hidden cache (photos spec §9.4); nil otherwise.
+    public var hidden: Bool?
     public var createdAt: Date
     public var updatedAt: Date
 
     public init(
         id: String, direction: TransferDirection, name: String, size: Int64, mime: String, phase: TransferPhase,
         bytesDone: Int64 = 0, expectedSHA256: String? = nil, sourceBookmark: Data? = nil, folder: URL? = nil,
-        replacesExisting: Bool = false, savedURL: URL? = nil, createdAt: Date, updatedAt: Date, purpose: TransferPurpose? = nil
+        replacesExisting: Bool = false, savedURL: URL? = nil, createdAt: Date, updatedAt: Date, purpose: TransferPurpose? = nil, hidden: Bool? = nil
     ) {
         self.id = id
         self.direction = direction
@@ -107,10 +109,13 @@ public struct TransferRecord: Codable, Equatable, Sendable, Identifiable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.purpose = purpose
+        self.hidden = hidden
     }
 
     /// A clipboard image (spec §2.3): never shown in Files, dropped instead of archived.
     public var isClipboard: Bool { purpose == .clipboard }
+    /// Hidden from Files and history: clipboard images, and photos fetched into the cache (spec §9.4).
+    public var isHidden: Bool { isClipboard || hidden == true }
 
     /// Incoming: where bytes land until the checksum is verified. A file chosen in a save panel is written in place:
     /// the sandbox grants access to that exact file only, not to a sibling part file.
@@ -135,6 +140,10 @@ public enum TransferEvent: Equatable, Sendable {
     case received(TransferRecord)
     /// A clipboard image from the phone was verified; the file is in the clipboard folder.
     case clipboardImageReceived(URL)
+    /// A photo the Mac asked for (spec §5) arrived at `url` (the photo cache, or the save folder).
+    case photoReceived(transferId: String, url: URL)
+    /// A photo the Mac asked for ended without a file (failed, cancelled, or the Mac disconnected).
+    case photoFailed(transferId: String)
 }
 
 /// What `TransferManager.sendReporting(files:)` queued, and what it couldn't.

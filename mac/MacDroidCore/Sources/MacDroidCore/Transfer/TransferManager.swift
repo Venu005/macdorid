@@ -92,6 +92,10 @@ public actor TransferManager {
     private let historyStore: JSONFileStore<[TransferRecord]>
     private let location: any ReceiveLocationProvider
     private let clipboardDirectory: URL?
+    private let photoCacheDirectory: URL?
+    private let photoSaveFolder: @Sendable () async -> URL?
+    /// Photo fetches the Mac asked for: transfer id → true for the hidden cache, false for the save folder.
+    private var photoRequests: [String: Bool] = [:]
     let sourceAccess: any SourceAccess
     private let freeSpace: @Sendable (URL) -> Int64?
     let now: @Sendable () -> Date
@@ -115,6 +119,8 @@ public actor TransferManager {
         sourceAccess: any SourceAccess = PlainSourceAccess(),
         freeSpace: @escaping @Sendable (URL) -> Int64? = TransferManager.volumeFreeSpace,
         clipboardDirectory: URL? = nil,
+        photoCacheDirectory: URL? = nil,
+        photoSaveFolder: @escaping @Sendable () async -> URL? = { nil },
         now: @escaping @Sendable () -> Date = { Date() },
         send: @escaping @Sendable (Message) async throws -> Void
     ) {
@@ -130,6 +136,9 @@ public actor TransferManager {
         self.location = location
         if let clipboardDirectory { try? FileManager.default.createDirectory(at: clipboardDirectory, withIntermediateDirectories: true) }
         self.clipboardDirectory = clipboardDirectory
+        if let photoCacheDirectory { try? FileManager.default.createDirectory(at: photoCacheDirectory, withIntermediateDirectories: true) }
+        self.photoCacheDirectory = photoCacheDirectory
+        self.photoSaveFolder = photoSaveFolder
         self.sourceAccess = sourceAccess
         self.freeSpace = freeSpace
         self.now = now
@@ -153,8 +162,8 @@ public actor TransferManager {
         for var record in stored {
             // An offer still waiting for "where to save" when MacDroid quit was never accepted; the phone's re-offer starts fresh.
             if record.direction == .fromPhone && record.folder == nil { continue }
-            // Clipboard content is never resumed later: by then it's stale (spec §4.1 "not queued").
-            if record.isClipboard {
+            // Clipboard content and cached photos are never resumed later: by then they're stale (spec §4.1 "not queued").
+            if record.isHidden {
                 if record.direction == .fromPhone, let part = record.partURL { try? FileManager.default.removeItem(at: part) }
                 continue
             }
@@ -207,6 +216,10 @@ public actor TransferManager {
             for record in active where record.isClipboard && record.direction == .toPhone {
                 await cancel(id: record.id)
             }
+            // A preview or drag can't wait for a reconnect; saves (visible) resume like files.
+            for record in active where record.purpose == .photo && record.isHidden {
+                await cancel(id: record.id)
+            }
             for index in active.indices where active[index].phase == .active || active[index].phase == .verifying {
                 active[index].phase = .paused
             }
@@ -220,6 +233,12 @@ public actor TransferManager {
         for message in queued { await sendOrQueue(message) }
         await resumeOutgoing()
     }
+
+    /// The Mac asked the phone for a photo under this transfer id (spec §3 `photos.fetch`); only such offers are accepted.
+    public func expectPhoto(transferId: String, toCache: Bool) { photoRequests[transferId] = toCache }
+    public func forgetPhoto(transferId: String) { photoRequests[transferId] = nil }
+    /// True while a transfer with this id is in progress (offered, active, paused or verifying).
+    public func hasTransfer(_ id: String) -> Bool { active.contains { $0.id == id } }
 
     /// Local cancel from the UI.
     public func cancel(id: String) async {
@@ -243,6 +262,30 @@ public actor TransferManager {
         }
         if let past = history.first(where: { $0.id == id }) {
             await replayOutcome(of: past)
+            return
+        }
+        if offer.purpose == .photo {
+            // Only photos the Mac asked for are written anywhere (Review Focus #1).
+            guard let toCache = photoRequests[id], offer.size >= 0, !toCache || photoCacheDirectory != nil else {
+                await sendOrDrop(.transferReject(TransferReject(transferId: id, reason: .invalid)))
+                return
+            }
+            let name = FileNaming.sanitize(offer.name)
+            active.append(TransferRecord(
+                id: id, direction: .fromPhone, name: name, size: offer.size, mime: offer.mime, phase: .offered,
+                createdAt: now(), updatedAt: now(), purpose: .photo, hidden: toCache
+            ))
+            persist()
+            publish(force: true)
+            let incoming = IncomingOffer(id: id, name: name, size: offer.size, mime: offer.mime)
+            let cache = photoCacheDirectory
+            let saveFolder = photoSaveFolder
+            // Saves go to the received-files folder without asking (spec §9.2). If it's unusable (nil),
+            // `decide` falls back to the normal location provider.
+            decisions[id] = Task {
+                let folder: URL? = toCache ? cache : await saveFolder()
+                await self.decide(incoming, fixed: folder.map(SaveLocation.folder))
+            }
             return
         }
         let isClipboard = offer.purpose == .clipboard
@@ -455,7 +498,13 @@ public actor TransferManager {
         done.bytesDone = done.size
         done.savedURL = folder.appending(path: name)
         archive(done)
-        eventBroadcast.yield(done.isClipboard ? .clipboardImageReceived(folder.appending(path: name)) : .received(done))
+        let savedAt = folder.appending(path: name)
+        if done.purpose == .photo {
+            if !done.isHidden { eventBroadcast.yield(.received(done)) }
+            eventBroadcast.yield(.photoReceived(transferId: id, url: savedAt))
+        } else {
+            eventBroadcast.yield(done.isClipboard ? .clipboardImageReceived(savedAt) : .received(done))
+        }
         await sendOrDrop(.transferResult(TransferResult(transferId: id, ok: true)))
     }
 
@@ -504,7 +553,11 @@ public actor TransferManager {
 
     /// Moves a finished record from active to the front of history.
     func archive(_ record: TransferRecord) {
-        if record.isClipboard {
+        if record.purpose == .photo {
+            photoRequests[record.id] = nil
+            if record.phase != .done { eventBroadcast.yield(.photoFailed(transferId: record.id)) }
+        }
+        if record.isHidden {
             active.removeAll { $0.id == record.id }
             rates[record.id] = nil
             persist()
@@ -533,8 +586,8 @@ public actor TransferManager {
         guard force || time.timeIntervalSince(lastPublish) >= 0.25 else { return }
         lastPublish = time
         snapshot = TransferSnapshot(
-            active: active.filter { !$0.isClipboard }, history: history,
-            rates: rates.filter { id, _ in active.contains { $0.id == id && !$0.isClipboard } }.compactMapValues(\.bytesPerSecond)
+            active: active.filter { !$0.isHidden }, history: history,
+            rates: rates.filter { id, _ in active.contains { $0.id == id && !$0.isHidden } }.compactMapValues(\.bytesPerSecond)
         )
         snapshotBroadcast.yield(snapshot)
     }

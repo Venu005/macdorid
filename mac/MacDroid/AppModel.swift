@@ -420,6 +420,7 @@ final class AppModel {
         switch event {
         case .received(let record): await notifier.notifyReceived(record, from: pairedDevice?.name ?? "your phone")
         case .clipboardImageReceived(let url): await clipboardSync.imageReceived(url)
+        case .photoReceived, .photoFailed: break // Task 8
         }
     }
 
