@@ -68,6 +68,8 @@ public actor PhotosClient {
         let photoId: String
         let toCache: Bool
         let continuation: CheckedContinuation<Result<URL, PhotoFetchError>, Never>
+        /// Later cache fetches of the same photo, answered with this one's result (follow-up M2).
+        var followers: [CheckedContinuation<Result<URL, PhotoFetchError>, Never>] = []
     }
 
     private let stateBroadcast = Broadcast<PhotosState>(replayLatest: true, initial: .empty)
@@ -176,6 +178,10 @@ public actor PhotosClient {
         guard state.supported else { return .failure(.unsupported) }
         if toCache, let url = cachedOriginals[id], FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
             return .success(url)
+        }
+        if toCache, let shared = pending.first(where: { $0.value.photoId == id && $0.value.toCache })?.key {
+            // Already on its way into the cache: wait for that one (the closure runs synchronously, so it's still pending).
+            return await withCheckedContinuation { pending[shared]?.followers.append($0) }
         }
         let transferId = makeId()
         await transfers.expect(transferId, toCache)
@@ -371,6 +377,7 @@ public actor PhotosClient {
             if error == .gone { update { $0.items.removeAll { $0.id == fetch.photoId } } }
         }
         fetch.continuation.resume(returning: result)
+        for follower in fetch.followers { follower.resume(returning: result) }
     }
 
     private func update(_ change: (inout PhotosState) -> Void) {

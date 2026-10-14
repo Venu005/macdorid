@@ -6,6 +6,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 
 ## 2026-10-14 — Photos follow-ups (the 9 deferred minors, on fix/photos-minors)
 - **M9:** the Mac keeps only thumbnails it asked for (and hasn't given up on); unrequested ones are dropped. Test `unrequestedThumbnailsAreDropped`.
+- **M2:** concurrent cache fetches of the same photo (double-click plus Space, a drag during a preview) share one transfer. Test `concurrentCacheFetchesOfOnePhotoShareATransfer`.
 
 ## 2026-10-14 — Photos merged to main
 - **What:** merged `feat/photos` into `main` (`37b425c`) at the owner's request: Plan 6 photo browsing and transfer with the final-review fixes.

@@ -274,6 +274,23 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
         #expect(await h.fetches().count == 1)
     }
 
+    // Follow-up M2: double-click plus Space (or a drag during a preview) fetches the original once.
+    @Test func concurrentCacheFetchesOfOnePhotoShareATransfer() async throws {
+        let h = try Harness()
+        await h.connectWith([item(9, 100)])
+        let client = h.client
+        let first = Task { await client.fetchFile("9", toCache: true) }
+        try await eventually { await h.fetches().count == 1 }
+        let second = Task { await client.fetchFile("9", toCache: true) }
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(await h.fetches().count == 1)
+        let file = try makeTemporaryDirectory().appending(path: "IMG_9.jpg")
+        try Data([1]).write(to: file)
+        await client.transferFinished(transferId: "id3", url: file)
+        #expect(await first.value == .success(file))
+        #expect(await second.value == .success(file))
+    }
+
     // Review Focus #4
     @Test func goneFetchRemovesTheItemAndExplains() async throws {
         let h = try Harness()
