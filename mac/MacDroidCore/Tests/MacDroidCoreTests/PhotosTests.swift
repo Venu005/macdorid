@@ -372,6 +372,17 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
         #expect(await h.forgotten.items == ["id3"])
     }
 
+    @Test func resetAnswersPendingFetches() async throws {
+        let h = try Harness()
+        await h.connectWith([item(9, 100)])
+        let client = h.client
+        let fetch = Task { await client.fetchFile("9", toCache: true) }
+        try await eventually { await h.fetches().count == 1 }
+        await client.reset()
+        #expect(await fetch.value == .failure(.notConnected))
+        #expect(await client.state.items.isEmpty)
+    }
+
     @Test func aDisconnectFailsPendingFetches() async throws {
         let h = try Harness()
         await h.connectWith([item(9, 100)])

@@ -242,6 +242,15 @@ public actor TransferManager {
         photoRequests[transferId] = nil
         if active.contains(where: { $0.id == transferId && $0.purpose == .photo }) { await cancel(id: transferId) }
     }
+    /// The phone was forgotten (follow-up M6): stop every photo transfer, expect none, and delete the cached originals.
+    public func forgetAllPhotos() async {
+        photoRequests.removeAll()
+        for record in active where record.purpose == .photo { await cancel(id: record.id) }
+        guard let photoCacheDirectory else { return }
+        let files = (try? FileManager.default.contentsOfDirectory(at: photoCacheDirectory, includingPropertiesForKeys: nil)) ?? []
+        for url in files { try? FileManager.default.removeItem(at: url) }
+    }
+
     /// Bytes received so far (and the total) for a photo transfer in progress; nil when there is none.
     public func photoProgress(_ id: String) -> (done: Int64, size: Int64)? {
         active.first { $0.id == id && $0.purpose == .photo }.map { ($0.bytesDone, $0.size) }

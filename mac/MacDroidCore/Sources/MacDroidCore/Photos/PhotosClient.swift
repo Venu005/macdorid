@@ -156,7 +156,8 @@ public actor PhotosClient {
     }
 
     /// Forgets everything about the current phone (it was unpaired).
-    public func reset() {
+    public func reset() async {
+        for transferId in Array(pending.keys) { await finish(transferId, .failure(.notConnected)) }
         albumRequest = nil
         pageRequest = nil
         cursor = nil

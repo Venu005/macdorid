@@ -137,6 +137,23 @@ import Testing
         listener.cancel()
     }
 
+    // Follow-up M6: forgetting the phone removes its full-size photos and anything still on its way.
+    @Test func forgettingAllPhotosEmptiesTheCache() async throws {
+        let f = try TransferFixture()
+        let cache = try makeTemporaryDirectory()
+        let m = manager(f, cache: cache)
+        try Data([1]).write(to: cache.appending(path: "IMG_1.jpg"))
+        await m.expectPhoto(transferId: "p7", toCache: true)
+        await m.handle(photoOffer("p7", size: 100))
+        try await eventually { await f.phone.sent.contains { $0.acceptedID == "p7" } }
+        await m.expectPhoto(transferId: "p8", toCache: false)
+        await m.forgetAllPhotos()
+        #expect(await m.photoProgress("p7") == nil)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: cache.path(percentEncoded: false)).isEmpty)
+        await m.handle(photoOffer("p8", size: 1)) // no longer expected
+        try await eventually { await f.phone.sent.contains { $0.rejection == TransferReject(transferId: "p8", reason: .invalid) } }
+    }
+
     @Test func photoRecordsInTheCacheAreNotRestoredAfterARelaunch() {
         let now = Date()
         let record = TransferRecord(id: "p1", direction: .fromPhone, name: "a.jpg", size: 1, mime: "image/jpeg", phase: .active,
