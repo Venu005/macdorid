@@ -13,6 +13,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Task 2:** `mirror.*` control messages (start, state, stop, keyframe, ping, pong) in both codecs, 7 fixtures, `mirror` feature on both sides. Verified: `swift test` 275, `:core:test`, `assembleDebug`.
 - **Task 3:** media frame header (`MirrorFrame`) on both sides with the shared `mirror-frames.json` fixture; PROTOCOL.md "Mirroring media stream".
 - **Task 4:** Mac core `H264` (Annex-B split, SPS/PPS → format, AVCC sample buffers marked display-immediately) and the shared `h264/sample.h264` fixture (ffmpeg, 320×240 then 240×320, parameter sets once per half like MediaCodec), made by `scripts/make-h264-fixture.sh`.
+- **Task 5:** Mac core mirroring timing (monotonic clock, clock-offset median of 5, latency meter over 30 frames), `VideoBacklog` (drop to the next key frame past 3 waiting) and `AudioJitter` (start at 40 ms, skip over 100 ms, rebuild after running dry).
 
 ## 2026-10-14 — Mirroring plan (Plan 7)
 - **What:** wrote `docs/superpowers/plans/2026-10-14-macdroid-mirroring-7.md` (11 tasks):

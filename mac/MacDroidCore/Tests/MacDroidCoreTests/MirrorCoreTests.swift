@@ -33,3 +33,74 @@ extension Data {
         #expect(throws: MirrorFrameError.tooLarge) { try MirrorFrame.decode(Data(count: MirrorFrame.maxSize + 1)) }
     }
 }
+
+@Suite struct MirrorTimingTests {
+    @Test func clockOffsetIsTheMedianOfTheLastFive() {
+        var offset = ClockOffset()
+        #expect(offset.micros == nil)
+        // phone = mac + 5_000; one-way delay 300 µs each way.
+        offset.add(t0: 1_000, t1: 6_300, t2: 6_400, t3: 1_700)
+        #expect(offset.micros == 5_000)
+        offset.add(t0: 2_000, t1: 9_000, t2: 9_000, t3: 2_000) // an outlier: 7_000
+        offset.add(t0: 3_000, t1: 8_300, t2: 8_400, t3: 3_700)
+        #expect(offset.micros == 5_000)
+        for i in 0..<5 { offset.add(t0: Int64(i), t1: Int64(i) + 6_000, t2: Int64(i) + 6_000, t3: Int64(i)) }
+        #expect(offset.micros == 6_000) // only the last five count
+    }
+
+    @Test func latencyUsesTheOffsetAndAverages() {
+        let meter = LatencyMeter()
+        meter.record(captureMicros: 10_000, displayedMicros: 20_000)
+        #expect(meter.averageMillis == nil) // no offset yet
+        meter.setOffset(5_000) // phone = mac + 5 ms
+        meter.record(captureMicros: 105_000, displayedMicros: 150_000) // captured at mac 100 ms, shown at 150 → 50 ms
+        meter.record(captureMicros: 205_000, displayedMicros: 270_000) // 70 ms
+        #expect(meter.averageMillis == 60)
+        meter.reset()
+        #expect(meter.averageMillis == nil)
+    }
+}
+
+@Suite struct VideoBacklogTests {
+    // Review Focus #2 (Mac side)
+    @Test func backlogDropsToTheNextKeyFrame() {
+        var backlog = VideoBacklog()
+        #expect(backlog.admit(keyFrame: false, waiting: 3) == .show)
+        #expect(backlog.admit(keyFrame: false, waiting: 4) == .dropAndRequestKeyFrame)
+        #expect(backlog.admit(keyFrame: false, waiting: 0) == .drop) // still waiting for a key frame
+        #expect(backlog.admit(keyFrame: true, waiting: 0) == .show)
+        #expect(backlog.admit(keyFrame: false, waiting: 1) == .show)
+    }
+
+    @Test func aKeyFrameIsShownEvenWithABacklog() {
+        var backlog = VideoBacklog()
+        #expect(backlog.admit(keyFrame: true, waiting: 10) == .show)
+    }
+
+    @Test func resyncWaitsForAKeyFrame() {
+        var backlog = VideoBacklog()
+        backlog.resync()
+        #expect(backlog.admit(keyFrame: false, waiting: 0) == .drop)
+        #expect(backlog.admit(keyFrame: true, waiting: 0) == .show)
+    }
+}
+
+@Suite struct AudioJitterTests {
+    @Test func startsOnceFortyMillisecondsAreQueuedAndSkipsAheadOverAHundred() {
+        var jitter = AudioJitter()
+        #expect(jitter.decide(bufferedMillis: 0, chunkMillis: 10) == .schedule(startPlayback: false))
+        #expect(jitter.decide(bufferedMillis: 20, chunkMillis: 10) == .schedule(startPlayback: false))
+        #expect(jitter.decide(bufferedMillis: 30, chunkMillis: 10) == .schedule(startPlayback: true))
+        #expect(jitter.playing)
+        #expect(jitter.decide(bufferedMillis: 50, chunkMillis: 10) == .schedule(startPlayback: false))
+        #expect(jitter.decide(bufferedMillis: 101, chunkMillis: 10) == .drop)
+    }
+
+    @Test func runningDryBuildsTheCushionAgain() {
+        var jitter = AudioJitter()
+        _ = jitter.decide(bufferedMillis: 40, chunkMillis: 10)
+        #expect(jitter.playing)
+        #expect(jitter.decide(bufferedMillis: 0, chunkMillis: 10) == .schedule(startPlayback: false))
+        #expect(!jitter.playing)
+    }
+}
