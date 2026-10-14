@@ -43,6 +43,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         local.value = read()
     }
 
+    /** The photos permission prompt was answered (follow-up M4). */
+    fun photosPromptAnswered() {
+        graph.photosBridge.afterPrompt()
+        refresh()
+    }
+
     fun setKeepConnected(on: Boolean) {
         val app = getApplication<Application>()
         graph.uiPrefs.keepConnected = on

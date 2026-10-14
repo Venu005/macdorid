@@ -93,6 +93,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
     /** "See your photos on your Mac": answered either way (the permission result itself is read from the system). */
     fun completePhotos() {
         graph.uiPrefs.photosStepDone = true
+        graph.photosBridge.afterPrompt()
         refresh()
     }
 

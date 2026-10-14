@@ -11,6 +11,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **M6:** Forget now stops every photo transfer, clears expected photo ids and deletes the cached originals (`TransferManager.forgetAllPhotos`); `PhotosClient.reset` also answers pending fetches instead of leaving them to time out. Tests `forgettingAllPhotosEmptiesTheCache`, `resetAnswersPendingFetches`.
 - **M8:** on the phone, photos the Mac fetches have their own 3 upload slots, so a phone busy sending files still answers within the Mac's 30 s. PROTOCOL.md transfer rules updated. Test `photosHaveTheirOwnSlots`.
 - **M7:** `enqueueClipboard` got its KDoc back from `enqueueWithId` (comment only).
+- **M4:** after a photos permission prompt (setup step or Settings), a limited-access user who picked a different set now makes the Mac reload, even though the level stays "Selected". Core `PhotoAccessWatcher` (tested) replaces the bridge's inline check. Tests `PhotoAccessWatcherTest`.
 
 ## 2026-10-14 — Photos merged to main
 - **What:** merged `feat/photos` into `main` (`37b425c`) at the owner's request: Plan 6 photo browsing and transfer with the final-review fixes.

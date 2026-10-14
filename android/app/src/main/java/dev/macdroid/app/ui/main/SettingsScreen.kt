@@ -55,7 +55,7 @@ fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewMode
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if (uri != null) filesViewModel.chooseFolder(uri) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { filesViewModel.refresh() }
     val photosAccess = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-        viewModel.refresh()
+        viewModel.photosPromptAnswered()
         // Android shows nothing once access was denied twice: send the user to the app's settings instead.
         if (result.values.none { it }) context.openAppSettings()
     }

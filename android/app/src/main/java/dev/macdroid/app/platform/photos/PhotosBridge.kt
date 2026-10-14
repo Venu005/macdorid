@@ -7,6 +7,7 @@ import android.os.Looper
 import android.provider.MediaStore
 import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.macSupports
+import dev.macdroid.core.photos.PhotoAccessWatcher
 import dev.macdroid.core.photos.PhotoLanes
 import dev.macdroid.core.photos.PhotoService
 import dev.macdroid.core.protocol.Features
@@ -19,9 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 
@@ -40,8 +39,8 @@ class PhotosBridge(
     private val service = PhotoService(library, connection::send) { id, file -> engine.enqueueWithId(id, file, TransferPurpose.Photo) }
     private val lanes = PhotoLanes(scope, Dispatchers.IO) { service.handle(it) }
     private val changes = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-    private val _access = MutableStateFlow(library.access())
-    val access: StateFlow<PhotoAccess> = _access.asStateFlow()
+    private val watcher = PhotoAccessWatcher(library::access) { changes.tryEmit(Unit) }
+    val access: StateFlow<PhotoAccess> = watcher.access
 
     fun start() {
         // Collect quickly and queue: a slow thumbnail batch must never hold up other messages.
@@ -64,13 +63,10 @@ class PhotosBridge(
     }
 
     /** Re-reads the permission (call on resume and after a prompt); a change reloads the Mac's view. */
-    fun refreshAccess() {
-        val now = library.access()
-        if (_access.value != now) {
-            _access.value = now
-            changes.tryEmit(Unit)
-        }
-    }
+    fun refreshAccess() = watcher.refresh()
+
+    /** After a permission prompt: also reloads the Mac when a limited-access user picked a different set (follow-up M4). */
+    fun afterPrompt() = watcher.afterPrompt()
 
     private fun Message.isPhotoRequest() =
         this is Message.PhotosAlbums || this is Message.PhotosQuery || this is Message.PhotosThumbs || this is Message.PhotosFetch
