@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "type": "photos.query",
+  "id": "6f1c2a0e-0000-4000-8000-000000000042",
+  "body": {
+    "requestId": "r2",
+    "albumId": "all",
+    "kind": "all",
+    "cursor": "1791892800:1001",
+    "limit": 200
+  }
+}

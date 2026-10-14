@@ -27,6 +27,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         val notificationsSkipped: Boolean,
         val filesStepDone: Boolean,
         val hasNotificationAccess: Boolean,
+        val photosStepDone: Boolean,
     )
 
     private val graph = application.graph
@@ -63,6 +64,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
     /** Re-read permissions and preferences (call on resume and after a permission prompt). */
     fun refresh() {
         graph.notificationBridge.refreshAccess()
+        graph.photosBridge.refreshAccess()
         local.value = readLocal()
     }
 
@@ -88,6 +90,12 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         refresh()
     }
 
+    /** "See your photos on your Mac": answered either way (the permission result itself is read from the system). */
+    fun completePhotos() {
+        graph.uiPrefs.photosStepDone = true
+        refresh()
+    }
+
     fun completeBattery() {
         graph.uiPrefs.setupDone = true
         batteryDone.value = true
@@ -106,6 +114,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         batteryDone = battery,
         filesStepDone = l.filesStepDone,
         hasNotificationAccess = l.hasNotificationAccess,
+        photosStepDone = l.photosStepDone,
     )
 
     private fun readLocal(): Local {
@@ -117,6 +126,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
             notificationsSkipped = graph.uiPrefs.notificationsSkipped,
             filesStepDone = graph.filesPrefs.filesStepDone,
             hasNotificationAccess = Permissions.hasNotificationAccess(app),
+            photosStepDone = graph.uiPrefs.photosStepDone,
         )
     }
 

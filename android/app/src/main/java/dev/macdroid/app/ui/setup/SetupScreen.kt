@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Laptop
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -42,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.macdroid.app.ui.presentation.PhotosAccessText
 import dev.macdroid.app.platform.Permissions
 import dev.macdroid.app.ui.PairingViewModel
 
@@ -67,6 +70,7 @@ fun SetupScreen(viewModel: SetupViewModel, pairingViewModel: PairingViewModel = 
                     onSkip = viewModel::skipNotifications,
                 )
                 SetupStep.Files -> FilesStep(onDone = viewModel::completeFiles)
+                SetupStep.Photos -> PhotosStep(onDone = viewModel::completePhotos)
                 SetupStep.Battery -> BatteryStep(onDone = viewModel::completeBattery)
                 null -> Box(Modifier.fillMaxSize())
             }
@@ -136,6 +140,20 @@ private fun FilesStep(onDone: (Uri?) -> Unit) {
         onPrimary = { onDone(null) },
         secondaryLabel = "Choose a folder",
         onSecondary = { launcher.launch(null) },
+    )
+}
+
+@Composable
+private fun PhotosStep(onDone: () -> Unit) {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { onDone() }
+    StepLayout(
+        icon = Icons.Rounded.PhotoLibrary,
+        title = "See your photos on your Mac",
+        body = "Browse and save your photos and videos from your Mac. You choose all photos or just some.",
+        primaryLabel = "Choose access",
+        onPrimary = { launcher.launch(PhotosAccessText.permissions(Build.VERSION.SDK_INT)) },
+        secondaryLabel = "Not now",
+        onSecondary = onDone,
     )
 }
 

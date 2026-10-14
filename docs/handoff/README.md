@@ -3,7 +3,7 @@
 > **Picking up?** The next action is in [ROADMAP.md](ROADMAP.md) under "Next":
 > 1. File transfer (Plan 2), notifications (Plan 3) and clipboard (Plan 4) are all **merged to `main`** (version 0.4.0).
 > 2. Still open: the 2 GB+ file-transfer check, and the 9 deferred minors in `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
-> 3. Small wins (Plan 5) are merged to `main`. Next: photos (Plan 6). Spec `docs/superpowers/specs/2026-10-13-macdroid-photos-design.md` and plan `docs/superpowers/plans/2026-10-13-macdroid-photos-6.md` are written; the plan awaits the owner's review before execution on `feat/photos`.
+> 3. Small wins (Plan 5) are merged to `main`. Next: photos (Plan 6). Built on `feat/photos` (spec `docs/superpowers/specs/2026-10-13-macdroid-photos-design.md`, plan `docs/superpowers/plans/2026-10-13-macdroid-photos-6.md`); awaiting the owner's hands-on check, then merge.
 > 4. The Finder Share extension is parked (see ROADMAP; one open question). Next options: a planning session to rank the later rounds (photo gallery, screen mirroring, SMS, webcam, USB), or the deferred minors.
 
 Read this first if you're picking the project up, whether you're a person, a Claude Code session or a Claude Desktop session.
@@ -28,7 +28,8 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 | Plan 3 | Android notifications mirrored to the Mac (reply, buttons, dismiss both ways, mutes) | **Done, merged to `main`** (owner-verified) |
 | Plan 4 | Clipboard sync (Mac→phone automatic, phone→Mac on demand, Mac history) | **Done, merged to `main`** (owner-verified) |
 | Plan 5 | Small wins: ring my phone, open links on the other device, media controls | **Done, merged to `main`** (owner-tested) |
-| Later | Photo gallery, SMS, screen mirroring, webcam/mic, USB transport | Out of scope so far |
+| Plan 6 | Photos: browse the phone's photos and videos on the Mac (albums, day grid, Quick Look, Save to Mac, drag out), full or limited access | **Built on `feat/photos`**, awaiting the owner's check |
+| Later | SMS, screen mirroring, webcam/mic, USB transport | Out of scope so far |
 
 ## Documents
 - [ARCHITECTURE.md](ARCHITECTURE.md): how the pieces fit, the trust model and the main components on each side.

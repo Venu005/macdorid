@@ -31,7 +31,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 |---|---|---|
 | `hello` | both | `protocol`, `app`, `device`, `features[]` (may be missing → none) |
 | `device.status` | phone → Mac | `battery` (0–100), `charging` |
-| `transfer.offer` | sender → receiver | `transferId` (lowercase UUID), `name`, `size` (bytes), `mime`, `purpose` (optional: absent = file; `clipboard` = clipboard image, PNG ≤ 10 MiB) |
+| `transfer.offer` | sender → receiver | `transferId` (lowercase UUID), `name`, `size` (bytes), `mime`, `purpose` (optional: absent = file; `clipboard` = clipboard image, PNG ≤ 10 MiB; `photo` = a photo the Mac asked for with `photos.fetch`) |
 | `transfer.accept` | receiver → sender | `transferId` |
 | `transfer.reject` | receiver → sender | `transferId`, `reason` (`no_space` \| `declined` \| `invalid`) |
 | `transfer.finish` | sender → receiver | `transferId`, `sha256` (lowercase hex of the whole file) |
@@ -54,6 +54,15 @@ malformed frames are dropped without closing the connection. Both sides send `he
 | `media.art` | phone → Mac | `hash` (16 lowercase hex), `jpeg` (base64, ≤ 300 px) — once per hash per connection, before it's referenced |
 | `media.command` | Mac → phone | `command` (`play` \| `pause` \| `next` \| `previous` \| `seek`), `positionMs` (seek only) |
 | `clipboard.set` | both | `itemId` (UUID), `kind` (`text`), `text` — the encoded frame must be ≤ 1 MiB |
+| `photos.albums` | Mac → phone | `requestId` |
+| `photos.albumList` | phone → Mac | `requestId`, `access` (`full` \| `partial` \| `none`), `albums` [`{id, name, count, coverId?}`], `all` first |
+| `photos.query` | Mac → phone | `requestId`, `albumId` (`all` or a bucket id), `kind` (`all` \| `photos` \| `videos`), `cursor?`, `limit` (≤ 200) |
+| `photos.page` | phone → Mac | `requestId`, `access`, `items` [`{id, kind (photo \| video), name, mime, takenAt (ms), size, width, height, durationMs?}`], `nextCursor?` |
+| `photos.thumbs` | Mac → phone | `ids` (≤ 60) |
+| `photos.thumb` | phone → Mac | `id`, `jpeg` (base64, longest side 256 px, quality 80) |
+| `photos.fetch` | Mac → phone | `id`, `transferId` (lowercase UUID chosen by the Mac) |
+| `photos.fetchFailed` | phone → Mac | `transferId`, `reason` (`gone` \| `denied`) |
+| `photos.changed` | phone → Mac | empty body: the library or the access level changed |
 
 ### Transfer rules
 - The phone always makes the HTTP request: `PUT` for phone → Mac, `GET` for Mac → phone. Bytes go over HTTPS, never the WebSocket.
@@ -64,7 +73,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 - File names from the other side are sanitised; see `fixtures/file-naming.json`.
 
 ### Features
-`hello.features` lists what each side implements: `files`, `notifications`, `clipboard`, `ring`, `links` and `media`. A feature is used only when both sides list it. A missing `features` means none.
+`hello.features` lists what each side implements: `files`, `notifications`, `clipboard`, `ring`, `links`, `media` and `photos`. A feature is used only when both sides list it. A missing `features` means none.
 
 ### Notification rules
 - The phone owns the mute list. `notification.mute` is a request; the phone answers with a fresh `notification.apps`.
@@ -83,3 +92,11 @@ malformed frames are dropped without closing the connection. Both sides send `he
 - **Ring:** the phone sends `device.ringState` on every start and stop, including automatic stops (30 s, a volume key, a disconnect).
 - **Media updates:** `media.state` is sent only when the track, playing state, controls or artwork change, or the position jumps by more than 2 s; plus once after every `hello`. The receiver projects the position while playing.
 - **Links:** a `link.open` that isn't http/https with a host, or is over 8,192 bytes, is ignored.
+
+### Photos rules
+- **Ids** are MediaStore `_ID` decimal strings (1–20 digits). Anything else is ignored, and never becomes a file path.
+- **Order and paging:** newest first by `date_added` (seconds), then `_id`, both descending; `takenAt = date_added × 1000`. The cursor is `"<dateAddedSeconds>:<id>"`, and the next page is strictly older than it (`date_added < a OR (date_added = a AND _id < id)`), so new photos never shift pages. (`DATE_TAKEN` can be null and MediaProvider rejects SQL functions, so it isn't used.)
+- **Limits:** pages ≤ 200 items, thumbnail requests ≤ 60 ids. Thumbnails that are gone are skipped silently.
+- **Originals:** the phone answers `photos.fetch` by offering the file through the transfer channel with the Mac's `transferId` and `purpose: photo`, or with `photos.fetchFailed`. The Mac accepts a `photo` offer only for a transfer id it asked for; anything else is rejected with `invalid`. The Mac asks for at most 3 originals at a time (the phone's upload limit) and gives up after 30 s without an offer.
+- **No access:** the phone answers `photos.albums` and `photos.query` with `access: none` and empty lists, ignores `photos.thumbs`, and answers `photos.fetch` with `denied`.
+- **Changes:** the phone sends `photos.changed` (debounced 1 s) when MediaStore changes or the access level changes; the Mac reloads its albums and first page.

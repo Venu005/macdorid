@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import dev.macdroid.app.graph
 import dev.macdroid.app.platform.Permissions
 import dev.macdroid.app.service.ConnectionService
+import dev.macdroid.app.ui.presentation.PhotosAccessText
 import dev.macdroid.core.pairing.PairedMac
+import dev.macdroid.core.protocol.PhotoAccess
 import dev.macdroid.core.tls.Fingerprint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,8 +22,10 @@ data class SettingsUi(
     val keepConnected: Boolean,
     val notificationsAllowed: Boolean,
     val batteryUnrestricted: Boolean,
+    val photosAccess: PhotoAccess = PhotoAccess.None,
 ) {
     val macSummary: String get() = mac?.let { "${it.name} · ${Fingerprint.display(it.fingerprint)}" } ?: "Not paired"
+    val photosSummary: String get() = PhotosAccessText.label(photosAccess)
     val permissionsSummary: String get() = if (notificationsAllowed) "All set ✓" else "Notifications are off — tap to turn on"
 }
 
@@ -35,6 +39,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), local.value)
 
     fun refresh() {
+        graph.photosBridge.refreshAccess()
         local.value = read()
     }
 
@@ -57,6 +62,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             keepConnected = graph.uiPrefs.keepConnected,
             notificationsAllowed = Permissions.hasNotifications(app),
             batteryUnrestricted = app.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(app.packageName),
+            photosAccess = graph.photosBridge.access.value,
         )
     }
 }

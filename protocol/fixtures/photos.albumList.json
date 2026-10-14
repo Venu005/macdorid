@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "type": "photos.albumList",
+  "id": "6f1c2a0e-0000-4000-8000-000000000041",
+  "body": {
+    "requestId": "r1",
+    "access": "full",
+    "albums": [
+      {
+        "id": "all",
+        "name": "All Photos",
+        "count": 4812,
+        "coverId": "1001"
+      },
+      {
+        "id": "-1739773001",
+        "name": "Camera",
+        "count": 2301,
+        "coverId": "1001"
+      }
+    ]
+  }
+}

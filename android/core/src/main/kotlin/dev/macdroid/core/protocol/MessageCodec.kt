@@ -46,6 +46,15 @@ object MessageCodec {
             is Message.MediaState -> "media.state" to json.encodeToJsonElement(MediaStateBody.serializer(), message.body)
             is Message.MediaArt -> "media.art" to json.encodeToJsonElement(MediaArtBody.serializer(), message.body)
             is Message.MediaCommand -> "media.command" to json.encodeToJsonElement(MediaCommandBody.serializer(), message.body)
+            is Message.PhotosAlbums -> "photos.albums" to json.encodeToJsonElement(PhotosAlbumsBody.serializer(), message.body)
+            is Message.PhotosAlbumList -> "photos.albumList" to json.encodeToJsonElement(PhotosAlbumListBody.serializer(), message.body)
+            is Message.PhotosQuery -> "photos.query" to json.encodeToJsonElement(PhotosQueryBody.serializer(), message.body)
+            is Message.PhotosPage -> "photos.page" to json.encodeToJsonElement(PhotosPageBody.serializer(), message.body)
+            is Message.PhotosThumbs -> "photos.thumbs" to json.encodeToJsonElement(PhotosThumbsBody.serializer(), message.body)
+            is Message.PhotosThumb -> "photos.thumb" to json.encodeToJsonElement(PhotosThumbBody.serializer(), message.body)
+            is Message.PhotosFetch -> "photos.fetch" to json.encodeToJsonElement(PhotosFetchBody.serializer(), message.body)
+            is Message.PhotosFetchFailed -> "photos.fetchFailed" to json.encodeToJsonElement(PhotosFetchFailedBody.serializer(), message.body)
+            Message.PhotosChanged -> "photos.changed" to JsonObject(emptyMap())
             is Message.Unknown -> throw IllegalArgumentException("cannot encode unknown message type ${message.type}")
         }
         return buildJsonObject {
@@ -88,6 +97,15 @@ object MessageCodec {
                 "media.state" -> Message.MediaState(json.decodeFromJsonElement(MediaStateBody.serializer(), body))
                 "media.art" -> Message.MediaArt(json.decodeFromJsonElement(MediaArtBody.serializer(), body))
                 "media.command" -> Message.MediaCommand(json.decodeFromJsonElement(MediaCommandBody.serializer(), body))
+                "photos.albums" -> Message.PhotosAlbums(json.decodeFromJsonElement(PhotosAlbumsBody.serializer(), body))
+                "photos.albumList" -> Message.PhotosAlbumList(json.decodeFromJsonElement(PhotosAlbumListBody.serializer(), body))
+                "photos.query" -> Message.PhotosQuery(json.decodeFromJsonElement(PhotosQueryBody.serializer(), body))
+                "photos.page" -> Message.PhotosPage(json.decodeFromJsonElement(PhotosPageBody.serializer(), body))
+                "photos.thumbs" -> Message.PhotosThumbs(json.decodeFromJsonElement(PhotosThumbsBody.serializer(), body))
+                "photos.thumb" -> Message.PhotosThumb(json.decodeFromJsonElement(PhotosThumbBody.serializer(), body))
+                "photos.fetch" -> Message.PhotosFetch(json.decodeFromJsonElement(PhotosFetchBody.serializer(), body))
+                "photos.fetchFailed" -> Message.PhotosFetchFailed(json.decodeFromJsonElement(PhotosFetchFailedBody.serializer(), body))
+                "photos.changed" -> Message.PhotosChanged
                 else -> Message.Unknown(type)
             }
         } catch (e: IllegalArgumentException) { // includes SerializationException

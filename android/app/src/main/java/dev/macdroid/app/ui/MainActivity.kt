@@ -22,4 +22,10 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    // The user may have changed photo access in the system settings; the Mac should reload (photos spec §4).
+    override fun onResume() {
+        super.onResume()
+        graph.photosBridge.refreshAccess()
+    }
 }

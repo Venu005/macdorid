@@ -1,9 +1,9 @@
 enum SidebarSection: String, Hashable, CaseIterable, Identifiable {
-    case phone, notifications, clipboard, files, general, security, about
+    case phone, notifications, clipboard, files, photos, general, security, about
 
     var id: String { rawValue }
 
-    static let features: [SidebarSection] = [.phone, .notifications, .clipboard, .files]
+    static let features: [SidebarSection] = [.phone, .notifications, .clipboard, .files, .photos]
     static let settings: [SidebarSection] = [.general, .security, .about]
 
     var title: String {
@@ -12,6 +12,7 @@ enum SidebarSection: String, Hashable, CaseIterable, Identifiable {
         case .notifications: "Notifications"
         case .clipboard: "Clipboard"
         case .files: "Files"
+        case .photos: "Photos"
         case .general: "General"
         case .security: "Security"
         case .about: "About"
@@ -24,6 +25,7 @@ enum SidebarSection: String, Hashable, CaseIterable, Identifiable {
         case .notifications: "bell.badge"
         case .clipboard: "doc.on.clipboard"
         case .files: "folder"
+        case .photos: "photo.on.rectangle"
         case .general: "gearshape"
         case .security: "lock.shield"
         case .about: "info.circle"

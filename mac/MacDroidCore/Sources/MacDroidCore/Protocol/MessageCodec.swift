@@ -7,6 +7,7 @@ public enum MessageCodecError: Error, Equatable {
 
 public enum MessageCodec {
     private struct Header: Decodable { let type: String }
+    private struct Empty: Codable {}
     private struct Incoming<Body: Decodable>: Decodable { let body: Body }
     private struct Outgoing<Body: Encodable>: Encodable {
         let v: Int
@@ -42,6 +43,15 @@ public enum MessageCodec {
         case .mediaState(let body): return try encode(type: "media.state", id: id, body: body)
         case .mediaArt(let body): return try encode(type: "media.art", id: id, body: body)
         case .mediaCommand(let body): return try encode(type: "media.command", id: id, body: body)
+        case .photosAlbums(let body): return try encode(type: "photos.albums", id: id, body: body)
+        case .photosAlbumList(let body): return try encode(type: "photos.albumList", id: id, body: body)
+        case .photosQuery(let body): return try encode(type: "photos.query", id: id, body: body)
+        case .photosPage(let body): return try encode(type: "photos.page", id: id, body: body)
+        case .photosThumbs(let body): return try encode(type: "photos.thumbs", id: id, body: body)
+        case .photosThumb(let body): return try encode(type: "photos.thumb", id: id, body: body)
+        case .photosFetch(let body): return try encode(type: "photos.fetch", id: id, body: body)
+        case .photosFetchFailed(let body): return try encode(type: "photos.fetchFailed", id: id, body: body)
+        case .photosChanged: return try encode(type: "photos.changed", id: id, body: Empty())
         case .unknown(let type): throw MessageCodecError.cannotEncodeUnknown(type)
         }
     }
@@ -76,6 +86,15 @@ public enum MessageCodec {
             case "media.state": return .mediaState(try decoder.decode(Incoming<MediaState>.self, from: data).body)
             case "media.art": return .mediaArt(try decoder.decode(Incoming<MediaArt>.self, from: data).body)
             case "media.command": return .mediaCommand(try decoder.decode(Incoming<MediaCommand>.self, from: data).body)
+            case "photos.albums": return .photosAlbums(try decoder.decode(Incoming<PhotosAlbumsRequest>.self, from: data).body)
+            case "photos.albumList": return .photosAlbumList(try decoder.decode(Incoming<PhotosAlbumList>.self, from: data).body)
+            case "photos.query": return .photosQuery(try decoder.decode(Incoming<PhotosQuery>.self, from: data).body)
+            case "photos.page": return .photosPage(try decoder.decode(Incoming<PhotosPage>.self, from: data).body)
+            case "photos.thumbs": return .photosThumbs(try decoder.decode(Incoming<PhotosThumbs>.self, from: data).body)
+            case "photos.thumb": return .photosThumb(try decoder.decode(Incoming<PhotosThumb>.self, from: data).body)
+            case "photos.fetch": return .photosFetch(try decoder.decode(Incoming<PhotosFetch>.self, from: data).body)
+            case "photos.fetchFailed": return .photosFetchFailed(try decoder.decode(Incoming<PhotosFetchFailed>.self, from: data).body)
+            case "photos.changed": return .photosChanged
             case let other: return .unknown(type: other)
             }
         } catch {

@@ -4,6 +4,26 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-14 — Plan 6: photos (in progress on feat/photos)
+- **Task 1:** photos messages (`photos.albums/albumList/query/page/thumbs/thumb/fetch/fetchFailed/changed`) and `purpose: photo` in both codecs, 10 fixtures, `photos` feature on both sides, PROTOCOL.md "Photos rules". Verified: `swift test` 234, `:core:test`, Mac app and `assembleDebug` build.
+- **Task 2:** Android core `PhotoQueries` (cursor, SQL selection by `date_added`/`_id`, limits, id checks, access level) and `TransferEngine.enqueueWithId`; photo transfers are hidden like clipboard ones (`isHidden`). Verified: `:core:test`.
+- **Task 3:** Mac `TransferManager` photo destinations: only expected transfer ids are accepted (others rejected `invalid`); the cache is hidden and cancelled on disconnect; the save folder is visible and never asks; `photoReceived` / `photoFailed` events; `hidden`/`isHidden` generalises clipboard hiding. Verified: `swift test` 240, Mac app build.
+- **Task 4:** Mac core `ThumbnailCache` (digits-only ids, 200 MB LRU), `PhotosPresentation` (day groups, copy), `PhotoSelection` (click / ⌘ / ⇧) and the `PhotosClient` actor (paging with a stale-response guard, merge on change, thumbnail de-dup with 20 s expiry, fetches three at a time with previews first and a 30 s no-offer timeout). Verified: `swift test` 265 (timing tests ×5), Mac app build.
+- **Task 5:** Android core `PhotoService` answers albums, pages, thumbnails and fetches from a `PhotoSource`; nothing is read without access; invalid photo and transfer ids are refused. Verified: `:core:test`.
+- **Task 6:** Android `PhotoLibrary` (MediaStore paging by `date_added`/`_id`, albums by bucket, 256 px JPEG thumbnails via `loadThumbnail`) and `PhotosBridge` (requests queued to one worker, `ContentObserver` debounced to `photos.changed`); media read permissions in the manifest; `AppGraph.photosBridge`. Verified: Android gates.
+- **Task 7:** Android setup step "See your photos on your Mac" (first run only; setup is now 7 steps), Settings → Photos (All photos / Selected photos / Off; tapping asks again or opens app settings), access re-checked on resume. Verified: Android gates.
+- **Task 8:** Mac Photos page (album column, day-grouped 96 pt grid, click / ⌘ / ⇧ / ⌘A selection, selection bar, Space or double-click Quick Look, single-item drag-out, Save to Mac, dimmed while disconnected), the Phone page "Photos" line, and the photo cache emptied at launch. Verified: `swift test`, Mac app build with no warnings.
+- **Task 9:** cross-platform test covers photos: page, thumbnail, save to the receive folder over the transfer engine, and `gone`. Verified: `./scripts/cross-platform-test.sh` passed twice.
+- **Task 10:** handoff updated (ARCHITECTURE photos components and fetch flow, DECISIONS, DEV-GUIDE photos access, STATUS, ROADMAP, README round table) and the owner checklist in `docs/superpowers/plans/2026-10-13-macdroid-photos-followups.md`. Gates: `swift test` 265, Mac app build with no warnings, Android `:core:test :app:testDebugUnitTest :app:assembleDebug` with no warnings, cross-platform test passed.
+- **Final review (Opus), 5 Important fixed:**
+  - I1: a change with more than a page of new photos no longer leaves a hole before the old items (start over instead of merging).
+  - I2: the phone runs thumbnails in their own lane (`PhotoLanes`), so a fetch never waits behind a thumbnail backlog.
+  - I3: page queries are capped in the loop too (older MediaProviders may ignore `QUERY_ARG_LIMIT`).
+  - I4: photo saves are cancelled on disconnect like previews; the phone drops them on restart anyway.
+  - I5: day groups are computed only when items change, thumbnail arrivals are batched every 100 ms, and the main thread no longer writes cache mtimes.
+  - Verified: `swift test` 268, Android gates, Mac app build with no warnings, cross-platform test passed.
+  - 9 minors deferred in `docs/superpowers/plans/2026-10-13-macdroid-photos-followups.md`.
+
 ## 2026-10-13 — Photos plan (Plan 6)
 - **What:** self-reviewed the photos spec (§9, `06c1f71`) and wrote the implementation plan `docs/superpowers/plans/2026-10-13-macdroid-photos-6.md`. It has 10 tasks:
   1. protocol

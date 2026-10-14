@@ -19,6 +19,9 @@ final class FilesSettings {
     /// Named in save panels ("<phone> is sending …").
     var phoneName = "Your phone"
 
+    /// Where "Save to Mac" puts photos (spec §9.2): the received-files folder, or nil when it can't be reached.
+    var photoSaveFolder: URL? { folderProblem ? nil : folder }
+
     /// Every folder opened this session stays accessible, so files already saved in a previous folder can still be opened.
     @ObservationIgnored private var accessedFolders: [URL] = []
     @ObservationIgnored private var openPanels: [String: NSSavePanel] = [:]

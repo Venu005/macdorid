@@ -30,6 +30,8 @@ let transfers = TransferManager(
     stateDirectory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-\(UUID().uuidString)"),
     location: FolderLocation(folder: receiveDir),
     clipboardDirectory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-clipboard-\(UUID().uuidString)"),
+    photoCacheDirectory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-photos-\(UUID().uuidString)"),
+    photoSaveFolder: { receiveDir },
     send: { try await hub.send($0) }
 )
 await transfers.attach(to: hub)
@@ -108,6 +110,40 @@ let extrasPrinter = Task {
     }
 }
 
+let photos = PhotosClient(
+    thumbnails: ThumbnailCache(directory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-thumbs-\(UUID().uuidString)")),
+    transfers: .manager(transfers),
+    send: { try await hub.send($0) }
+)
+await photos.attach(to: hub)
+
+// On the first page: ask for its thumbnails, save the newest item, and ask for one that doesn't exist.
+let photosPrinter = Task {
+    var started = false
+    for await state in photos.states where !state.items.isEmpty && !started {
+        started = true
+        print("PHOTOS page count=\(state.items.count) access=\(state.access?.rawValue ?? "-")")
+        await photos.requestThumbnails(state.items.map(\.id))
+        let newest = state.items[0].id
+        Task {
+            switch await photos.fetchFile(newest, toCache: false) {
+            case .success(let url):
+                let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? -1
+                print("PHOTOS saved \(url.lastPathComponent) size=\(size)")
+            case .failure(let error):
+                print("PHOTOS fetch failed \(error)")
+            }
+            if case .failure(.gone) = await photos.fetchFile("424242", toCache: true) { print("PHOTOS gone id=424242") }
+        }
+    }
+}
+
+let thumbPrinter = Task {
+    for await event in photos.events {
+        if case .thumbnail(let id, _) = event { print("PHOTOS thumb id=\(id)") }
+    }
+}
+
 let linkPrinter = Task {
     for await event in extras.events {
         if case .openLink(let url) = event { print("LINK open \(url.absoluteString)") }
@@ -151,6 +187,8 @@ let transferPrinter = Task {
             let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? -1
             print("CLIPBOARD image size=\(size)")
             await clipboard.imageReceived(url)
+        case .photoReceived(let transferId, let url): await photos.transferFinished(transferId: transferId, url: url)
+        case .photoFailed(let transferId): await photos.transferFailed(transferId: transferId)
         }
     }
 }
@@ -175,3 +213,5 @@ notificationPrinter.cancel()
 appsPrinter.cancel()
 extrasPrinter.cancel()
 linkPrinter.cancel()
+photosPrinter.cancel()
+thumbPrinter.cancel()

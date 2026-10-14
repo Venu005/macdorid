@@ -28,6 +28,8 @@ data class ServerInfo(val macName: String, val protocol: Int)
 enum class TransferPurpose {
     @SerialName("file") File,
     @SerialName("clipboard") Clipboard,
+    /** A photo the Mac asked for with `photos.fetch` (Plan 6). */
+    @SerialName("photo") Photo,
 }
 
 @Serializable
@@ -133,8 +135,9 @@ object Features {
     const val RING = "ring"
     const val LINKS = "links"
     const val MEDIA = "media"
+    const val PHOTOS = "photos"
     /** What this app implements. */
-    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD, RING, LINKS, MEDIA)
+    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD, RING, LINKS, MEDIA, PHOTOS)
 }
 
 @Serializable
@@ -189,6 +192,36 @@ enum class NotificationErrorReason {
 data class NotificationErrorBody(val key: String, val reason: NotificationErrorReason)
 
 /** A control-channel message. */
+// Photos (Plan 6)
+
+@Serializable enum class PhotoAccess { @SerialName("full") Full, @SerialName("partial") Partial, @SerialName("none") None }
+@Serializable enum class PhotoKindFilter { @SerialName("all") All, @SerialName("photos") Photos, @SerialName("videos") Videos }
+@Serializable enum class PhotoKind { @SerialName("photo") Photo, @SerialName("video") Video }
+
+@Serializable data class PhotoAlbumBody(val id: String, val name: String, val count: Int, val coverId: String? = null)
+
+@Serializable data class PhotoItemBody(
+    val id: String,
+    val kind: PhotoKind,
+    val name: String,
+    val mime: String,
+    val takenAt: Long,
+    val size: Long,
+    val width: Int,
+    val height: Int,
+    val durationMs: Long? = null,
+)
+
+@Serializable data class PhotosAlbumsBody(val requestId: String)
+@Serializable data class PhotosAlbumListBody(val requestId: String, val access: PhotoAccess, val albums: List<PhotoAlbumBody>)
+@Serializable data class PhotosQueryBody(val requestId: String, val albumId: String, val kind: PhotoKindFilter, val cursor: String? = null, val limit: Int)
+@Serializable data class PhotosPageBody(val requestId: String, val access: PhotoAccess, val items: List<PhotoItemBody>, val nextCursor: String? = null)
+@Serializable data class PhotosThumbsBody(val ids: List<String>)
+@Serializable data class PhotosThumbBody(val id: String, val jpeg: String)
+@Serializable data class PhotosFetchBody(val id: String, val transferId: String)
+@Serializable enum class PhotoFetchFailure { @SerialName("gone") Gone, @SerialName("denied") Denied }
+@Serializable data class PhotosFetchFailedBody(val transferId: String, val reason: PhotoFetchFailure)
+
 sealed interface Message {
     data class Hello(val body: HelloBody) : Message
     data class DeviceStatus(val body: DeviceStatusBody) : Message
@@ -215,6 +248,15 @@ sealed interface Message {
     data class MediaState(val body: MediaStateBody) : Message
     data class MediaArt(val body: MediaArtBody) : Message
     data class MediaCommand(val body: MediaCommandBody) : Message
+    data class PhotosAlbums(val body: PhotosAlbumsBody) : Message
+    data class PhotosAlbumList(val body: PhotosAlbumListBody) : Message
+    data class PhotosQuery(val body: PhotosQueryBody) : Message
+    data class PhotosPage(val body: PhotosPageBody) : Message
+    data class PhotosThumbs(val body: PhotosThumbsBody) : Message
+    data class PhotosThumb(val body: PhotosThumbBody) : Message
+    data class PhotosFetch(val body: PhotosFetchBody) : Message
+    data class PhotosFetchFailed(val body: PhotosFetchFailedBody) : Message
+    data object PhotosChanged : Message
     /** A type this version doesn't understand; decoded so callers can ignore it, never encoded. */
     data class Unknown(val type: String) : Message
 }

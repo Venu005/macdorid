@@ -7,6 +7,7 @@
 - `main` also has the 9 deferred-minor fixes (merged 2026-10-13 as `bd6c661`; `swift test` 217).
 - `main` also has the small wins (Plan 5: ring, links, media controls), merged 2026-10-13 as `c9d202d`; `swift test` 233.
 ## In flight
+- **Photos (Plan 6):** built on `feat/photos` (2026-10-14), all gates and the cross-platform test pass; awaiting the final review fixes and the owner's hands-on check before merging. Checklist: `docs/superpowers/plans/2026-10-13-macdroid-photos-followups.md`.
 - **Small wins (Plan 5):** merged to `main` 2026-10-13. Deferred minors: `docs/superpowers/plans/2026-10-13-macdroid-small-wins-followups.md`.
 - **Notifications + clipboard (Plans 3 and 4):** merged to `main` on 2026-10-13 after the owner's hands-on check. Deferred minors: `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
 - **File transfer (Plan 2):** merged to `main` on 2026-10-13. The remaining hands-on checks are in `docs/superpowers/plans/2026-10-13-macdroid-file-transfer-followups.md`; fix anything they turn up on a new branch.

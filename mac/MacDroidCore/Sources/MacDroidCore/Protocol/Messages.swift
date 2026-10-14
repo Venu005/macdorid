@@ -4,7 +4,7 @@ public enum ProtocolInfo {
     public static let version = 1
     public static let serviceType = "_macdroid._tcp"
     /// Features this app implements, sent in `hello` (spec §2.1).
-    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media]
+    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos]
 }
 
 /// Names used in `hello.features`. A feature is active only when both sides list it.
@@ -15,6 +15,7 @@ public enum Feature {
     public static let ring = "ring"
     public static let links = "links"
     public static let media = "media"
+    public static let photos = "photos"
 }
 
 public struct Hello: Codable, Equatable, Sendable {
@@ -82,6 +83,8 @@ public struct ServerInfo: Codable, Equatable, Sendable {
 public enum TransferPurpose: String, Codable, Sendable {
     case file
     case clipboard
+    /// A photo the Mac asked for with `photos.fetch` (Plan 6).
+    case photo
 }
 
 public struct TransferOffer: Codable, Equatable, Sendable {
@@ -422,6 +425,127 @@ public struct NotificationError: Codable, Equatable, Sendable {
 }
 
 /// A control-channel message.
+// MARK: Photos (Plan 6)
+
+public enum PhotoAccess: String, Codable, Sendable { case full, partial, none }
+public enum PhotoKindFilter: String, Codable, Sendable { case all, photos, videos }
+public enum PhotoKind: String, Codable, Sendable { case photo, video }
+
+public struct PhotoAlbum: Codable, Equatable, Sendable, Identifiable {
+    public var id: String
+    public var name: String
+    public var count: Int
+    public var coverId: String?
+    public init(id: String, name: String, count: Int, coverId: String? = nil) {
+        self.id = id
+        self.name = name
+        self.count = count
+        self.coverId = coverId
+    }
+}
+
+public struct PhotoItem: Codable, Equatable, Sendable, Identifiable, Hashable {
+    public var id: String
+    public var kind: PhotoKind
+    public var name: String
+    public var mime: String
+    /// Epoch ms (DATE_ADDED × 1000, see the plan's ordering ruling).
+    public var takenAt: Int64
+    public var size: Int64
+    public var width: Int
+    public var height: Int
+    public var durationMs: Int64?
+    public init(id: String, kind: PhotoKind, name: String, mime: String, takenAt: Int64, size: Int64, width: Int, height: Int, durationMs: Int64? = nil) {
+        self.id = id
+        self.kind = kind
+        self.name = name
+        self.mime = mime
+        self.takenAt = takenAt
+        self.size = size
+        self.width = width
+        self.height = height
+        self.durationMs = durationMs
+    }
+}
+
+public struct PhotosAlbumsRequest: Codable, Equatable, Sendable {
+    public var requestId: String
+    public init(requestId: String) { self.requestId = requestId }
+}
+
+public struct PhotosAlbumList: Codable, Equatable, Sendable {
+    public var requestId: String
+    public var access: PhotoAccess
+    public var albums: [PhotoAlbum]
+    public init(requestId: String, access: PhotoAccess, albums: [PhotoAlbum]) {
+        self.requestId = requestId
+        self.access = access
+        self.albums = albums
+    }
+}
+
+public struct PhotosQuery: Codable, Equatable, Sendable {
+    public var requestId: String
+    public var albumId: String
+    public var kind: PhotoKindFilter
+    public var cursor: String?
+    public var limit: Int
+    public init(requestId: String, albumId: String, kind: PhotoKindFilter, cursor: String? = nil, limit: Int) {
+        self.requestId = requestId
+        self.albumId = albumId
+        self.kind = kind
+        self.cursor = cursor
+        self.limit = limit
+    }
+}
+
+public struct PhotosPage: Codable, Equatable, Sendable {
+    public var requestId: String
+    public var access: PhotoAccess
+    public var items: [PhotoItem]
+    public var nextCursor: String?
+    public init(requestId: String, access: PhotoAccess, items: [PhotoItem], nextCursor: String? = nil) {
+        self.requestId = requestId
+        self.access = access
+        self.items = items
+        self.nextCursor = nextCursor
+    }
+}
+
+public struct PhotosThumbs: Codable, Equatable, Sendable {
+    public var ids: [String]
+    public init(ids: [String]) { self.ids = ids }
+}
+
+public struct PhotosThumb: Codable, Equatable, Sendable {
+    public var id: String
+    public var jpeg: String
+    public init(id: String, jpeg: String) {
+        self.id = id
+        self.jpeg = jpeg
+    }
+}
+
+public struct PhotosFetch: Codable, Equatable, Sendable {
+    public var id: String
+    public var transferId: String
+    public init(id: String, transferId: String) {
+        self.id = id
+        self.transferId = transferId
+    }
+}
+
+public enum PhotoFetchFailure: String, Codable, Sendable { case gone, denied }
+
+public struct PhotosFetchFailed: Codable, Equatable, Sendable {
+    public var transferId: String
+    public var reason: PhotoFetchFailure
+    public init(transferId: String, reason: PhotoFetchFailure) {
+        self.transferId = transferId
+        self.reason = reason
+    }
+}
+
 public enum Message: Equatable, Sendable {
     case hello(Hello)
     case deviceStatus(DeviceStatus)
@@ -448,6 +572,15 @@ public enum Message: Equatable, Sendable {
     case mediaState(MediaState)
     case mediaArt(MediaArt)
     case mediaCommand(MediaCommand)
+    case photosAlbums(PhotosAlbumsRequest)
+    case photosAlbumList(PhotosAlbumList)
+    case photosQuery(PhotosQuery)
+    case photosPage(PhotosPage)
+    case photosThumbs(PhotosThumbs)
+    case photosThumb(PhotosThumb)
+    case photosFetch(PhotosFetch)
+    case photosFetchFailed(PhotosFetchFailed)
+    case photosChanged
     /// A type this version doesn't understand. Decoded so callers can ignore it; never encoded.
     case unknown(type: String)
 }

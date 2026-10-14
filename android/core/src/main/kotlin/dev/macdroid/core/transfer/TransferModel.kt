@@ -35,6 +35,8 @@ data class TransferRecord(
     val purpose: TransferPurpose? = null,
 ) {
     val isClipboard: Boolean get() = purpose == TransferPurpose.Clipboard
+    /** Kept out of the Files UI, notifications and history: clipboard images and photos the Mac fetched (photos spec §4). */
+    val isHidden: Boolean get() = isClipboard || purpose == TransferPurpose.Photo
 
     val isFinished: Boolean get() = phase == Phase.Done || phase == Phase.Failed || phase == Phase.Cancelled
 
@@ -60,9 +62,9 @@ sealed interface TransferEvent {
 /** A file the user chose to send. [source] is a content URI or an absolute path. */
 data class OutgoingFile(val source: String, val name: String, val size: Long, val mime: String)
 
-/** The transfers the Files UI and transfer notifications show: clipboard images are hidden (spec §8.10). */
+/** The transfers the Files UI and transfer notifications show: clipboard images and fetched photos are hidden (spec §8.10). */
 fun TransferSnapshot.files(): TransferSnapshot = TransferSnapshot(
-    active = active.filterNot { it.isClipboard },
-    history = history.filterNot { it.isClipboard },
-    rates = rates.filterKeys { id -> active.any { it.id == id && !it.isClipboard } },
+    active = active.filterNot { it.isHidden },
+    history = history.filterNot { it.isHidden },
+    rates = rates.filterKeys { id -> active.any { it.id == id && !it.isHidden } },
 )
