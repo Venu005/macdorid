@@ -52,6 +52,12 @@ public enum MessageCodec {
         case .photosFetch(let body): return try encode(type: "photos.fetch", id: id, body: body)
         case .photosFetchFailed(let body): return try encode(type: "photos.fetchFailed", id: id, body: body)
         case .photosChanged: return try encode(type: "photos.changed", id: id, body: Empty())
+        case .mirrorStart(let body): return try encode(type: "mirror.start", id: id, body: body)
+        case .mirrorState(let body): return try encode(type: "mirror.state", id: id, body: body)
+        case .mirrorStop(let body): return try encode(type: "mirror.stop", id: id, body: body)
+        case .mirrorKeyframe(let body): return try encode(type: "mirror.keyframe", id: id, body: body)
+        case .mirrorPing(let body): return try encode(type: "mirror.ping", id: id, body: body)
+        case .mirrorPong(let body): return try encode(type: "mirror.pong", id: id, body: body)
         case .unknown(let type): throw MessageCodecError.cannotEncodeUnknown(type)
         }
     }
@@ -95,6 +101,12 @@ public enum MessageCodec {
             case "photos.fetch": return .photosFetch(try decoder.decode(Incoming<PhotosFetch>.self, from: data).body)
             case "photos.fetchFailed": return .photosFetchFailed(try decoder.decode(Incoming<PhotosFetchFailed>.self, from: data).body)
             case "photos.changed": return .photosChanged
+            case "mirror.start": return .mirrorStart(try decoder.decode(Incoming<MirrorStart>.self, from: data).body)
+            case "mirror.state": return .mirrorState(try decoder.decode(Incoming<MirrorStateUpdate>.self, from: data).body)
+            case "mirror.stop": return .mirrorStop(try decoder.decode(Incoming<MirrorSessionRef>.self, from: data).body)
+            case "mirror.keyframe": return .mirrorKeyframe(try decoder.decode(Incoming<MirrorSessionRef>.self, from: data).body)
+            case "mirror.ping": return .mirrorPing(try decoder.decode(Incoming<MirrorPing>.self, from: data).body)
+            case "mirror.pong": return .mirrorPong(try decoder.decode(Incoming<MirrorPong>.self, from: data).body)
             case let other: return .unknown(type: other)
             }
         } catch {

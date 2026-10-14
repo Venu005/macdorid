@@ -10,6 +10,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
   - auto-Start presses "Share screen" (`android:id/button1`) on an unlocked phone
   - capture ends when the phone locks, and the lock screen can't be captured
   - playback capture works with the phone muted
+- **Task 2:** `mirror.*` control messages (start, state, stop, keyframe, ping, pong) in both codecs, 7 fixtures, `mirror` feature on both sides. Verified: `swift test` 275, `:core:test`, `assembleDebug`.
 
 ## 2026-10-14 — Mirroring plan (Plan 7)
 - **What:** wrote `docs/superpowers/plans/2026-10-14-macdroid-mirroring-7.md` (11 tasks):

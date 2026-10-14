@@ -55,6 +55,12 @@ object MessageCodec {
             is Message.PhotosFetch -> "photos.fetch" to json.encodeToJsonElement(PhotosFetchBody.serializer(), message.body)
             is Message.PhotosFetchFailed -> "photos.fetchFailed" to json.encodeToJsonElement(PhotosFetchFailedBody.serializer(), message.body)
             Message.PhotosChanged -> "photos.changed" to JsonObject(emptyMap())
+            is Message.MirrorStart -> "mirror.start" to json.encodeToJsonElement(MirrorStartBody.serializer(), message.body)
+            is Message.MirrorState -> "mirror.state" to json.encodeToJsonElement(MirrorStateBody.serializer(), message.body)
+            is Message.MirrorStop -> "mirror.stop" to json.encodeToJsonElement(MirrorSessionBody.serializer(), message.body)
+            is Message.MirrorKeyframe -> "mirror.keyframe" to json.encodeToJsonElement(MirrorSessionBody.serializer(), message.body)
+            is Message.MirrorPing -> "mirror.ping" to json.encodeToJsonElement(MirrorPingBody.serializer(), message.body)
+            is Message.MirrorPong -> "mirror.pong" to json.encodeToJsonElement(MirrorPongBody.serializer(), message.body)
             is Message.Unknown -> throw IllegalArgumentException("cannot encode unknown message type ${message.type}")
         }
         return buildJsonObject {
@@ -106,6 +112,12 @@ object MessageCodec {
                 "photos.fetch" -> Message.PhotosFetch(json.decodeFromJsonElement(PhotosFetchBody.serializer(), body))
                 "photos.fetchFailed" -> Message.PhotosFetchFailed(json.decodeFromJsonElement(PhotosFetchFailedBody.serializer(), body))
                 "photos.changed" -> Message.PhotosChanged
+                "mirror.start" -> Message.MirrorStart(json.decodeFromJsonElement(MirrorStartBody.serializer(), body))
+                "mirror.state" -> Message.MirrorState(json.decodeFromJsonElement(MirrorStateBody.serializer(), body))
+                "mirror.stop" -> Message.MirrorStop(json.decodeFromJsonElement(MirrorSessionBody.serializer(), body))
+                "mirror.keyframe" -> Message.MirrorKeyframe(json.decodeFromJsonElement(MirrorSessionBody.serializer(), body))
+                "mirror.ping" -> Message.MirrorPing(json.decodeFromJsonElement(MirrorPingBody.serializer(), body))
+                "mirror.pong" -> Message.MirrorPong(json.decodeFromJsonElement(MirrorPongBody.serializer(), body))
                 else -> Message.Unknown(type)
             }
         } catch (e: IllegalArgumentException) { // includes SerializationException

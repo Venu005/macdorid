@@ -136,8 +136,9 @@ object Features {
     const val LINKS = "links"
     const val MEDIA = "media"
     const val PHOTOS = "photos"
+    const val MIRROR = "mirror"
     /** What this app implements. */
-    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD, RING, LINKS, MEDIA, PHOTOS)
+    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD, RING, LINKS, MEDIA, PHOTOS, MIRROR)
 }
 
 @Serializable
@@ -222,6 +223,32 @@ data class NotificationErrorBody(val key: String, val reason: NotificationErrorR
 @Serializable enum class PhotoFetchFailure { @SerialName("gone") Gone, @SerialName("denied") Denied }
 @Serializable data class PhotosFetchFailedBody(val transferId: String, val reason: PhotoFetchFailure)
 
+// Mirroring (Plan 7)
+
+@Serializable data class MirrorStartBody(val sessionId: String, val maxSize: Int, val fps: Int, val audio: Boolean)
+
+@Serializable enum class MirrorPhaseName { @SerialName("starting") Starting, @SerialName("streaming") Streaming, @SerialName("stopped") Stopped }
+
+@Serializable enum class MirrorStopReason {
+    @SerialName("user") User, @SerialName("mac") Mac, @SerialName("denied") Denied, @SerialName("consentTimeout") ConsentTimeout,
+    @SerialName("noPermission") NoPermission, @SerialName("ended") Ended, @SerialName("error") Error,
+}
+
+@Serializable data class MirrorStateBody(
+    val sessionId: String,
+    val state: MirrorPhaseName,
+    val width: Int? = null,
+    val height: Int? = null,
+    val rotation: Int? = null,
+    val reason: MirrorStopReason? = null,
+    val audio: Boolean? = null,
+    val control: Boolean? = null,
+)
+
+@Serializable data class MirrorSessionBody(val sessionId: String)
+@Serializable data class MirrorPingBody(val t0: Long)
+@Serializable data class MirrorPongBody(val t0: Long, val t1: Long, val t2: Long)
+
 sealed interface Message {
     data class Hello(val body: HelloBody) : Message
     data class DeviceStatus(val body: DeviceStatusBody) : Message
@@ -257,6 +284,12 @@ sealed interface Message {
     data class PhotosFetch(val body: PhotosFetchBody) : Message
     data class PhotosFetchFailed(val body: PhotosFetchFailedBody) : Message
     data object PhotosChanged : Message
+    data class MirrorStart(val body: MirrorStartBody) : Message
+    data class MirrorState(val body: MirrorStateBody) : Message
+    data class MirrorStop(val body: MirrorSessionBody) : Message
+    data class MirrorKeyframe(val body: MirrorSessionBody) : Message
+    data class MirrorPing(val body: MirrorPingBody) : Message
+    data class MirrorPong(val body: MirrorPongBody) : Message
     /** A type this version doesn't understand; decoded so callers can ignore it, never encoded. */
     data class Unknown(val type: String) : Message
 }

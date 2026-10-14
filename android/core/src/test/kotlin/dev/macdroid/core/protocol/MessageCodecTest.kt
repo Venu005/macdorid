@@ -31,6 +31,8 @@ class MessageCodecTest {
         "media.art.json", "media.command.json",
         "photos.albums.json", "photos.albumList.json", "photos.query.json", "photos.page.json", "photos.thumbs.json",
         "photos.thumb.json", "photos.fetch.json", "photos.fetchFailed.json", "photos.changed.json", "transfer.offer.photo.json",
+        "mirror.start.json", "mirror.state.json", "mirror.state.stopped.json", "mirror.stop.json", "mirror.keyframe.json",
+        "mirror.ping.json", "mirror.pong.json",
     )
 
     @Test fun fixturesRoundTrip() {
@@ -116,8 +118,21 @@ class MessageCodecTest {
         }
     }
 
-    @Test fun supportedFeaturesIncludePhotos() {
-        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media", "photos"), Features.SUPPORTED)
+    @Test fun supportedFeaturesIncludeMirror() {
+        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media", "photos", "mirror"), Features.SUPPORTED)
+    }
+
+    @Test fun mirrorFixturesDecode() {
+        val s = "5e55a0b1-1111-4222-8333-444455556666"
+        assertEquals(Message.MirrorStart(MirrorStartBody(s, 1920, 60, true)), MessageCodec.decode(Fixtures.text("mirror.start.json")))
+        assertEquals(Message.MirrorState(MirrorStateBody(s, MirrorPhaseName.Streaming, width = 864, height = 1920, rotation = 0, audio = true, control = false)),
+            MessageCodec.decode(Fixtures.text("mirror.state.json")))
+        assertEquals(Message.MirrorState(MirrorStateBody(s, MirrorPhaseName.Stopped, reason = MirrorStopReason.ConsentTimeout)),
+            MessageCodec.decode(Fixtures.text("mirror.state.stopped.json")))
+        assertEquals(Message.MirrorStop(MirrorSessionBody(s)), MessageCodec.decode(Fixtures.text("mirror.stop.json")))
+        assertEquals(Message.MirrorKeyframe(MirrorSessionBody(s)), MessageCodec.decode(Fixtures.text("mirror.keyframe.json")))
+        assertEquals(Message.MirrorPing(MirrorPingBody(1_000_000)), MessageCodec.decode(Fixtures.text("mirror.ping.json")))
+        assertEquals(Message.MirrorPong(MirrorPongBody(1_000_000, 9_000_500, 9_000_600)), MessageCodec.decode(Fixtures.text("mirror.pong.json")))
     }
 
     @Test fun photosFixturesDecode() {

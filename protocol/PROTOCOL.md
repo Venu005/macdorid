@@ -63,6 +63,12 @@ malformed frames are dropped without closing the connection. Both sides send `he
 | `photos.fetch` | Mac → phone | `id`, `transferId` (lowercase UUID chosen by the Mac) |
 | `photos.fetchFailed` | phone → Mac | `transferId`, `reason` (`gone` \| `denied`) |
 | `photos.changed` | phone → Mac | empty body: the library or the access level changed |
+| `mirror.start` | Mac → phone | `sessionId` (lowercase UUID), `maxSize` (720–1920), `fps` (30 \| 60), `audio` (bool) |
+| `mirror.state` | phone → Mac | `sessionId`, `state` (`starting` \| `streaming` \| `stopped`), `width?`, `height?`, `rotation?` (0/90/180/270), `reason?` (`user` \| `mac` \| `denied` \| `consentTimeout` \| `noPermission` \| `ended` \| `error`), `audio?`, `control?` |
+| `mirror.stop` | both | `sessionId` |
+| `mirror.keyframe` | Mac → phone | `sessionId` |
+| `mirror.ping` | Mac → phone | `t0` (Mac monotonic µs) |
+| `mirror.pong` | phone → Mac | `t0`, `t1` (phone µs when received), `t2` (phone µs when sent) |
 
 ### Transfer rules
 - The phone always makes the HTTP request: `PUT` for phone → Mac, `GET` for Mac → phone. Bytes go over HTTPS, never the WebSocket.
@@ -73,7 +79,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 - File names from the other side are sanitised; see `fixtures/file-naming.json`.
 
 ### Features
-`hello.features` lists what each side implements: `files`, `notifications`, `clipboard`, `ring`, `links`, `media` and `photos`. A feature is used only when both sides list it. A missing `features` means none.
+`hello.features` lists what each side implements: `files`, `notifications`, `clipboard`, `ring`, `links`, `media`, `photos` and `mirror`. A feature is used only when both sides list it. A missing `features` means none.
 
 ### Notification rules
 - The phone owns the mute list. `notification.mute` is a request; the phone answers with a fresh `notification.apps`.
