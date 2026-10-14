@@ -5,6 +5,7 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
 ## 2026-10-14 — Photos follow-ups (the 9 deferred minors, on fix/photos-minors)
+- **Verified (whole branch):** `swift test` 274, Mac app build with no warnings, Android `:core:test :app:testDebugUnitTest :app:assembleDebug` with no warnings, `./scripts/cross-platform-test.sh` passed. Installed on the owner's phone and Mac.
 - **M9:** the Mac keeps only thumbnails it asked for (and hasn't given up on); unrequested ones are dropped. Test `unrequestedThumbnailsAreDropped`.
 - **M2:** concurrent cache fetches of the same photo (double-click plus Space, a drag during a preview) share one transfer. Test `concurrentCacheFetchesOfOnePhotoShareATransfer`.
 - **M1:** a photo fetch whose bytes stop moving for 30 s (not while verifying a finished file) now fails instead of spinning; forgetting a fetch (timeout, stall) also cancels a transfer that slipped in meanwhile. `PhotoTransfers.isActive` became `progress` (done, size); `TransferManager.photoProgress`, async `forgetPhoto`. Tests `aStalledTransferFailsAndIsForgotten`, `forgettingAPhotoCancelsItsTransfer`; `aStartedTransferDoesNotTimeOut` now moves its bytes.

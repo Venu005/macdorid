@@ -23,7 +23,7 @@ Branch `feat/photos`. Built 2026-10-14; all gates and the cross-platform test pa
 
 ## Deferred minors
 
-From the final review (2026-10-14). The 5 Important findings were fixed (see CHANGELOG).
+From the final review (2026-10-14). The 5 Important findings were fixed (see CHANGELOG). **All 9 minors below were fixed on `fix/photos-minors` (2026-10-14), one commit each; see the CHANGELOG entry "Photos follow-ups".**
 1. **No progress timeout after the offer:** once an offer has arrived, nothing times out; a stalled transfer spins until disconnect. Also, `finish` forgets after an await, so a late offer can slip into the cache unobserved.
 2. **Duplicate cache fetches:** concurrent cache fetches of the same photo (double-click plus Space, drag during preview) aren't coalesced.
 3. **Observer scope:** `PhotosBridge` observes all MediaStore files; downloads and received files also trigger `photos.changed`. Watch the Images and Video URIs only.
