@@ -56,3 +56,9 @@ The full per-plan rulings are in the `docs/superpowers/plans/*-followups.md` fil
 | Mirroring auto-Start: the accessibility service presses Android's capture consent (a setting, on for personal builds) | Reach the phone asleep or in a pocket | Always tapping Start on the phone |
 | Mirroring media on a dedicated mutual-TLS WebSocket; input on the control WebSocket; H.264 hardware codecs, no B-frames, drop to key frame; PCM audio | Lowest latency with the existing trust model; media can't block input | One WebSocket for everything; UDP/QUIC; Opus/AAC |
 | A latency budget for every feature, with a measured readout for mirroring | Owner: everything must be low latency | Best effort |
+| Mirroring consent in Plan 7 via a "Tap to start" notification | Android 17 blocks background activity starts (probe Q1a); Plan 8's accessibility service lifts that | Requiring MacDroid to be open on the phone |
+| Capture consent limited to the entire screen (API 34+ `createConfigForDefaultDisplay`) | No "single app" choice to tap past; matches what the Mac shows | Offering single-app sharing |
+| Mirroring keeps the phone awake (screen wake lock) and can't start while locked | Android ends capture on lock and shows no consent over the lock screen (probe Q2/Q3) | Starting or unlocking from the Mac (impossible with a secure lock) |
+| The phone's speaker is muted while its audio streams to the Mac | Playback capture keeps working with media volume 0 (probe Q4); volume restored at the end | Double audio from phone and Mac |
+| Sender drop thresholds in time at the bitrate (300 ms video, 200 ms audio) | The spec's 1 MB is a full second of lag at 8 Mbps | Byte thresholds |
+| Both sides drop to the next key frame instead of single frames | P-frames depend on earlier frames; dropping one corrupts the picture | Dropping individual frames |

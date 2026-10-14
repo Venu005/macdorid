@@ -35,6 +35,11 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 5. Don't `pm clear`, grant permissions or tap on the owner's phone from automation.
 
 ## Gotchas
+- **Mirroring (Plan 7):**
+  - **Starting:** Mac → Phone page or the popover → Mirror. The phone posts "Mirror to <Mac>? Tap to start" (Android blocks background activity starts until Plan 8's accessibility service).
+  - **Locking:** Android ends screen capture when the phone locks, and shows no consent over the lock screen. Mirroring keeps the phone awake; start it on an unlocked phone.
+  - **Probe results:** `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md` (the consent dialog is System UI's "Share your screen with MacDroid?", button `android:id/button1` "Share screen").
+  - **The H.264 test fixture** is regenerated with `scripts/make-h264-fixture.sh` (needs ffmpeg with libx264).
 - **Photos access (Plan 6):** Android 14+ asks for `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO` and `READ_MEDIA_VISUAL_USER_SELECTED` together ("Allow all" or "Select photos"); Android 13 has images/video only; 10–12 use `READ_EXTERNAL_STORAGE`. To test limited access: phone Settings → Apps → MacDroid → Permissions → Photos and videos → "Allow limited access". Mac thumbnails live in `~/Library/Containers/dev.macdroid.mac/Data/Library/Application Support/PhotoThumbs/`; previews and drags in `…/Data/Library/Caches/PhotoCache/` (emptied at launch).
 - **App icon sources:** the source art is `design/icon/`.
   - Mac PNGs are generated, so don't hand-edit `AppIcon.appiconset`.

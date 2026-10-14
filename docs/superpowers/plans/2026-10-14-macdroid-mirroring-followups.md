@@ -14,3 +14,24 @@
 Also seen: up to ~110 fps captured while video played; ~1–3 fps on a still screen.
 
 **What this means for the spec's goal "reach the phone while asleep or locked":** with a PIN/pattern lock, Android 17 shows neither the consent dialog nor the screen while locked, and stops capture on lock. Mirroring therefore starts on an unlocked phone and keeps it awake while it runs. The owner can make "pick up and go" easier with Android's own unlock helpers, which MacDroid doesn't control.
+
+## Plan 7 owner checklist
+
+Start with the phone **unlocked** (Android ends capture on lock).
+
+1. Install both builds. On the Mac: Settings → Mirroring shows Quality, Frame rate, Phone audio, Show latency.
+2. Phone page → **Mirror** (and the popover icon).
+   - The window opens with "Starting…".
+   - The phone shows the consent screen (if MacDroid is open) or a "Mirror to <Mac>? Tap to start" notification.
+   - Tap **Share screen**; allow the microphone the first time.
+3. **Picture:** sharp text at Sharp/60, and the window keeps the phone's shape when resized.
+4. **Latency:** the readout shows a number. Write down typical values at Sharp/60 and Balanced/30 (target 50–80 ms).
+5. **Sound:** play a video on the phone; it plays on the Mac in sync. With Phone audio off, no sound.
+6. **Rotation:** rotate the phone into a landscape video; the window reshapes and keeps playing.
+7. **Keep on top:** the window stays above other apps.
+8. **Stopping:** Stop on the Mac ends it on the phone (the notification goes); "Stop" in the phone notification ends it on the Mac ("Mirroring stopped"); closing the window ends it.
+9. **Declining:** decline the consent → "Mirroring was declined on the phone." Ignore it for 20 s → "Tap Start on your phone to begin mirroring."; at 60 s → "Mirroring didn't start".
+10. **Wi-Fi:** turn it off on the phone mid-session → the window says "Phone not connected" and closes after 10 s.
+11. **Protected apps:** open a banking app → black (expected).
+12. Lock the phone mid-session → "Mirroring stopped" on the Mac (Android ends capture on lock).
+13. During a session the phone's speaker is silent and its sound plays on the Mac; afterwards the phone's volume is back.
