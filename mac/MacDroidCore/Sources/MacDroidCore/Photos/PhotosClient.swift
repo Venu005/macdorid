@@ -29,23 +29,24 @@ public enum PhotosEvent: Equatable, Sendable {
 public struct PhotoTransfers: Sendable {
     public var expect: @Sendable (_ transferId: String, _ toCache: Bool) async -> Void
     public var forget: @Sendable (_ transferId: String) async -> Void
-    public var isActive: @Sendable (_ transferId: String) async -> Bool
+    /// Bytes received so far and the total for a transfer in progress, or nil when none has started.
+    public var progress: @Sendable (_ transferId: String) async -> (done: Int64, size: Int64)?
 
     public init(
         expect: @escaping @Sendable (String, Bool) async -> Void,
         forget: @escaping @Sendable (String) async -> Void,
-        isActive: @escaping @Sendable (String) async -> Bool
+        progress: @escaping @Sendable (String) async -> (done: Int64, size: Int64)?
     ) {
         self.expect = expect
         self.forget = forget
-        self.isActive = isActive
+        self.progress = progress
     }
 
     public static func manager(_ manager: TransferManager) -> PhotoTransfers {
         PhotoTransfers(
             expect: { await manager.expectPhoto(transferId: $0, toCache: $1) },
             forget: { await manager.forgetPhoto(transferId: $0) },
-            isActive: { await manager.hasTransfer($0) }
+            progress: { await manager.photoProgress($0) }
         )
     }
 }
@@ -344,8 +345,13 @@ public actor PhotosClient {
             let timeout = fetchTimeout
             Task { await self.sendFetch(id: fetch.photoId, transferId: transferId) }
             Task {
-                try? await Task.sleep(for: timeout)
-                await self.checkTimeout(transferId)
+                // Every 30 s: no offer yet means no response; an offer whose bytes stopped moving has stalled (follow-up M1).
+                var last: Int64?
+                while true {
+                    try? await Task.sleep(for: timeout)
+                    guard let seen = await self.checkProgress(transferId, last: last) else { return }
+                    last = seen
+                }
             }
         }
     }
@@ -358,10 +364,20 @@ public actor PhotosClient {
         }
     }
 
-    /// 30 s after asking: an offer that never arrived means the phone didn't respond (Review Focus #5).
-    private func checkTimeout(_ transferId: String) async {
-        guard pending[transferId] != nil, !(await transfers.isActive(transferId)) else { return }
-        await finish(transferId, .failure(.noResponse))
+    /// Returns the bytes seen now to compare next time, or nil when the fetch is over (finished, or failed here).
+    /// No offer within 30 s: the phone didn't respond (Review Focus #5). No new bytes in 30 s, except while the
+    /// whole file is being verified: the transfer stalled.
+    private func checkProgress(_ transferId: String, last: Int64?) async -> Int64? {
+        guard pending[transferId] != nil else { return nil }
+        guard let now = await transfers.progress(transferId) else {
+            await finish(transferId, .failure(.noResponse))
+            return nil
+        }
+        if now.done == last && now.done < now.size {
+            await finish(transferId, .failure(.failed))
+            return nil
+        }
+        return now.done
     }
 
     private func finish(_ transferId: String, _ result: Result<URL, PhotoFetchError>) async {

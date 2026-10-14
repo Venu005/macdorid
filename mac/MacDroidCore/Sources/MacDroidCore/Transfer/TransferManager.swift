@@ -237,7 +237,15 @@ public actor TransferManager {
 
     /// The Mac asked the phone for a photo under this transfer id (spec §3 `photos.fetch`); only such offers are accepted.
     public func expectPhoto(transferId: String, toCache: Bool) { photoRequests[transferId] = toCache }
-    public func forgetPhoto(transferId: String) { photoRequests[transferId] = nil }
+    /// The Mac stopped waiting for this photo: refuse its offer, and stop it if it already started (follow-up M1).
+    public func forgetPhoto(transferId: String) async {
+        photoRequests[transferId] = nil
+        if active.contains(where: { $0.id == transferId && $0.purpose == .photo }) { await cancel(id: transferId) }
+    }
+    /// Bytes received so far (and the total) for a photo transfer in progress; nil when there is none.
+    public func photoProgress(_ id: String) -> (done: Int64, size: Int64)? {
+        active.first { $0.id == id && $0.purpose == .photo }.map { ($0.bytesDone, $0.size) }
+    }
     /// True while a transfer with this id is in progress (offered, active, paused or verifying).
     public func hasTransfer(_ id: String) -> Bool { active.contains { $0.id == id } }
 

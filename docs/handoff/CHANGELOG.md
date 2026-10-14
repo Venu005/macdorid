@@ -7,6 +7,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 ## 2026-10-14 — Photos follow-ups (the 9 deferred minors, on fix/photos-minors)
 - **M9:** the Mac keeps only thumbnails it asked for (and hasn't given up on); unrequested ones are dropped. Test `unrequestedThumbnailsAreDropped`.
 - **M2:** concurrent cache fetches of the same photo (double-click plus Space, a drag during a preview) share one transfer. Test `concurrentCacheFetchesOfOnePhotoShareATransfer`.
+- **M1:** a photo fetch whose bytes stop moving for 30 s (not while verifying a finished file) now fails instead of spinning; forgetting a fetch (timeout, stall) also cancels a transfer that slipped in meanwhile. `PhotoTransfers.isActive` became `progress` (done, size); `TransferManager.photoProgress`, async `forgetPhoto`. Tests `aStalledTransferFailsAndIsForgotten`, `forgettingAPhotoCancelsItsTransfer`; `aStartedTransferDoesNotTimeOut` now moves its bytes.
 
 ## 2026-10-14 — Photos merged to main
 - **What:** merged `feat/photos` into `main` (`37b425c`) at the owner's request: Plan 6 photo browsing and transfer with the final-review fixes.

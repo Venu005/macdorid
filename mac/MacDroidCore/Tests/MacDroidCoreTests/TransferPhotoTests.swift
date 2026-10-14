@@ -121,6 +121,22 @@ import Testing
         listener.cancel()
     }
 
+    // Follow-up M1: forgetting a fetch (timeout, stall) also stops a transfer that slipped in meanwhile.
+    @Test func forgettingAPhotoCancelsItsTransfer() async throws {
+        let f = try TransferFixture()
+        let m = manager(f, cache: try makeTemporaryDirectory())
+        let (events, listener) = listen(m)
+        await m.expectPhoto(transferId: "p6", toCache: true)
+        await m.handle(photoOffer("p6", size: 100))
+        try await eventually { await f.phone.sent.contains { $0.acceptedID == "p6" } }
+        #expect(await m.photoProgress("p6")?.done == 0)
+        await m.forgetPhoto(transferId: "p6")
+        try await eventually { await events.items.contains(.photoFailed(transferId: "p6")) }
+        #expect(await m.photoProgress("p6") == nil)
+        #expect(await f.phone.sent.contains(.transferCancel(TransferID(transferId: "p6"))))
+        listener.cancel()
+    }
+
     @Test func photoRecordsInTheCacheAreNotRestoredAfterARelaunch() {
         let now = Date()
         let record = TransferRecord(id: "p1", direction: .fromPhone, name: "a.jpg", size: 1, mime: "image/jpeg", phase: .active,
