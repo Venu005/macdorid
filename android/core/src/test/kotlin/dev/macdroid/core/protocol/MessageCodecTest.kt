@@ -33,6 +33,7 @@ class MessageCodecTest {
         "photos.thumb.json", "photos.fetch.json", "photos.fetchFailed.json", "photos.changed.json", "transfer.offer.photo.json",
         "mirror.start.json", "mirror.state.json", "mirror.state.stopped.json", "mirror.stop.json", "mirror.keyframe.json",
         "mirror.ping.json", "mirror.pong.json",
+        "input.pointer.json", "input.scroll.json", "input.key.json", "input.text.json", "input.notice.json",
     )
 
     @Test fun fixturesRoundTrip() {
@@ -118,8 +119,16 @@ class MessageCodecTest {
         }
     }
 
-    @Test fun supportedFeaturesIncludeMirror() {
-        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media", "photos", "mirror"), Features.SUPPORTED)
+    @Test fun supportedFeaturesIncludeControl() {
+        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media", "photos", "mirror", "control"), Features.SUPPORTED)
+    }
+
+    @Test fun inputFixturesDecode() {
+        assertEquals(Message.InputPointer(InputPointerBody(PointerAction.Down, 0.25, 0.5, 123_456)), MessageCodec.decode(Fixtures.text("input.pointer.json")))
+        assertEquals(Message.InputScroll(InputScrollBody(0.5, 0.6, 0.0, -0.125)), MessageCodec.decode(Fixtures.text("input.scroll.json")))
+        assertEquals(Message.InputKey(InputKeyBody(InputKeyName.VolumeUp)), MessageCodec.decode(Fixtures.text("input.key.json")))
+        assertEquals(Message.InputText(InputTextBody("On my way 🙂\n")), MessageCodec.decode(Fixtures.text("input.text.json")))
+        assertEquals(Message.InputNotice(InputNoticeBody(InputNoticeReason.NoTextField)), MessageCodec.decode(Fixtures.text("input.notice.json")))
     }
 
     @Test fun mirrorFixturesDecode() {

@@ -69,6 +69,11 @@ malformed frames are dropped without closing the connection. Both sides send `he
 | `mirror.keyframe` | Mac → phone | `sessionId` |
 | `mirror.ping` | Mac → phone | `t0` (Mac monotonic µs) |
 | `mirror.pong` | phone → Mac | `t0`, `t1` (phone µs when received), `t2` (phone µs when sent) |
+| `input.pointer` | Mac → phone | `action` (`down` \| `move` \| `up` \| `cancel`), `x`, `y` (0–1 of the picture), `t` (Mac ms) |
+| `input.scroll` | Mac → phone | `x`, `y`, `dx`, `dy` (fractions of the picture, finger direction) |
+| `input.key` | Mac → phone | `key` (`back` \| `home` \| `recents` \| `volumeUp` \| `volumeDown` \| `power` \| `backspace`) |
+| `input.text` | Mac → phone | `text` (≤ 4,096 characters) |
+| `input.notice` | phone → Mac | `reason` (`noTextField`) |
 
 ### Transfer rules
 - The phone always makes the HTTP request: `PUT` for phone → Mac, `GET` for Mac → phone. Bytes go over HTTPS, never the WebSocket.
@@ -79,7 +84,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 - File names from the other side are sanitised; see `fixtures/file-naming.json`.
 
 ### Features
-`hello.features` lists what each side implements: `files`, `notifications`, `clipboard`, `ring`, `links`, `media`, `photos` and `mirror`. A feature is used only when both sides list it. A missing `features` means none.
+`hello.features` lists what each side implements: `files`, `notifications`, `clipboard`, `ring`, `links`, `media`, `photos`, `mirror` and `control`. A feature is used only when both sides list it. A missing `features` means none.
 
 ### Notification rules
 - The phone owns the mute list. `notification.mute` is a request; the phone answers with a fresh `notification.apps`.
@@ -120,3 +125,9 @@ malformed frames are dropped without closing the connection. Both sides send `he
 
 - A frame over 4 MiB, or of an unknown type, closes the stream.
 - Neither side queues stale video: when behind, both drop to the next key frame and the Mac sends `mirror.keyframe`.
+
+### Remote control rules
+- The Mac sends `input.*` only while a mirroring session is `streaming`, the phone lists `control`, and the phone's last `mirror.state` said `control: true` (its accessibility service is on). The phone applies input only while its session is streaming.
+- Positions are 0–1 fractions of the mirrored picture (top-left origin); the phone maps them to its screen in the current orientation. Clicks outside the picture aren't sent.
+- `input.scroll` deltas are in finger direction (how far the content moves), as fractions of the picture.
+- `input.text` is inserted at the cursor of the focused text field (replacing a selection); when no editable field has focus the phone answers `input.notice{noTextField}`.

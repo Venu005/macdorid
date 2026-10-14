@@ -4,7 +4,7 @@ public enum ProtocolInfo {
     public static let version = 1
     public static let serviceType = "_macdroid._tcp"
     /// Features this app implements, sent in `hello` (spec §2.1).
-    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos, Feature.mirror]
+    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos, Feature.mirror, Feature.control]
 }
 
 /// Names used in `hello.features`. A feature is active only when both sides list it.
@@ -17,6 +17,7 @@ public enum Feature {
     public static let media = "media"
     public static let photos = "photos"
     public static let mirror = "mirror"
+    public static let control = "control"
 }
 
 public struct Hello: Codable, Equatable, Sendable {
@@ -613,6 +614,59 @@ public struct MirrorPong: Codable, Equatable, Sendable {
     }
 }
 
+// MARK: Remote control (Plan 8)
+
+public enum PointerAction: String, Codable, Sendable { case down, move, up, cancel }
+
+/// A pointer event as 0–1 fractions of the mirrored picture (spec §5.1).
+public struct InputPointer: Codable, Equatable, Sendable {
+    public var action: PointerAction
+    public var x: Double
+    public var y: Double
+    /// Mac milliseconds; only differences matter.
+    public var t: Int64
+    public init(action: PointerAction, x: Double, y: Double, t: Int64) {
+        self.action = action
+        self.x = x
+        self.y = y
+        self.t = t
+    }
+}
+
+/// A scroll at (x, y); dx/dy are how far the content moves, as fractions of the picture, in finger direction.
+public struct InputScroll: Codable, Equatable, Sendable {
+    public var x: Double
+    public var y: Double
+    public var dx: Double
+    public var dy: Double
+    public init(x: Double, y: Double, dx: Double, dy: Double) {
+        self.x = x
+        self.y = y
+        self.dx = dx
+        self.dy = dy
+    }
+}
+
+public enum InputKeyName: String, Codable, Sendable { case back, home, recents, volumeUp, volumeDown, power, backspace }
+
+public struct InputKey: Codable, Equatable, Sendable {
+    public var key: InputKeyName
+    public init(key: InputKeyName) { self.key = key }
+}
+
+public struct InputText: Codable, Equatable, Sendable {
+    public static let maxLength = 4096
+    public var text: String
+    public init(text: String) { self.text = text }
+}
+
+public enum InputNoticeReason: String, Codable, Sendable { case noTextField }
+
+public struct InputNotice: Codable, Equatable, Sendable {
+    public var reason: InputNoticeReason
+    public init(reason: InputNoticeReason) { self.reason = reason }
+}
+
 public enum Message: Equatable, Sendable {
     case hello(Hello)
     case deviceStatus(DeviceStatus)
@@ -654,6 +708,11 @@ public enum Message: Equatable, Sendable {
     case mirrorKeyframe(MirrorSessionRef)
     case mirrorPing(MirrorPing)
     case mirrorPong(MirrorPong)
+    case inputPointer(InputPointer)
+    case inputScroll(InputScroll)
+    case inputKey(InputKey)
+    case inputText(InputText)
+    case inputNotice(InputNotice)
     /// A type this version doesn't understand. Decoded so callers can ignore it; never encoded.
     case unknown(type: String)
 }

@@ -27,6 +27,7 @@ import Testing
         "photos.thumb.json", "photos.fetch.json", "photos.fetchFailed.json", "photos.changed.json", "transfer.offer.photo.json",
         "mirror.start.json", "mirror.state.json", "mirror.state.stopped.json", "mirror.stop.json", "mirror.keyframe.json",
         "mirror.ping.json", "mirror.pong.json",
+        "input.pointer.json", "input.scroll.json", "input.key.json", "input.text.json", "input.notice.json",
     ]
 
     @Test(arguments: messageFixtures)
@@ -101,8 +102,16 @@ import Testing
         #expect(throws: MessageCodecError.malformed) { try MessageCodec.decode(text) }
     }
 
-    @Test func supportedFeaturesIncludeMirror() {
-        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos, Feature.mirror])
+    @Test func supportedFeaturesIncludeControl() {
+        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos, Feature.mirror, Feature.control])
+    }
+
+    @Test func inputFixturesDecode() throws {
+        #expect(try MessageCodec.decode(Fixtures.text("input.pointer.json")) == .inputPointer(InputPointer(action: .down, x: 0.25, y: 0.5, t: 123_456)))
+        #expect(try MessageCodec.decode(Fixtures.text("input.scroll.json")) == .inputScroll(InputScroll(x: 0.5, y: 0.6, dx: 0, dy: -0.125)))
+        #expect(try MessageCodec.decode(Fixtures.text("input.key.json")) == .inputKey(InputKey(key: .volumeUp)))
+        #expect(try MessageCodec.decode(Fixtures.text("input.text.json")) == .inputText(InputText(text: "On my way 🙂\n")))
+        #expect(try MessageCodec.decode(Fixtures.text("input.notice.json")) == .inputNotice(InputNotice(reason: .noTextField)))
     }
 
     @Test func mirrorFixturesDecode() throws {

@@ -137,8 +137,9 @@ object Features {
     const val MEDIA = "media"
     const val PHOTOS = "photos"
     const val MIRROR = "mirror"
+    const val CONTROL = "control"
     /** What this app implements. */
-    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD, RING, LINKS, MEDIA, PHOTOS, MIRROR)
+    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD, RING, LINKS, MEDIA, PHOTOS, MIRROR, CONTROL)
 }
 
 @Serializable
@@ -249,6 +250,20 @@ data class NotificationErrorBody(val key: String, val reason: NotificationErrorR
 @Serializable data class MirrorPingBody(val t0: Long)
 @Serializable data class MirrorPongBody(val t0: Long, val t1: Long, val t2: Long)
 
+// Remote control (Plan 8)
+
+@Serializable enum class PointerAction { @SerialName("down") Down, @SerialName("move") Move, @SerialName("up") Up, @SerialName("cancel") Cancel }
+@Serializable data class InputPointerBody(val action: PointerAction, val x: Double, val y: Double, val t: Long)
+@Serializable data class InputScrollBody(val x: Double, val y: Double, val dx: Double, val dy: Double)
+@Serializable enum class InputKeyName {
+    @SerialName("back") Back, @SerialName("home") Home, @SerialName("recents") Recents, @SerialName("volumeUp") VolumeUp,
+    @SerialName("volumeDown") VolumeDown, @SerialName("power") Power, @SerialName("backspace") Backspace,
+}
+@Serializable data class InputKeyBody(val key: InputKeyName)
+@Serializable data class InputTextBody(val text: String)
+@Serializable enum class InputNoticeReason { @SerialName("noTextField") NoTextField }
+@Serializable data class InputNoticeBody(val reason: InputNoticeReason)
+
 sealed interface Message {
     data class Hello(val body: HelloBody) : Message
     data class DeviceStatus(val body: DeviceStatusBody) : Message
@@ -290,6 +305,11 @@ sealed interface Message {
     data class MirrorKeyframe(val body: MirrorSessionBody) : Message
     data class MirrorPing(val body: MirrorPingBody) : Message
     data class MirrorPong(val body: MirrorPongBody) : Message
+    data class InputPointer(val body: InputPointerBody) : Message
+    data class InputScroll(val body: InputScrollBody) : Message
+    data class InputKey(val body: InputKeyBody) : Message
+    data class InputText(val body: InputTextBody) : Message
+    data class InputNotice(val body: InputNoticeBody) : Message
     /** A type this version doesn't understand; decoded so callers can ignore it, never encoded. */
     data class Unknown(val type: String) : Message
 }
