@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import MacDroidCore
 import Observation
+import UniformTypeIdentifiers
 import UserNotifications
 
 /// A request to show the main window on a given section. A new value (new `id`) triggers the opener.
@@ -32,6 +33,21 @@ final class AppModel {
     private(set) var clipboard: ClipboardState = .empty
     private(set) var extras: PhoneExtrasState = .empty
     @ObservationIgnored private let phoneExtras: PhoneExtras
+    private(set) var photos: PhotosState = .empty
+    /// Thumbnails already on disk, by photo id; cells read this, so arrivals redraw them.
+    private(set) var photoThumbs: [String: URL] = [:]
+    var photoSelection: Set<String> = []
+    @ObservationIgnored private var photoAnchor: String?
+    /// Bound to `.quickLookPreview`.
+    var photoPreview: URL?
+    private(set) var photoError: String?
+    /// Photos being fetched for a preview or a save (a spinner on the cell).
+    private(set) var photoBusy: Set<String> = []
+    @ObservationIgnored let photoThumbnails: ThumbnailCache
+    @ObservationIgnored private let photosClient: PhotosClient
+    @ObservationIgnored private let thumbImages = NSCache<NSString, NSImage>()
+    @ObservationIgnored private var pendingThumbs: Set<String> = []
+    @ObservationIgnored private var thumbFlush: Task<Void, Never>?
     @ObservationIgnored private let mediaArt: IconCache
     @ObservationIgnored private let clipboardSync: ClipboardSync
     @ObservationIgnored private let watcher: PasteboardWatcher
@@ -91,11 +107,16 @@ final class AppModel {
         let files = FilesSettings()
         files.phoneName = paired?.name ?? "Your phone"
         self.files = files
+        // Previews and drags from the last run (spec §9.2): the cache never outlives the app.
+        let photoCache = URL.cachesDirectory.appending(path: "PhotoCache", directoryHint: .isDirectory)
+        try? FileManager.default.removeItem(at: photoCache)
         let manager = TransferManager(
             stateDirectory: URL.applicationSupportDirectory.appending(path: "Transfers", directoryHint: .isDirectory),
             location: MacReceiveLocation(settings: files),
             sourceAccess: SecurityScopedSourceAccess(),
             clipboardDirectory: URL.applicationSupportDirectory.appending(path: "ClipboardIncoming", directoryHint: .isDirectory),
+            photoCacheDirectory: photoCache,
+            photoSaveFolder: { await MainActor.run { files.photoSaveFolder } },
             send: { message in try await hub.send(message) }
         )
         transferManager = manager
@@ -129,6 +150,9 @@ final class AppModel {
         let mediaArt = IconCache(directory: URL.applicationSupportDirectory.appending(path: "MediaArt", directoryHint: .isDirectory))
         self.mediaArt = mediaArt
         phoneExtras = PhoneExtras(art: mediaArt, send: { message in try await hub.send(message) })
+        let photoThumbnails = ThumbnailCache(directory: URL.applicationSupportDirectory.appending(path: "PhotoThumbs", directoryHint: .isDirectory))
+        self.photoThumbnails = photoThumbnails
+        photosClient = PhotosClient(thumbnails: photoThumbnails, transfers: .manager(manager), send: { message in try await hub.send(message) })
         if temporary {
             warnings.append("MacDroid couldn't open its keychain, so pairing is unavailable until you restart MacDroid.")
         }
@@ -159,6 +183,16 @@ final class AppModel {
         tasks.append(Task { [weak self, phoneExtras] in
             for await state in phoneExtras.states { self?.extras = state }
         })
+        tasks.append(Task { [photosClient, hub] in await photosClient.attach(to: hub) })
+        tasks.append(Task { [weak self, photosClient] in
+            for await state in photosClient.states { self?.photosChanged(state) }
+        })
+        tasks.append(Task { [weak self, photosClient] in
+            for await event in photosClient.events {
+                if case .thumbnail(let id, let url) = event { self?.photoThumbs[id] = url }
+            }
+        })
+        Task.detached(priority: .background) { [photoThumbnails] in photoThumbnails.trim() }
         tasks.append(Task { [phoneExtras] in
             for await event in phoneExtras.events {
                 if case .openLink(let url) = event { await MainActor.run { _ = NSWorkspace.shared.open(url) } }
@@ -229,6 +263,10 @@ final class AppModel {
     func forgetPhone() async {
         awaitingPairRequest = true
         await pairing.forget()
+        await photosClient.reset()
+        photoThumbs = [:]
+        photoSelection = []
+        thumbImages.removeAllObjects()
         await hub.disconnect()
     }
 
@@ -416,11 +454,137 @@ final class AppModel {
         return url
     }
 
+    // MARK: Photos
+
+    private func photosChanged(_ state: PhotosState) {
+        photos = state
+        if !photoSelection.isEmpty { photoSelection.formIntersection(state.items.map(\.id)) }
+    }
+
+    /// The decoded thumbnail, if it's on disk; cells call `needThumbnail` as they appear.
+    func thumbnailImage(_ id: String) -> NSImage? {
+        guard let url = photoThumbs[id] else { return nil }
+        if let image = thumbImages.object(forKey: id as NSString) { return image }
+        guard let image = NSImage(contentsOf: url) else { return nil }
+        thumbImages.setObject(image, forKey: id as NSString)
+        return image
+    }
+
+    /// Asks the phone for thumbnails of cells that appeared, together after 50 ms.
+    func needThumbnail(_ id: String) {
+        guard photoThumbs[id] == nil else { return }
+        if let url = photoThumbnails.url(for: id) {
+            photoThumbs[id] = url
+            return
+        }
+        pendingThumbs.insert(id)
+        guard thumbFlush == nil else { return }
+        thumbFlush = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(50))
+            guard let self else { return }
+            let ids = Array(pendingThumbs)
+            pendingThumbs = []
+            thumbFlush = nil
+            await photosClient.requestThumbnails(ids)
+        }
+    }
+
+    func selectPhotoAlbum(_ id: String) {
+        photoSelection = []
+        Task { await photosClient.select(album: id) }
+    }
+
+    func setPhotoKind(_ kind: PhotoKindFilter) {
+        photoSelection = []
+        Task { await photosClient.setKind(kind) }
+    }
+
+    func loadMorePhotos() {
+        Task { await photosClient.loadMore() }
+    }
+
+    /// Click, ⌘-click and ⇧-click (spec §5.2), read from the current event's modifier keys.
+    func clickPhoto(_ id: String) {
+        let flags = NSEvent.modifierFlags
+        let result = PhotoSelection.click(id, command: flags.contains(.command), shift: flags.contains(.shift),
+                                          selection: photoSelection, anchor: photoAnchor, order: photos.items.map(\.id))
+        photoSelection = result.selection
+        photoAnchor = result.anchor
+    }
+
+    /// ⌘A: every loaded item.
+    func selectAllPhotos() {
+        photoSelection = Set(photos.items.map(\.id))
+    }
+
+    func clearPhotoSelection() {
+        photoSelection = []
+        photoAnchor = nil
+    }
+
+    /// Space: preview the one selected item.
+    func previewSelectedPhoto() -> Bool {
+        guard photoSelection.count == 1, let item = photos.items.first(where: { photoSelection.contains($0.id) }) else { return false }
+        previewPhoto(item)
+        return true
+    }
+
+    /// Quick Look (spec §9.3): fetch into the cache, then preview.
+    func previewPhoto(_ item: PhotoItem) {
+        photoError = nil
+        photoBusy.insert(item.id)
+        Task {
+            let result = await photosClient.fetchFile(item.id, toCache: true)
+            photoBusy.remove(item.id)
+            switch result {
+            case .success(let url): photoPreview = url
+            case .failure(let error): photoError = PhotosPresentation.message(error)
+            }
+        }
+    }
+
+    /// "Save to Mac": every selected item goes to the received-files folder (and Files history).
+    func saveSelectedPhotos() {
+        let items = photos.items.filter { photoSelection.contains($0.id) }
+        photoSelection = []
+        photoError = nil
+        for item in items {
+            photoBusy.insert(item.id)
+            Task {
+                let result = await photosClient.fetchFile(item.id, toCache: false)
+                photoBusy.remove(item.id)
+                if case .failure(let error) = result { photoError = PhotosPresentation.message(error) }
+            }
+        }
+    }
+
+    /// Drag-out (spec §9.1): the file is fetched into the cache when the drop happens, then the system copies it.
+    func dragProvider(for item: PhotoItem) -> NSItemProvider {
+        let provider = NSItemProvider()
+        provider.suggestedName = item.name
+        let type = UTType(mimeType: item.mime) ?? (item.kind == .video ? .movie : .image)
+        let client = photosClient
+        let id = item.id
+        provider.registerFileRepresentation(forTypeIdentifier: type.identifier, fileOptions: [], visibility: .all) { completion in
+            Task {
+                switch await client.fetchFile(id, toCache: true) {
+                case .success(let url):
+                    completion(url, false, nil)
+                case .failure(let error):
+                    completion(nil, false, NSError(domain: "MacDroid", code: 1, userInfo: [NSLocalizedDescriptionKey: PhotosPresentation.message(error)]))
+                }
+            }
+            return nil
+        }
+        return provider
+    }
+
     private func handle(_ event: TransferEvent) async {
         switch event {
         case .received(let record): await notifier.notifyReceived(record, from: pairedDevice?.name ?? "your phone")
         case .clipboardImageReceived(let url): await clipboardSync.imageReceived(url)
-        case .photoReceived, .photoFailed: break // Task 8
+        case .photoReceived(let transferId, let url): await photosClient.transferFinished(transferId: transferId, url: url)
+        case .photoFailed(let transferId): await photosClient.transferFailed(transferId: transferId)
         }
     }
 

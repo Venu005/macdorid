@@ -30,6 +30,9 @@ struct PairedDeviceView: View {
                 if let line = NotificationPresentation.phonePageLine(model.notifications) {
                     LabeledContent("Notifications", value: line)
                 }
+                if model.photos.supported, let line = PhotosPresentation.phoneLine(model.photos.access) {
+                    LabeledContent("Photos", value: line)
+                }
                 if model.notifications.phoneAccess == false {
                     Text("Media controls need notification access on your phone.").font(.callout).foregroundStyle(.secondary)
                 }
