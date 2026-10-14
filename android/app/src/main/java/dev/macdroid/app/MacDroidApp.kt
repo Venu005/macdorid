@@ -15,6 +15,7 @@ import dev.macdroid.app.platform.clipboard.ClipboardImages
 import dev.macdroid.app.platform.clipboard.ClipboardPrefs
 import dev.macdroid.app.platform.extras.MediaWatcher
 import dev.macdroid.app.platform.notifications.NotificationBridge
+import dev.macdroid.app.platform.mirror.MirrorBridge
 import dev.macdroid.app.platform.photos.PhotosBridge
 import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
@@ -93,6 +94,9 @@ class AppGraph(private val context: Context) {
 
     /** Photo browsing for the Mac (spec §4); runs for the whole process. */
     val photosBridge = PhotosBridge(context, connectionManager, transferEngine, appScope).also { it.start() }
+
+    /** Screen mirroring for the Mac (Plan 7); runs for the whole process. */
+    val mirrorBridge = MirrorBridge(context, connectionManager, pairingStore, appScope).also { it.start() }
 
     fun pairingClient() = PairingClient(identity, httpClient)
 }
