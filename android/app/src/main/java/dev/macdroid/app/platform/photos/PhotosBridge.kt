@@ -59,7 +59,10 @@ class PhotosBridge(
                 changes.tryEmit(Unit)
             }
         }
-        context.contentResolver.registerContentObserver(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL), true, observer)
+        // Images and video only: downloads and files from the Mac must not reload the Mac's photos (follow-up M3).
+        for (uri in listOf(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)) {
+            context.contentResolver.registerContentObserver(uri, true, observer)
+        }
     }
 
     /** Re-reads the permission (call on resume and after a prompt); a change reloads the Mac's view. */

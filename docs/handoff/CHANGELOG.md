@@ -13,6 +13,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **M7:** `enqueueClipboard` got its KDoc back from `enqueueWithId` (comment only).
 - **M4:** after a photos permission prompt (setup step or Settings), a limited-access user who picked a different set now makes the Mac reload, even though the level stays "Selected". Core `PhotoAccessWatcher` (tested) replaces the bridge's inline check. Tests `PhotoAccessWatcherTest`.
 - **M5:** Settings → Photos sends you to the app's settings only when nothing was granted and Android won't show the prompt again (`shouldShowRequestPermissionRationale`), not after a first "Don't allow". Test `settingsOnlyWhenAndroidStopsAsking`.
+- **M3:** the phone watches only the Images and Video MediaStore collections for `photos.changed`, so downloads and files received from the Mac no longer reload the Mac's Photos page. Glue (no JVM test); verified by the build and on the device.
 
 ## 2026-10-14 — Photos merged to main
 - **What:** merged `feat/photos` into `main` (`37b425c`) at the owner's request: Plan 6 photo browsing and transfer with the final-review fixes.
