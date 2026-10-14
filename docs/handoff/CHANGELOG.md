@@ -4,6 +4,9 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-14 — Plan 6: photos (in progress on feat/photos)
+- **Task 1:** photos messages (`photos.albums/albumList/query/page/thumbs/thumb/fetch/fetchFailed/changed`) and `purpose: photo` in both codecs, 10 fixtures, `photos` feature on both sides, PROTOCOL.md "Photos rules". Verified: `swift test` 234, `:core:test`, Mac app and `assembleDebug` build.
+
 ## 2026-10-13 — Photos plan (Plan 6)
 - **What:** self-reviewed the photos spec (§9, `06c1f71`) and wrote the implementation plan `docs/superpowers/plans/2026-10-13-macdroid-photos-6.md`. It has 10 tasks:
   1. protocol

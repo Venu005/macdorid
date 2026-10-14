@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "type": "photos.fetch",
+  "id": "6f1c2a0e-0000-4000-8000-000000000046",
+  "body": {
+    "id": "1000",
+    "transferId": "7d4c0e1a-2b3f-4c5d-8e9f-0a1b2c3d4e5f"
+  }
+}

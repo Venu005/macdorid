@@ -23,6 +23,8 @@ import Testing
         "clipboard.set.json", "transfer.offer.clipboard.json",
         "device.ring.json", "device.ringState.json", "link.open.json", "media.state.json", "media.state.idle.json",
         "media.art.json", "media.command.json",
+        "photos.albums.json", "photos.albumList.json", "photos.query.json", "photos.page.json", "photos.thumbs.json",
+        "photos.thumb.json", "photos.fetch.json", "photos.fetchFailed.json", "photos.changed.json", "transfer.offer.photo.json",
     ]
 
     @Test(arguments: messageFixtures)
@@ -97,8 +99,29 @@ import Testing
         #expect(throws: MessageCodecError.malformed) { try MessageCodec.decode(text) }
     }
 
-    @Test func supportedFeaturesIncludeTheSmallWins() {
-        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media])
+    @Test func supportedFeaturesIncludePhotos() {
+        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos])
+    }
+
+    @Test func photosFixturesDecode() throws {
+        #expect(try MessageCodec.decode(Fixtures.text("photos.albums.json")) == .photosAlbums(PhotosAlbumsRequest(requestId: "r1")))
+        #expect(try MessageCodec.decode(Fixtures.text("photos.albumList.json")) == .photosAlbumList(PhotosAlbumList(requestId: "r1", access: .full, albums: [
+            PhotoAlbum(id: "all", name: "All Photos", count: 4812, coverId: "1001"),
+            PhotoAlbum(id: "-1739773001", name: "Camera", count: 2301, coverId: "1001"),
+        ])))
+        #expect(try MessageCodec.decode(Fixtures.text("photos.query.json")) == .photosQuery(PhotosQuery(requestId: "r2", albumId: "all", kind: .all, cursor: "1791892800:1001", limit: 200)))
+        #expect(try MessageCodec.decode(Fixtures.text("photos.page.json")) == .photosPage(PhotosPage(requestId: "r2", access: .partial, items: [
+            PhotoItem(id: "1000", kind: .video, name: "VID_2041.mp4", mime: "video/mp4", takenAt: 1_791_892_700_000, size: 52_428_800, width: 1920, height: 1080, durationMs: 42_000),
+            PhotoItem(id: "999", kind: .photo, name: "IMG_2040.jpg", mime: "image/jpeg", takenAt: 1_791_892_600_000, size: 3_145_728, width: 4000, height: 3000),
+        ], nextCursor: "1791892600:999")))
+        #expect(try MessageCodec.decode(Fixtures.text("photos.thumbs.json")) == .photosThumbs(PhotosThumbs(ids: ["1000", "999"])))
+        #expect(try MessageCodec.decode(Fixtures.text("photos.thumb.json")) == .photosThumb(PhotosThumb(id: "1000", jpeg: "/9j/4AAQSkZJRg==")))
+        #expect(try MessageCodec.decode(Fixtures.text("photos.fetch.json")) == .photosFetch(PhotosFetch(id: "1000", transferId: "7d4c0e1a-2b3f-4c5d-8e9f-0a1b2c3d4e5f")))
+        #expect(try MessageCodec.decode(Fixtures.text("photos.fetchFailed.json")) == .photosFetchFailed(PhotosFetchFailed(transferId: "7d4c0e1a-2b3f-4c5d-8e9f-0a1b2c3d4e5f", reason: .gone)))
+        #expect(try MessageCodec.decode(Fixtures.text("photos.changed.json")) == .photosChanged)
+        #expect(try MessageCodec.decode(Fixtures.text("transfer.offer.photo.json")) == .transferOffer(TransferOffer(
+            transferId: "7d4c0e1a-2b3f-4c5d-8e9f-0a1b2c3d4e5f", name: "VID_2041.mp4", size: 52_428_800, mime: "video/mp4", purpose: .photo
+        )))
     }
 
     @Test func smallWinsFixturesDecode() throws {

@@ -1,0 +1,33 @@
+{
+  "v": 1,
+  "type": "photos.page",
+  "id": "6f1c2a0e-0000-4000-8000-000000000043",
+  "body": {
+    "requestId": "r2",
+    "access": "partial",
+    "items": [
+      {
+        "id": "1000",
+        "kind": "video",
+        "name": "VID_2041.mp4",
+        "mime": "video/mp4",
+        "takenAt": 1791892700000,
+        "size": 52428800,
+        "width": 1920,
+        "height": 1080,
+        "durationMs": 42000
+      },
+      {
+        "id": "999",
+        "kind": "photo",
+        "name": "IMG_2040.jpg",
+        "mime": "image/jpeg",
+        "takenAt": 1791892600000,
+        "size": 3145728,
+        "width": 4000,
+        "height": 3000
+      }
+    ],
+    "nextCursor": "1791892600:999"
+  }
+}

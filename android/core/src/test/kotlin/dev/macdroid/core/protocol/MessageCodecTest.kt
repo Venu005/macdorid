@@ -29,6 +29,8 @@ class MessageCodecTest {
         "clipboard.set.json", "transfer.offer.clipboard.json",
         "device.ring.json", "device.ringState.json", "link.open.json", "media.state.json", "media.state.idle.json",
         "media.art.json", "media.command.json",
+        "photos.albums.json", "photos.albumList.json", "photos.query.json", "photos.page.json", "photos.thumbs.json",
+        "photos.thumb.json", "photos.fetch.json", "photos.fetchFailed.json", "photos.changed.json", "transfer.offer.photo.json",
     )
 
     @Test fun fixturesRoundTrip() {
@@ -114,8 +116,33 @@ class MessageCodecTest {
         }
     }
 
-    @Test fun supportedFeaturesIncludeTheSmallWins() {
-        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media"), Features.SUPPORTED)
+    @Test fun supportedFeaturesIncludePhotos() {
+        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media", "photos"), Features.SUPPORTED)
+    }
+
+    @Test fun photosFixturesDecode() {
+        assertEquals(Message.PhotosAlbums(PhotosAlbumsBody("r1")), MessageCodec.decode(Fixtures.text("photos.albums.json")))
+        assertEquals(
+            Message.PhotosAlbumList(PhotosAlbumListBody("r1", PhotoAccess.Full, listOf(
+                PhotoAlbumBody("all", "All Photos", 4812, "1001"), PhotoAlbumBody("-1739773001", "Camera", 2301, "1001")))),
+            MessageCodec.decode(Fixtures.text("photos.albumList.json")),
+        )
+        assertEquals(Message.PhotosQuery(PhotosQueryBody("r2", "all", PhotoKindFilter.All, "1791892800:1001", 200)), MessageCodec.decode(Fixtures.text("photos.query.json")))
+        assertEquals(
+            Message.PhotosPage(PhotosPageBody("r2", PhotoAccess.Partial, listOf(
+                PhotoItemBody("1000", PhotoKind.Video, "VID_2041.mp4", "video/mp4", 1_791_892_700_000, 52_428_800, 1920, 1080, 42_000),
+                PhotoItemBody("999", PhotoKind.Photo, "IMG_2040.jpg", "image/jpeg", 1_791_892_600_000, 3_145_728, 4000, 3000)), "1791892600:999")),
+            MessageCodec.decode(Fixtures.text("photos.page.json")),
+        )
+        assertEquals(Message.PhotosThumbs(PhotosThumbsBody(listOf("1000", "999"))), MessageCodec.decode(Fixtures.text("photos.thumbs.json")))
+        assertEquals(Message.PhotosThumb(PhotosThumbBody("1000", "/9j/4AAQSkZJRg==")), MessageCodec.decode(Fixtures.text("photos.thumb.json")))
+        assertEquals(Message.PhotosFetch(PhotosFetchBody("1000", "7d4c0e1a-2b3f-4c5d-8e9f-0a1b2c3d4e5f")), MessageCodec.decode(Fixtures.text("photos.fetch.json")))
+        assertEquals(Message.PhotosFetchFailed(PhotosFetchFailedBody("7d4c0e1a-2b3f-4c5d-8e9f-0a1b2c3d4e5f", PhotoFetchFailure.Gone)), MessageCodec.decode(Fixtures.text("photos.fetchFailed.json")))
+        assertEquals(Message.PhotosChanged, MessageCodec.decode(Fixtures.text("photos.changed.json")))
+        assertEquals(
+            Message.TransferOffer(TransferOfferBody("7d4c0e1a-2b3f-4c5d-8e9f-0a1b2c3d4e5f", "VID_2041.mp4", 52_428_800, "video/mp4", TransferPurpose.Photo)),
+            MessageCodec.decode(Fixtures.text("transfer.offer.photo.json")),
+        )
     }
 
     @Test fun smallWinsFixturesDecode() {
