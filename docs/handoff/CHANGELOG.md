@@ -4,6 +4,26 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-14 — Mirroring plan (Plan 7)
+- **What:** wrote `docs/superpowers/plans/2026-10-14-macdroid-mirroring-7.md` (11 tasks):
+  1. an on-device probe with the owner
+  2. protocol
+  3. the media frame header
+  4. H.264 packaging with an ffmpeg-made fixture
+  5. Mac timing, backlog and audio jitter
+  6. `MirrorSession` and the `/v1/mirror` route
+  7. Android size, send policy and phone session
+  8. Android capture service, encoder, audio and stream
+  9. the Mac window, video and audio
+  10. cross-platform
+  11. probe removal and checklist
+- **Rulings the plan makes:**
+  - consent via a "Tap to start" notification until Plan 8's accessibility service lifts Android's background-start block
+  - entire screen only on API 34+
+  - sender thresholds in time (300 ms video, 200 ms audio) instead of 1 MB
+  - latency measured with the built readout
+- **Branch:** `main` (docs only). Execution goes on `feat/mirroring`; Plan 8 (remote control) follows.
+
 ## 2026-10-14 — Screen mirroring and remote control spec (Plans 7 and 8)
 - **What:** brainstormed with the owner and wrote `docs/superpowers/specs/2026-10-14-macdroid-mirroring-control-design.md`:
   - mirroring with phone audio (choice B: use apps and watch videos) in its own Mac window (A)
