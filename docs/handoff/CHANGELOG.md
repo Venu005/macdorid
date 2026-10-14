@@ -4,6 +4,11 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-14 — Photos follow-ups merged to main
+- **What:** merged `fix/photos-minors` into `main` (`2807ce9`) at the owner's request: the 9 deferred photos minors (M1–M9, below).
+- **Verified:** the merged tree is identical to the branch, where `swift test` (274), the Mac app build, the Android gates and the cross-platform test passed; both apps are installed on the owner's devices.
+- **Next (agreed order):** screen mirroring (low latency), view-only first; then remote control.
+
 ## 2026-10-14 — Photos follow-ups (the 9 deferred minors, on fix/photos-minors)
 - **Verified (whole branch):** `swift test` 274, Mac app build with no warnings, Android `:core:test :app:testDebugUnitTest :app:assembleDebug` with no warnings, `./scripts/cross-platform-test.sh` passed. Installed on the owner's phone and Mac.
 - **M9:** the Mac keeps only thumbnails it asked for (and hasn't given up on); unrequested ones are dropped. Test `unrequestedThumbnailsAreDropped`.
