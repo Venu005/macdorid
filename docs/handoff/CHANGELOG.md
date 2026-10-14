@@ -4,6 +4,10 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-14 — Remote control plan (Plan 8)
+- **What:** wrote `docs/superpowers/plans/2026-10-14-macdroid-remote-control-8.md` (7 tasks): `input.*` protocol (+ `input.notice`, a ruling), Android core gesture/text/consent rules, Mac core input mapping and gating, the "MacDroid control" accessibility service with auto-Start and Settings → Remote control, the Mac input view and bar buttons, cross-platform, final checklist. Auto-Start also answers the owner's "it asks for Share screen every time".
+- **Branch:** `feat/mirroring` (plan only).
+
 ## 2026-10-14 — Mirroring: lower audio delay (owner report)
 - **What:** the owner heard the Mac's sound lag. Diagnostics showed the Mac's audio queue sitting near 100 ms instead of the 40 ms target, plus an 80 ms capture buffer on the phone. Now:
   - Past 80 ms queued, the Mac drops chunks until it is back at 40 ms (test `aFullQueueCatchesUpToTheTarget`).
