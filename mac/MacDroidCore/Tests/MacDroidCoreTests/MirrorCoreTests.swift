@@ -114,7 +114,18 @@ extension Data {
         #expect(jitter.decide(bufferedMillis: 30, chunkMillis: 10) == .schedule(startPlayback: true))
         #expect(jitter.playing)
         #expect(jitter.decide(bufferedMillis: 50, chunkMillis: 10) == .schedule(startPlayback: false))
-        #expect(jitter.decide(bufferedMillis: 101, chunkMillis: 10) == .drop)
+        #expect(jitter.decide(bufferedMillis: 81, chunkMillis: 10) == .drop)
+    }
+
+    // Owner report: sound lagged; the queue sat near 100 ms instead of 40. Past 80 ms, drop back down to 40 ms.
+    @Test func aFullQueueCatchesUpToTheTarget() {
+        var jitter = AudioJitter()
+        _ = jitter.decide(bufferedMillis: 40, chunkMillis: 10)
+        #expect(jitter.decide(bufferedMillis: 70, chunkMillis: 10) == .schedule(startPlayback: false))
+        #expect(jitter.decide(bufferedMillis: 81, chunkMillis: 10) == .drop)
+        #expect(jitter.decide(bufferedMillis: 60, chunkMillis: 10) == .drop) // still catching up
+        #expect(jitter.decide(bufferedMillis: 40, chunkMillis: 10) == .schedule(startPlayback: false)) // back at the target
+        #expect(jitter.decide(bufferedMillis: 60, chunkMillis: 10) == .schedule(startPlayback: false))
     }
 
     @Test func runningDryBuildsTheCushionAgain() {

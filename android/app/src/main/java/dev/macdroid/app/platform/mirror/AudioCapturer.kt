@@ -23,8 +23,10 @@ class AudioCapturer(private val projection: MediaProjection, private val output:
             .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
             .build()
         val format = AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(48_000).setChannelMask(AudioFormat.CHANNEL_IN_STEREO).build()
+        // As small as Android allows (at least two chunks): sound waiting here is delay the Mac can't take back (owner report).
+        val minimum = AudioRecord.getMinBufferSize(48_000, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT)
         val record = runCatching {
-            AudioRecord.Builder().setAudioFormat(format).setAudioPlaybackCaptureConfig(config).setBufferSizeInBytes(CHUNK * 8).build()
+            AudioRecord.Builder().setAudioFormat(format).setAudioPlaybackCaptureConfig(config).setBufferSizeInBytes(maxOf(minimum, CHUNK * 2)).build()
         }.getOrNull() ?: return false
         this.record = record
         record.startRecording()

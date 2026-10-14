@@ -4,6 +4,13 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-14 — Mirroring: lower audio delay (owner report)
+- **What:** the owner heard the Mac's sound lag. Diagnostics showed the Mac's audio queue sitting near 100 ms instead of the 40 ms target, plus an 80 ms capture buffer on the phone. Now:
+  - Past 80 ms queued, the Mac drops chunks until it is back at 40 ms (test `aFullQueueCatchesUpToTheTarget`).
+  - The phone's playback-capture buffer is Android's minimum (at least two 10 ms chunks).
+- **Also found:** the earlier "sound only on the phone" was Bluetooth earbuds plus the volume being raised again. Sound plays on the Mac once the phone is on its speaker with mirroring running. The owner's Wi-Fi is 2.4 GHz (channel 6, 802.11n) and was congested during testing: Mac → router ping averaged 339 ms. Retest on a calm network or 5 GHz.
+- **Branch:** `feat/mirroring`. Verified: `swift test` 306, Mac app build, Android build; installed on both devices.
+
 ## 2026-10-14 — Plan 7: mirroring (in progress on feat/mirroring)
 - **Task 1:** on-device probe with the owner (debug source set only); results in `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`:
   - background start needs the accessibility service
