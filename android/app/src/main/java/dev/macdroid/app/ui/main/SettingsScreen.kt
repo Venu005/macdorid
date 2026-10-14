@@ -2,6 +2,7 @@ package dev.macdroid.app.ui.main
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Laptop
 import androidx.compose.material.icons.rounded.LinkOff
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.SaveAs
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Sync
@@ -41,6 +43,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.macdroid.app.BuildConfig
+import dev.macdroid.app.ui.presentation.PhotosAccessText
+import dev.macdroid.app.ui.setup.openAppSettings
 
 @Composable
 fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewModel(), filesViewModel: FilesSettingsViewModel = viewModel()) {
@@ -50,6 +54,11 @@ fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewMode
     val files by filesViewModel.ui.collectAsStateWithLifecycle()
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if (uri != null) filesViewModel.chooseFolder(uri) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { filesViewModel.refresh() }
+    val photosAccess = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        viewModel.refresh()
+        // Android shows nothing once access was denied twice: send the user to the app's settings instead.
+        if (result.values.none { it }) context.openAppSettings()
+    }
     var showMac by remember { mutableStateOf(false) }
     var confirmForget by remember { mutableStateOf(false) }
 
@@ -93,6 +102,15 @@ fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewMode
                 supportingContent = { Text("Choose a place for every file instead of saving automatically") },
                 leadingContent = { Icon(Icons.Rounded.SaveAs, contentDescription = null) },
                 trailingContent = { Switch(checked = files.askEachTime, onCheckedChange = filesViewModel::setAskEachTime) },
+            )
+        }
+        item { SectionHeader("Photos") }
+        item {
+            ListItem(
+                headlineContent = { Text("Photos on your Mac") },
+                supportingContent = { Text(ui.photosSummary) },
+                leadingContent = { Icon(Icons.Rounded.PhotoLibrary, contentDescription = null) },
+                modifier = Modifier.clickable { photosAccess.launch(PhotosAccessText.permissions(Build.VERSION.SDK_INT)) },
             )
         }
         item { SectionHeader("Setup") }

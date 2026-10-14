@@ -1,6 +1,6 @@
 package dev.macdroid.app.ui.setup
 
-enum class SetupStep { Welcome, LocalNetwork, PairMac, Notifications, Files, Battery }
+enum class SetupStep { Welcome, LocalNetwork, PairMac, Notifications, Files, Photos, Battery }
 
 data class SetupInputs(
     val setupDone: Boolean,
@@ -16,6 +16,8 @@ data class SetupInputs(
     val filesStepDone: Boolean = false,
     /** MacDroid has notification access (spec §3.1). */
     val hasNotificationAccess: Boolean = false,
+    /** The optional first-run step "See your photos on your Mac" was answered (photos spec §2). */
+    val photosStepDone: Boolean = false,
 )
 
 /**
@@ -36,6 +38,7 @@ object SetupFlow {
                 add(SetupStep.PairMac)
                 add(SetupStep.Notifications)
                 add(SetupStep.Files)
+                add(SetupStep.Photos)
                 add(SetupStep.Battery)
             }
         }
@@ -48,6 +51,8 @@ object SetupFlow {
         SetupStep.PairMac -> i.paired
         SetupStep.Notifications -> i.notificationsSkipped || ((!i.needsNotifications || i.hasNotifications) && i.hasNotificationAccess)
         SetupStep.Files -> i.filesStepDone || i.setupDone
+        // Existing users never see it (photos spec §9.8); Settings → Photos covers them.
+        SetupStep.Photos -> i.photosStepDone || i.setupDone
         SetupStep.Battery -> i.batteryDone || i.setupDone
     }
 }
