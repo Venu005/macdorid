@@ -126,7 +126,7 @@ class TransferEngine(
 
     /** Moves a finished record to the front of history. */
     private fun archive(record: TransferRecord) {
-        if (record.isClipboard) {
+        if (record.isHidden) {
             rates.remove(record.id)
             _snapshot.update { s -> s.copy(active = s.active.filterNot { it.id == record.id }, rates = s.rates - record.id) }
             persist()
@@ -173,8 +173,8 @@ class TransferEngine(
             when {
                 // An offer still waiting for "where to save" when the app died was never accepted; the Mac's re-offer starts fresh.
                 record.direction == Direction.FromMac && record.part == null -> Unit
-                // Clipboard content is never resumed later: by then it's stale (spec §4.1).
-                record.isClipboard -> record.part?.let { handle -> withContext(Dispatchers.IO) { runCatching { parts(handle)?.delete() } } }
+                // Clipboard content and fetched photos are never resumed later: by then they're stale (spec §4.1).
+                record.isHidden -> record.part?.let { handle -> withContext(Dispatchers.IO) { runCatching { parts(handle)?.delete() } } }
                 record.updatedAt < cutoff -> {
                     record.part?.let { handle -> withContext(Dispatchers.IO) { runCatching { parts(handle)?.delete() } } }
                     history.add(0, record.copy(phase = Phase.Failed, failure = Failure.Expired, updatedAt = clock()))
@@ -454,6 +454,21 @@ class TransferEngine(
     }
 
     /** Queues a clipboard image (a PNG in app-private storage) for the Mac (spec §2.3). Returns its id. */
+    /** Sends [file] to the Mac under an id the Mac chose (spec §3 `photos.fetch`). False if that id is already known. */
+    fun enqueueWithId(id: String, file: OutgoingFile, purpose: TransferPurpose): Boolean {
+        if (_snapshot.value.active.any { it.id == id }) return false
+        val now = clock()
+        val record = TransferRecord(id = id, direction = Direction.ToMac, name = file.name, size = file.size, mime = file.mime,
+            phase = Phase.Queued, source = file.source, purpose = purpose, createdAt = now, updatedAt = now)
+        scope.launch(control) {
+            if (record(id) != null) return@launch
+            add(record)
+            persist()
+            pump()
+        }
+        return true
+    }
+
     fun enqueueClipboard(file: OutgoingFile): String {
         val now = clock()
         val record = TransferRecord(id = UUID.randomUUID().toString(), direction = Direction.ToMac, name = file.name, size = file.size,
