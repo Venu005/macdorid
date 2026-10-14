@@ -239,7 +239,8 @@ public actor PhotosClient {
             }
             cursor = nextCursor
         case .photosThumb(let body):
-            thumbsInFlight[body.id] = nil
+            // Only thumbnails the Mac asked for (and hasn't given up on) are kept (follow-up M9).
+            guard thumbsInFlight.removeValue(forKey: body.id) != nil else { return }
             guard let url = thumbnails.save(id: body.id, jpegBase64: body.jpeg) else { return }
             eventBroadcast.yield(.thumbnail(id: body.id, url: url))
             thumbsSinceTrim += 1

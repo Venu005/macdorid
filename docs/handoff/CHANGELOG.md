@@ -4,6 +4,9 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-14 — Photos follow-ups (the 9 deferred minors, on fix/photos-minors)
+- **M9:** the Mac keeps only thumbnails it asked for (and hasn't given up on); unrequested ones are dropped. Test `unrequestedThumbnailsAreDropped`.
+
 ## 2026-10-14 — Photos merged to main
 - **What:** merged `feat/photos` into `main` (`37b425c`) at the owner's request: Plan 6 photo browsing and transfer with the final-review fixes.
 - **Verified:** the merged tree is identical to `feat/photos`, where `swift test` (268), the Mac app build, the Android gates and the cross-platform test passed; both apps were installed on the owner's devices.

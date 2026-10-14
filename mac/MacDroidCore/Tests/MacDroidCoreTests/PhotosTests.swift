@@ -238,6 +238,19 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
         #expect(await h.sent.items.last == .photosThumbs(PhotosThumbs(ids: ["2"]))) // 1 is cached now
     }
 
+    // Follow-up M9: the phone can't fill the Mac's disk with thumbnails nobody asked for.
+    @Test func unrequestedThumbnailsAreDropped() async throws {
+        let h = try Harness()
+        await h.connect()
+        await h.client.handle(.photosThumb(PhotosThumb(id: "5", jpeg: jpeg)))
+        await h.client.requestThumbnails(["6"])
+        await h.client.handle(.photosThumb(PhotosThumb(id: "6", jpeg: jpeg)))
+        try await eventually { await h.thumbs.items.count == 1 }
+        #expect(await h.thumbs.items.map { if case .thumbnail(let id, _) = $0 { return id }; return "" } == ["6"])
+        await h.client.requestThumbnails(["5"]) // not cached: still asked for
+        #expect(await h.sent.items.last == .photosThumbs(PhotosThumbs(ids: ["5"])))
+    }
+
     @Test func thumbnailRequestsAreBatchedBySixty() async throws {
         let h = try Harness()
         await h.connect()
