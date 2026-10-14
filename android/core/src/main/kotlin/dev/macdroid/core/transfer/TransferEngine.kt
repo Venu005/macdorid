@@ -453,7 +453,6 @@ class TransferEngine(
         return records.map { it.id }
     }
 
-    /** Queues a clipboard image (a PNG in app-private storage) for the Mac (spec §2.3). Returns its id. */
     /** Sends [file] to the Mac under an id the Mac chose (spec §3 `photos.fetch`). False if that id is already known. */
     fun enqueueWithId(id: String, file: OutgoingFile, purpose: TransferPurpose): Boolean {
         if (_snapshot.value.active.any { it.id == id }) return false
@@ -469,6 +468,7 @@ class TransferEngine(
         return true
     }
 
+    /** Queues a clipboard image (a PNG in app-private storage) for the Mac (spec §2.3). Returns its id. */
     fun enqueueClipboard(file: OutgoingFile): String {
         val now = clock()
         val record = TransferRecord(id = UUID.randomUUID().toString(), direction = Direction.ToMac, name = file.name, size = file.size,
