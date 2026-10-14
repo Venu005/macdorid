@@ -57,7 +57,7 @@ Brainstorming started 2026-10-13, then the owner parked it. Resume at the first 
 ## Agreed order (2026-10-13)
 1. ~~**The 9 deferred minors**~~ (done, merged 2026-10-13) from the Plans 3–4 final review (`docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`), one by one.
 2. **Small wins (Plan 5):** ring my phone; open a link on the other device; media controls. Spec approved 2026-10-13 (`docs/superpowers/specs/2026-10-13-macdroid-small-wins-design.md`); plan written: `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md` (10 tasks). Done, merged to `main` 2026-10-13.
-3. **Photo browsing and transfer (Plan 6).** Spec (`docs/superpowers/specs/2026-10-13-macdroid-photos-design.md`, self-reviewed) and plan (`docs/superpowers/plans/2026-10-13-macdroid-photos-6.md`, 10 tasks) are written; built on `feat/photos` 2026-10-14; awaiting the owner's check, then merge.
+3. **Photo browsing and transfer (Plan 6).** Spec (`docs/superpowers/specs/2026-10-13-macdroid-photos-design.md`, self-reviewed) and plan (`docs/superpowers/plans/2026-10-13-macdroid-photos-6.md`, 10 tasks) are written; Done, merged to `main` 2026-10-14 (`37b425c`); the 9 deferred minors follow on `fix/photos-minors`.
 4. **Screen mirroring (low latency)**, view-only first; then **remote control**.
 5. The rest of the owner's list, below.
 
@@ -66,7 +66,7 @@ The owner's planned features, with status:
 - File transfer (Android ↔ Mac / **iPad**): Android ↔ Mac is done. iPad is a new platform (an iPadOS app), not specced.
 - Clipboard sync (text, images, links): done.
 - Notifications on the Mac with reply: done.
-- Photo browsing and transfer: built on `feat/photos` (Plan 6), awaiting the owner's check.
+- Photo browsing and transfer: done (Plan 6, merged 2026-10-14).
 - Screen mirroring (low latency): not specced. View-only works without debugging mode (MediaProjection consent per session).
 - Remote control of Android from the Mac: not specced. It needs debugging mode (scrcpy-style) or an Accessibility service (Play-restricted).
 - Contact sync: not specced. Android `READ_CONTACTS`; Mac Contacts framework plus the sandbox address-book entitlement.

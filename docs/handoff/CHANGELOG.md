@@ -4,6 +4,11 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-14 — Photos merged to main
+- **What:** merged `feat/photos` into `main` (`37b425c`) at the owner's request: Plan 6 photo browsing and transfer with the final-review fixes.
+- **Verified:** the merged tree is identical to `feat/photos`, where `swift test` (268), the Mac app build, the Android gates and the cross-platform test passed; both apps were installed on the owner's devices.
+- **Next:** the 9 deferred minors from `docs/superpowers/plans/2026-10-13-macdroid-photos-followups.md`, on `fix/photos-minors`.
+
 ## 2026-10-14 — Plan 6: photos (in progress on feat/photos)
 - **Task 1:** photos messages (`photos.albums/albumList/query/page/thumbs/thumb/fetch/fetchFailed/changed`) and `purpose: photo` in both codecs, 10 fixtures, `photos` feature on both sides, PROTOCOL.md "Photos rules". Verified: `swift test` 234, `:core:test`, Mac app and `assembleDebug` build.
 - **Task 2:** Android core `PhotoQueries` (cursor, SQL selection by `date_added`/`_id`, limits, id checks, access level) and `TransferEngine.enqueueWithId`; photo transfers are hidden like clipboard ones (`isHidden`). Verified: `:core:test`.
