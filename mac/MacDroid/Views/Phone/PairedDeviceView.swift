@@ -30,6 +30,9 @@ struct PairedDeviceView: View {
                 if let line = NotificationPresentation.phonePageLine(model.notifications) {
                     LabeledContent("Notifications", value: line)
                 }
+                if model.mirror.connected && !model.mirror.supported {
+                    LabeledContent("Mirroring", value: "Update MacDroid on your phone to use this.")
+                }
                 if model.photos.supported, let line = PhotosPresentation.phoneLine(model.photos.access) {
                     LabeledContent("Photos", value: line)
                 }
@@ -47,6 +50,9 @@ struct PairedDeviceView: View {
                         Button(model.extras.ringing ? "Stop Ringing" : "Ring Phone") {
                             model.extras.ringing ? model.stopRingingPhone() : model.ringPhone()
                         }
+                    }
+                    if model.mirror.supported {
+                        Button("Mirror") { model.startMirroring() }
                     }
                     Button("Pair a Different Phone…") { Task { await model.startRepair() } }
                     Spacer()

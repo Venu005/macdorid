@@ -33,6 +33,26 @@ final class AppModel {
     private(set) var clipboard: ClipboardState = .empty
     private(set) var extras: PhoneExtrasState = .empty
     @ObservationIgnored private let phoneExtras: PhoneExtras
+    private(set) var mirror = MirrorState()
+    private(set) var mirrorLatency: Int?
+    var mirrorKeepOnTop = false { didSet { mirrorWindow?.setKeepOnTop(mirrorKeepOnTop) } }
+    var mirrorQuality = UserDefaults.standard.object(forKey: "mirror.quality") as? Int ?? MirrorOptions.sharp {
+        didSet { UserDefaults.standard.set(mirrorQuality, forKey: "mirror.quality") }
+    }
+    var mirrorFPS = UserDefaults.standard.object(forKey: "mirror.fps") as? Int ?? 60 {
+        didSet { UserDefaults.standard.set(mirrorFPS, forKey: "mirror.fps") }
+    }
+    var mirrorAudio = UserDefaults.standard.object(forKey: "mirror.audio") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(mirrorAudio, forKey: "mirror.audio") }
+    }
+    var mirrorShowLatency = UserDefaults.standard.object(forKey: "mirror.showLatency") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(mirrorShowLatency, forKey: "mirror.showLatency") }
+    }
+    @ObservationIgnored let mirrorSession: MirrorSession
+    @ObservationIgnored private let mirrorAudioPlayer = MirrorAudioPlayer()
+    @ObservationIgnored private var mirrorRenderer: MirrorRenderer!
+    @ObservationIgnored private var mirrorWindow: MirrorWindowController?
+    @ObservationIgnored private var mirrorLatencyTask: Task<Void, Never>?
     private(set) var photos: PhotosState = .empty
     /// Thumbnails already on disk, by photo id; cells read this, so arrivals redraw them.
     private(set) var photoThumbs: [String: URL] = [:]
@@ -155,9 +175,13 @@ final class AppModel {
         let mediaArt = IconCache(directory: URL.applicationSupportDirectory.appending(path: "MediaArt", directoryHint: .isDirectory))
         self.mediaArt = mediaArt
         phoneExtras = PhoneExtras(art: mediaArt, send: { message in try await hub.send(message) })
+        let mirrorSession = MirrorSession(send: { message in try await hub.send(message) })
+        self.mirrorSession = mirrorSession
         let photoThumbnails = ThumbnailCache(directory: URL.applicationSupportDirectory.appending(path: "PhotoThumbs", directoryHint: .isDirectory))
         self.photoThumbnails = photoThumbnails
         photosClient = PhotosClient(thumbnails: photoThumbnails, transfers: .manager(manager), send: { message in try await hub.send(message) })
+        mirrorRenderer = MirrorRenderer(meter: mirrorSession.meter, audio: mirrorAudioPlayer,
+                                        requestKeyFrame: { Task { await mirrorSession.requestKeyFrame() } })
         if temporary {
             warnings.append("MacDroid couldn't open its keychain, so pairing is unavailable until you restart MacDroid.")
         }
@@ -168,7 +192,7 @@ final class AppModel {
 
     func start() {
         guard tasks.isEmpty else { return }
-        let server = MacDroidServer(identity: identity, pairing: pairing, hub: hub, macName: macName, transfers: transferManager)
+        let server = MacDroidServer(identity: identity, pairing: pairing, hub: hub, macName: macName, transfers: transferManager, mirror: mirrorSession)
         tasks.append(Task { [weak self] in
             do {
                 try await server.run { [weak self] port in await self?.serverStarted(port: port) }
@@ -187,6 +211,13 @@ final class AppModel {
         tasks.append(Task { [phoneExtras, hub] in await phoneExtras.attach(to: hub) })
         tasks.append(Task { [weak self, phoneExtras] in
             for await state in phoneExtras.states { self?.extras = state }
+        })
+        tasks.append(Task { [mirrorSession, hub, mirrorRenderer] in
+            await mirrorSession.attach(to: hub)
+            await mirrorSession.setSink(mirrorRenderer)
+        })
+        tasks.append(Task { [weak self, mirrorSession] in
+            for await state in mirrorSession.states { self?.mirrorChanged(state) }
         })
         tasks.append(Task { [photosClient, hub] in await photosClient.attach(to: hub) })
         tasks.append(Task { [weak self, photosClient] in
@@ -266,6 +297,7 @@ final class AppModel {
     }
 
     func forgetPhone() async {
+        stopMirroring()
         awaitingPairRequest = true
         await pairing.forget()
         await photosClient.reset()
@@ -459,6 +491,61 @@ final class AppModel {
         }
         transientError = nil
         return url
+    }
+
+    // MARK: Mirroring
+
+    func startMirroring() {
+        if mirrorWindow == nil {
+            mirrorWindow = MirrorWindowController(onClose: { [weak self] in self?.mirrorWindowClosed() })
+        }
+        mirrorWindow?.show(content: MirrorContentView(model: self, renderer: mirrorRenderer), title: phoneName)
+        mirrorWindow?.setKeepOnTop(mirrorKeepOnTop)
+        mirrorRenderer.reset()
+        mirrorAudioPlayer.start(muted: !mirrorAudio)
+        let options = MirrorOptions(maxSize: mirrorQuality, fps: mirrorFPS, audio: mirrorAudio)
+        Task { _ = await mirrorSession.start(options) }
+    }
+
+    func stopMirroring() {
+        Task { await mirrorSession.stop() }
+        mirrorAudioPlayer.stop()
+        mirrorWindow?.close()
+    }
+
+    func mirrorWindowClosed() {
+        mirrorWindow = nil
+        Task { await mirrorSession.stop() }
+        mirrorAudioPlayer.stop()
+    }
+
+    private func mirrorChanged(_ state: MirrorState) {
+        mirror = state
+        switch state.phase {
+        case .streaming(let width, let height, _):
+            mirrorWindow?.setAspect(width: width, height: height)
+            if mirrorLatencyTask == nil {
+                mirrorLatencyTask = Task { [weak self, mirrorSession] in
+                    while !Task.isCancelled {
+                        try? await Task.sleep(for: .milliseconds(500))
+                        self?.mirrorLatency = mirrorSession.meter.averageMillis
+                    }
+                }
+            }
+        case .stopped(let reason):
+            mirrorLatencyTask?.cancel()
+            mirrorLatencyTask = nil
+            mirrorLatency = nil
+            mirrorAudioPlayer.stop()
+            if reason == .disconnected {
+                Task { [weak self] in
+                    try? await Task.sleep(for: .seconds(10))
+                    if case .stopped = self?.mirror.phase { self?.mirrorWindow?.close() }
+                }
+            }
+        default:
+            break
+        }
     }
 
     // MARK: Photos

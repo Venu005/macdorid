@@ -12,6 +12,7 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         @Bindable var files = model.files
+        @Bindable var bindableModel = model
         Form {
             Section {
                 Toggle("Launch at login", isOn: $launchAtLogin)
@@ -77,6 +78,23 @@ struct GeneralSettingsView: View {
                 Text("Clipboard")
             } footer: {
                 Text("What you copy on this Mac goes to your phone automatically. Password-manager copies are never sent.")
+                    .foregroundStyle(.secondary)
+            }
+            Section {
+                Picker("Quality", selection: $bindableModel.mirrorQuality) {
+                    Text("Sharp").tag(MirrorOptions.sharp)
+                    Text("Balanced").tag(MirrorOptions.balanced)
+                }
+                Picker("Frame rate", selection: $bindableModel.mirrorFPS) {
+                    Text("60 fps").tag(60)
+                    Text("30 fps").tag(30)
+                }
+                Toggle("Phone audio", isOn: $bindableModel.mirrorAudio)
+                Toggle("Show latency", isOn: $bindableModel.mirrorShowLatency)
+            } header: {
+                Text("Mirroring")
+            } footer: {
+                Text("Mirroring starts from the Phone page or the menu bar. Apps that block screenshots show black.")
                     .foregroundStyle(.secondary)
             }
         }

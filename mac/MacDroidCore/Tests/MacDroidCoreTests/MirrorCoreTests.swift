@@ -104,3 +104,38 @@ extension Data {
         #expect(!jitter.playing)
     }
 }
+
+@Suite struct MirrorPresentationTests {
+    func state(_ phase: MirrorPhase, audio: Bool? = nil) -> MirrorState {
+        var s = MirrorState()
+        s.phase = phase
+        s.audio = audio
+        return s
+    }
+
+    @Test func statusLines() {
+        #expect(MirrorPresentation.status(state(.idle)) == nil)
+        #expect(MirrorPresentation.status(state(.starting(waitingForTap: false))) == "Starting…")
+        #expect(MirrorPresentation.status(state(.starting(waitingForTap: true))) == "Tap Start on your phone to begin mirroring.")
+        #expect(MirrorPresentation.status(state(.streaming(width: 1, height: 1, rotation: 0))) == nil)
+        #expect(MirrorPresentation.status(state(.stopped(.declined))) == "Mirroring was declined on the phone.")
+        #expect(MirrorPresentation.status(state(.stopped(.consentTimeout))) == "Mirroring didn't start")
+        #expect(MirrorPresentation.status(state(.stopped(.noPermission))) == "Mirroring didn't start")
+        #expect(MirrorPresentation.status(state(.stopped(.disconnected))) == "Phone not connected")
+        #expect(MirrorPresentation.status(state(.stopped(.error))) == "Mirroring stopped")
+        #expect(MirrorPresentation.status(state(.stopped(.user))) == "Mirroring stopped")
+    }
+
+    @Test func audioNoticeOnlyWhenAskedForButMissing() {
+        let streaming = MirrorPhase.streaming(width: 1, height: 1, rotation: 0)
+        #expect(MirrorPresentation.audioNotice(state(streaming, audio: false), requested: true) == "Phone audio is off: allow the microphone permission for MacDroid on your phone")
+        #expect(MirrorPresentation.audioNotice(state(streaming, audio: true), requested: true) == nil)
+        #expect(MirrorPresentation.audioNotice(state(streaming, audio: false), requested: false) == nil)
+    }
+
+    @Test func latencyTones() {
+        #expect(MirrorPresentation.latencyTone(60) == .good)
+        #expect(MirrorPresentation.latencyTone(120) == .fair)
+        #expect(MirrorPresentation.latencyTone(150) == .poor)
+    }
+}

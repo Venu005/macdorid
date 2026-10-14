@@ -69,6 +69,12 @@ struct MenuBarPopover: View {
                 .foregroundStyle(ringing ? Color.red : Color.secondary)
                 .help(ringing ? "Stop ringing" : "Ring your phone")
             }
+            if model.mirror.supported {
+                Button { model.startMirroring() } label: { Image(systemName: "rectangle.on.rectangle").font(.system(size: 15)) }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Mirror your phone")
+            }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.1)))
