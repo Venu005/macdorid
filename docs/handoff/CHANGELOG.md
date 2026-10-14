@@ -15,6 +15,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Task 4:** Mac core `H264` (Annex-B split, SPS/PPS → format, AVCC sample buffers marked display-immediately) and the shared `h264/sample.h264` fixture (ffmpeg, 320×240 then 240×320, parameter sets once per half like MediaCodec), made by `scripts/make-h264-fixture.sh`.
 - **Task 5:** Mac core mirroring timing (monotonic clock, clock-offset median of 5, latency meter over 30 frames), `VideoBacklog` (drop to the next key frame past 3 waiting) and `AudioJitter` (start at 40 ms, skip over 100 ms, rebuild after running dry).
 - **Task 6:** Mac core `MirrorSession` (start/stop, 20 s consent hint, 60 s timeout, ping/pong offset, end reasons, disconnect) and the `/v1/mirror` route gated by `X-MacDroid-Session`; the WebSocket max frame is now 4 MiB with control messages still capped at 1 MiB; `swift-http-types` declared explicitly in `Package.swift` (already resolved through Hummingbird).
+- **Task 7:** Android core `MirrorSize` (fit to maxSize, multiples of 16, bitrate), `SendPolicy` (drop video to a key frame past 300 ms queued, audio past 200 ms; ruling: time at the bitrate instead of the spec's 1 MB, which is a second of lag) and `MirrorPhoneSession` (states, replace, 60 s consent timeout, Mac stop, lost connection).
 
 ## 2026-10-14 — Mirroring plan (Plan 7)
 - **What:** wrote `docs/superpowers/plans/2026-10-14-macdroid-mirroring-7.md` (11 tasks):
