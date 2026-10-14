@@ -4,6 +4,16 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-14 — Screen mirroring and remote control spec (Plans 7 and 8)
+- **What:** brainstormed with the owner and wrote `docs/superpowers/specs/2026-10-14-macdroid-mirroring-control-design.md`:
+  - mirroring with phone audio (choice B: use apps and watch videos) in its own Mac window (A)
+  - a dedicated mutual-TLS media WebSocket (H.264 hardware codecs, no B-frames, drop to key frame, PCM audio); input on the control WebSocket
+  - remote control through an accessibility service (A: no debugging), including auto-Start of Android's capture consent so the phone can be reached asleep or locked (B)
+  - latency targets: 50–80 ms screen to Mac, under 50 ms click to phone, with a readout
+  - an on-device test first on the owner's phone
+- **Why:** the owner's agreed next round; remote control depends on the mirror, so mirroring is Plan 7 and control is Plan 8 on one branch.
+- **Branch:** `main` (docs only). Self-reviewed (Delete key folded into the protocol, accessibility scope stated, Mac-side catch-up drops to key frames, monotonic clocks for latency).
+
 ## 2026-10-14 — Photos follow-ups merged to main
 - **What:** merged `fix/photos-minors` into `main` (`2807ce9`) at the owner's request: the 9 deferred photos minors (M1–M9, below).
 - **Verified:** the merged tree is identical to the branch, where `swift test` (274), the Mac app build, the Android gates and the cross-platform test passed; both apps are installed on the owner's devices.

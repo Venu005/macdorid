@@ -51,3 +51,8 @@ The full per-plan rulings are in the `docs/superpowers/plans/*-followups.md` fil
 | The Mac asks for at most 3 photo originals at a time, previews and drags first | The phone offers at most 3 uploads at once; more would trip the 30 s "didn't respond" timeout | Asking for everything at once |
 | Photo drag-out is one item at a time via `registerFileRepresentation`; several go through Save to Mac | File promises for many items need an NSView bridge; one item covers the everyday case | `NSFilePromiseProvider` per item |
 | The photo cache (`Caches/PhotoCache/`) is emptied at every launch | Previews and drags are transient; no stale originals pile up | A size-capped cache |
+| Remote control through an Android accessibility service | No developer mode or wireless debugging; uses the existing Wi-Fi link | adb/scrcpy-style input (smoother, Play-friendly, but debugging must stay on) |
+| Mirroring first, control second: one spec, two plans (7, 8) | Control needs the picture to be useful | Control first |
+| Mirroring auto-Start: the accessibility service presses Android's capture consent (a setting, on for personal builds) | Reach the phone asleep or in a pocket | Always tapping Start on the phone |
+| Mirroring media on a dedicated mutual-TLS WebSocket; input on the control WebSocket; H.264 hardware codecs, no B-frames, drop to key frame; PCM audio | Lowest latency with the existing trust model; media can't block input | One WebSocket for everything; UDP/QUIC; Opus/AAC |
+| A latency budget for every feature, with a measured readout for mirroring | Owner: everything must be low latency | Best effort |

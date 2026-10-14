@@ -58,7 +58,7 @@ Brainstorming started 2026-10-13, then the owner parked it. Resume at the first 
 1. ~~**The 9 deferred minors**~~ (done, merged 2026-10-13) from the Plans 3–4 final review (`docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`), one by one.
 2. **Small wins (Plan 5):** ring my phone; open a link on the other device; media controls. Spec approved 2026-10-13 (`docs/superpowers/specs/2026-10-13-macdroid-small-wins-design.md`); plan written: `docs/superpowers/plans/2026-10-13-macdroid-small-wins-5.md` (10 tasks). Done, merged to `main` 2026-10-13.
 3. **Photo browsing and transfer (Plan 6).** Spec (`docs/superpowers/specs/2026-10-13-macdroid-photos-design.md`, self-reviewed) and plan (`docs/superpowers/plans/2026-10-13-macdroid-photos-6.md`, 10 tasks) are written; Done, merged to `main` 2026-10-14 (`37b425c`); the 9 deferred minors were fixed and merged (`2807ce9`).
-4. **Screen mirroring (low latency)**, view-only first; then **remote control**.
+4. **Screen mirroring (low latency) and remote control (Plans 7 and 8).** Spec written 2026-10-14 (`docs/superpowers/specs/2026-10-14-macdroid-mirroring-control-design.md`, self-reviewed): mirroring with phone audio in its own Mac window over a dedicated mutual-TLS media WebSocket; control through an Android accessibility service (no debugging), including auto-Start of the capture prompt. Awaiting the owner's review; then plans → `feat/mirroring`.
 5. The rest of the owner's list, below.
 
 ## Owner's feature list (2026-10-13)
@@ -67,8 +67,8 @@ The owner's planned features, with status:
 - Clipboard sync (text, images, links): done.
 - Notifications on the Mac with reply: done.
 - Photo browsing and transfer: done (Plan 6, merged 2026-10-14).
-- Screen mirroring (low latency): not specced. View-only works without debugging mode (MediaProjection consent per session).
-- Remote control of Android from the Mac: not specced. It needs debugging mode (scrcpy-style) or an Accessibility service (Play-restricted).
+- Screen mirroring (low latency): specced (Plan 7), with phone audio; 50–80 ms target.
+- Remote control of Android from the Mac: specced (Plan 8), through an accessibility service (owner's choice; Play-restricted, fine for personal use).
 - Contact sync: not specced. Android `READ_CONTACTS`; Mac Contacts framework plus the sandbox address-book entitlement.
 - Use the phone as a webcam (Wi-Fi + USB): not specced. Needs a macOS CoreMediaIO camera extension; USB means adb.
 - Mic support (Wi-Fi + USB): not specced. Needs a macOS audio driver/extension; USB means adb.
