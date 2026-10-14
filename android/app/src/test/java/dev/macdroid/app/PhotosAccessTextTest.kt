@@ -21,4 +21,12 @@ class PhotosAccessTextTest {
         assertEquals("Selected photos", PhotosAccessText.label(PhotoAccess.Partial))
         assertEquals("Off", PhotosAccessText.label(PhotoAccess.None))
     }
+
+    // Follow-up M5: after a first "Don't allow" Android can still ask; only send the user to settings once it can't.
+    @Test fun settingsOnlyWhenAndroidStopsAsking() {
+        val denied = mapOf("android.permission.READ_MEDIA_IMAGES" to false, "android.permission.READ_MEDIA_VIDEO" to false)
+        assertEquals(false, PhotosAccessText.openSettingsAfter(denied, canAskAgain = true))
+        assertEquals(true, PhotosAccessText.openSettingsAfter(denied, canAskAgain = false))
+        assertEquals(false, PhotosAccessText.openSettingsAfter(mapOf("android.permission.READ_MEDIA_VISUAL_USER_SELECTED" to true), canAskAgain = false))
+    }
 }

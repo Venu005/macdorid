@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,10 +56,13 @@ fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewMode
     val files by filesViewModel.ui.collectAsStateWithLifecycle()
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if (uri != null) filesViewModel.chooseFolder(uri) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { filesViewModel.refresh() }
+    val activity = LocalActivity.current
     val photosAccess = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         viewModel.photosPromptAnswered()
-        // Android shows nothing once access was denied twice: send the user to the app's settings instead.
-        if (result.values.none { it }) context.openAppSettings()
+        // Android shows nothing once access was denied twice: then send the user to the app's settings instead.
+        val canAskAgain = activity != null && PhotosAccessText.permissions(Build.VERSION.SDK_INT)
+            .any { ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
+        if (PhotosAccessText.openSettingsAfter(result, canAskAgain)) context.openAppSettings()
     }
     var showMac by remember { mutableStateOf(false) }
     var confirmForget by remember { mutableStateOf(false) }
