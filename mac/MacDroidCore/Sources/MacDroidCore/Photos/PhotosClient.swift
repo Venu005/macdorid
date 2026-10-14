@@ -29,23 +29,24 @@ public enum PhotosEvent: Equatable, Sendable {
 public struct PhotoTransfers: Sendable {
     public var expect: @Sendable (_ transferId: String, _ toCache: Bool) async -> Void
     public var forget: @Sendable (_ transferId: String) async -> Void
-    public var isActive: @Sendable (_ transferId: String) async -> Bool
+    /// Bytes received so far and the total for a transfer in progress, or nil when none has started.
+    public var progress: @Sendable (_ transferId: String) async -> (done: Int64, size: Int64)?
 
     public init(
         expect: @escaping @Sendable (String, Bool) async -> Void,
         forget: @escaping @Sendable (String) async -> Void,
-        isActive: @escaping @Sendable (String) async -> Bool
+        progress: @escaping @Sendable (String) async -> (done: Int64, size: Int64)?
     ) {
         self.expect = expect
         self.forget = forget
-        self.isActive = isActive
+        self.progress = progress
     }
 
     public static func manager(_ manager: TransferManager) -> PhotoTransfers {
         PhotoTransfers(
             expect: { await manager.expectPhoto(transferId: $0, toCache: $1) },
             forget: { await manager.forgetPhoto(transferId: $0) },
-            isActive: { await manager.hasTransfer($0) }
+            progress: { await manager.photoProgress($0) }
         )
     }
 }
@@ -68,6 +69,8 @@ public actor PhotosClient {
         let photoId: String
         let toCache: Bool
         let continuation: CheckedContinuation<Result<URL, PhotoFetchError>, Never>
+        /// Later cache fetches of the same photo, answered with this one's result (follow-up M2).
+        var followers: [CheckedContinuation<Result<URL, PhotoFetchError>, Never>] = []
     }
 
     private let stateBroadcast = Broadcast<PhotosState>(replayLatest: true, initial: .empty)
@@ -153,7 +156,8 @@ public actor PhotosClient {
     }
 
     /// Forgets everything about the current phone (it was unpaired).
-    public func reset() {
+    public func reset() async {
+        for transferId in Array(pending.keys) { await finish(transferId, .failure(.notConnected)) }
         albumRequest = nil
         pageRequest = nil
         cursor = nil
@@ -176,6 +180,10 @@ public actor PhotosClient {
         guard state.supported else { return .failure(.unsupported) }
         if toCache, let url = cachedOriginals[id], FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
             return .success(url)
+        }
+        if toCache, let shared = pending.first(where: { $0.value.photoId == id && $0.value.toCache })?.key {
+            // Already on its way into the cache: wait for that one (the closure runs synchronously, so it's still pending).
+            return await withCheckedContinuation { pending[shared]?.followers.append($0) }
         }
         let transferId = makeId()
         await transfers.expect(transferId, toCache)
@@ -239,7 +247,8 @@ public actor PhotosClient {
             }
             cursor = nextCursor
         case .photosThumb(let body):
-            thumbsInFlight[body.id] = nil
+            // Only thumbnails the Mac asked for (and hasn't given up on) are kept (follow-up M9).
+            guard thumbsInFlight.removeValue(forKey: body.id) != nil else { return }
             guard let url = thumbnails.save(id: body.id, jpegBase64: body.jpeg) else { return }
             eventBroadcast.yield(.thumbnail(id: body.id, url: url))
             thumbsSinceTrim += 1
@@ -337,8 +346,13 @@ public actor PhotosClient {
             let timeout = fetchTimeout
             Task { await self.sendFetch(id: fetch.photoId, transferId: transferId) }
             Task {
-                try? await Task.sleep(for: timeout)
-                await self.checkTimeout(transferId)
+                // Every 30 s: no offer yet means no response; an offer whose bytes stopped moving has stalled (follow-up M1).
+                var last: Int64?
+                while true {
+                    try? await Task.sleep(for: timeout)
+                    guard let seen = await self.checkProgress(transferId, last: last) else { return }
+                    last = seen
+                }
             }
         }
     }
@@ -351,10 +365,20 @@ public actor PhotosClient {
         }
     }
 
-    /// 30 s after asking: an offer that never arrived means the phone didn't respond (Review Focus #5).
-    private func checkTimeout(_ transferId: String) async {
-        guard pending[transferId] != nil, !(await transfers.isActive(transferId)) else { return }
-        await finish(transferId, .failure(.noResponse))
+    /// Returns the bytes seen now to compare next time, or nil when the fetch is over (finished, or failed here).
+    /// No offer within 30 s: the phone didn't respond (Review Focus #5). No new bytes in 30 s, except while the
+    /// whole file is being verified: the transfer stalled.
+    private func checkProgress(_ transferId: String, last: Int64?) async -> Int64? {
+        guard pending[transferId] != nil else { return nil }
+        guard let now = await transfers.progress(transferId) else {
+            await finish(transferId, .failure(.noResponse))
+            return nil
+        }
+        if now.done == last && now.done < now.size {
+            await finish(transferId, .failure(.failed))
+            return nil
+        }
+        return now.done
     }
 
     private func finish(_ transferId: String, _ result: Result<URL, PhotoFetchError>) async {
@@ -370,6 +394,7 @@ public actor PhotosClient {
             if error == .gone { update { $0.items.removeAll { $0.id == fetch.photoId } } }
         }
         fetch.continuation.resume(returning: result)
+        for follower in fetch.followers { follower.resume(returning: result) }
     }
 
     private func update(_ change: (inout PhotosState) -> Void) {

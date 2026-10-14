@@ -15,4 +15,10 @@ object PhotosAccessText {
         PhotoAccess.Partial -> "Selected photos"
         PhotoAccess.None -> "Off"
     }
+
+    /**
+     * After a prompt: send the user to the app's settings only when nothing was granted and Android won't show
+     * the prompt again (follow-up M5). After a first "Don't allow" it still can.
+     */
+    fun openSettingsAfter(results: Map<String, Boolean>, canAskAgain: Boolean): Boolean = results.values.none { it } && !canAskAgain
 }

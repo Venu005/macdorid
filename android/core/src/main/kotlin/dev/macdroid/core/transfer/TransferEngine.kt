@@ -453,7 +453,6 @@ class TransferEngine(
         return records.map { it.id }
     }
 
-    /** Queues a clipboard image (a PNG in app-private storage) for the Mac (spec §2.3). Returns its id. */
     /** Sends [file] to the Mac under an id the Mac chose (spec §3 `photos.fetch`). False if that id is already known. */
     fun enqueueWithId(id: String, file: OutgoingFile, purpose: TransferPurpose): Boolean {
         if (_snapshot.value.active.any { it.id == id }) return false
@@ -469,6 +468,7 @@ class TransferEngine(
         return true
     }
 
+    /** Queues a clipboard image (a PNG in app-private storage) for the Mac (spec §2.3). Returns its id. */
     fun enqueueClipboard(file: OutgoingFile): String {
         val now = clock()
         val record = TransferRecord(id = UUID.randomUUID().toString(), direction = Direction.ToMac, name = file.name, size = file.size,
@@ -493,10 +493,14 @@ class TransferEngine(
     /** Offers queued files while fewer than 3 outgoing transfers hold a slot (spec §2.3). */
     private fun pump() {
         if (!connected) return
-        while (active.count { it.direction == Direction.ToMac && it.occupiesSlot } < MAX_ACTIVE_OUTGOING) {
-            val next = active.firstOrNull { it.direction == Direction.ToMac && it.phase == Phase.Queued } ?: break
-            update(next.id) { it.copy(phase = Phase.Offered) }
-            offer(next)
+        // Photos the Mac asked for have their own slots: files being sent must never make a fetch time out (photos follow-up M8).
+        for (photos in listOf(false, true)) {
+            fun inLane(record: TransferRecord) = record.direction == Direction.ToMac && (record.purpose == TransferPurpose.Photo) == photos
+            while (active.count { inLane(it) && it.occupiesSlot } < MAX_ACTIVE_OUTGOING) {
+                val next = active.firstOrNull { inLane(it) && it.phase == Phase.Queued } ?: break
+                update(next.id) { it.copy(phase = Phase.Offered) }
+                offer(next)
+            }
         }
         persist()
     }

@@ -69,7 +69,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 - **Resume after a reconnect:** the sender re-sends `transfer.offer` with the same id. The receiver accepts a known id again, treats an unknown id as a new offer (starting from byte 0), and replays the outcome for an id in its history (`transfer.result`, or `transfer.cancel` if it was cancelled).
 - **Uploads:** `HEAD` first; when `Upload-Offset` equals `size` there's no `PUT`, and the phone sends `finish`.
 - **Downloads:** the phone always sends `GET`. After every `GET` that reaches the end of the file, the Mac sends `finish`. The phone verifies once it has every byte and the `finish`, in either order.
-- Partial files are `<name>.macdroid-part` until verified. At most 3 outgoing transfers per side are active; the rest wait in a FIFO queue.
+- Partial files are `<name>.macdroid-part` until verified. At most 3 outgoing transfers per side are active; the rest wait in a FIFO queue. Photos the Mac fetched (`purpose: photo`) have their own 3 slots on the phone, so files being sent never delay them.
 - File names from the other side are sanitised; see `fixtures/file-naming.json`.
 
 ### Features

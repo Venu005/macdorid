@@ -4,6 +4,18 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-14 — Photos follow-ups (the 9 deferred minors, on fix/photos-minors)
+- **Verified (whole branch):** `swift test` 274, Mac app build with no warnings, Android `:core:test :app:testDebugUnitTest :app:assembleDebug` with no warnings, `./scripts/cross-platform-test.sh` passed. Installed on the owner's phone and Mac.
+- **M9:** the Mac keeps only thumbnails it asked for (and hasn't given up on); unrequested ones are dropped. Test `unrequestedThumbnailsAreDropped`.
+- **M2:** concurrent cache fetches of the same photo (double-click plus Space, a drag during a preview) share one transfer. Test `concurrentCacheFetchesOfOnePhotoShareATransfer`.
+- **M1:** a photo fetch whose bytes stop moving for 30 s (not while verifying a finished file) now fails instead of spinning; forgetting a fetch (timeout, stall) also cancels a transfer that slipped in meanwhile. `PhotoTransfers.isActive` became `progress` (done, size); `TransferManager.photoProgress`, async `forgetPhoto`. Tests `aStalledTransferFailsAndIsForgotten`, `forgettingAPhotoCancelsItsTransfer`; `aStartedTransferDoesNotTimeOut` now moves its bytes.
+- **M6:** Forget now stops every photo transfer, clears expected photo ids and deletes the cached originals (`TransferManager.forgetAllPhotos`); `PhotosClient.reset` also answers pending fetches instead of leaving them to time out. Tests `forgettingAllPhotosEmptiesTheCache`, `resetAnswersPendingFetches`.
+- **M8:** on the phone, photos the Mac fetches have their own 3 upload slots, so a phone busy sending files still answers within the Mac's 30 s. PROTOCOL.md transfer rules updated. Test `photosHaveTheirOwnSlots`.
+- **M7:** `enqueueClipboard` got its KDoc back from `enqueueWithId` (comment only).
+- **M4:** after a photos permission prompt (setup step or Settings), a limited-access user who picked a different set now makes the Mac reload, even though the level stays "Selected". Core `PhotoAccessWatcher` (tested) replaces the bridge's inline check. Tests `PhotoAccessWatcherTest`.
+- **M5:** Settings → Photos sends you to the app's settings only when nothing was granted and Android won't show the prompt again (`shouldShowRequestPermissionRationale`), not after a first "Don't allow". Test `settingsOnlyWhenAndroidStopsAsking`.
+- **M3:** the phone watches only the Images and Video MediaStore collections for `photos.changed`, so downloads and files received from the Mac no longer reload the Mac's Photos page. Glue (no JVM test); verified by the build and on the device.
+
 ## 2026-10-14 — Photos merged to main
 - **What:** merged `feat/photos` into `main` (`37b425c`) at the owner's request: Plan 6 photo browsing and transfer with the final-review fixes.
 - **Verified:** the merged tree is identical to `feat/photos`, where `swift test` (268), the Mac app build, the Android gates and the cross-platform test passed; both apps were installed on the owner's devices.

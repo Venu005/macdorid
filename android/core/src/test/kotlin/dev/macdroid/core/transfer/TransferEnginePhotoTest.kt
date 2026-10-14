@@ -33,4 +33,17 @@ class TransferEnginePhotoTest {
         Thread.sleep(100)
         assertEquals(1, h.sentOf<Message.TransferOffer>().count { it.body.transferId == "dup" })
     }
+
+    // Follow-up M8: a phone busy sending files still answers the Mac's photo fetches (the Mac gives up after 30 s).
+    @Test fun photosHaveTheirOwnSlots() {
+        h.start()
+        val files = (1..4).map { n -> File(h.dir, "f$n.bin").apply { writeBytes(testBytes(100)) } }
+        h.engine.enqueue(files.map { OutgoingFile(it.path, it.name, 100, "application/octet-stream") })
+        eventually { h.sentOf<Message.TransferOffer>().size == 3 } // the 4th file waits: the Mac hasn't accepted any
+        val photo = File(h.dir, "IMG.jpg").apply { writeBytes(testBytes(500)) }
+        assertTrue(h.engine.enqueueWithId("p1", OutgoingFile(photo.path, "IMG.jpg", 500, "image/jpeg"), TransferPurpose.Photo))
+        eventually { h.sentOf<Message.TransferOffer>().any { it.body.transferId == "p1" } }
+        Thread.sleep(100)
+        assertEquals(4, h.sentOf<Message.TransferOffer>().size)
+    }
 }

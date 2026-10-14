@@ -128,13 +128,14 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
         let expected: Collector<String>
         let forgotten: Collector<String>
         let thumbs: Collector<PhotosEvent>
-        let active: NIOLockedValueBox<Set<String>>
+        /// Transfers in progress and their bytes so far.
+        let active: NIOLockedValueBox<[String: Int64]>
         let clock: FakeClock
         let listener: Task<Void, Never>
 
         init(timeout: Duration = .seconds(30)) throws {
             let sent = Collector<Message>(), expected = Collector<String>(), forgotten = Collector<String>(), thumbs = Collector<PhotosEvent>()
-            let active = NIOLockedValueBox<Set<String>>([])
+            let active = NIOLockedValueBox<[String: Int64]>([:])
             let clock = FakeClock()
             let counter = NIOLockedValueBox(0)
             let client = PhotosClient(
@@ -142,7 +143,7 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
                 transfers: PhotoTransfers(
                     expect: { id, _ in await expected.append(id) },
                     forget: { await forgotten.append($0) },
-                    isActive: { id in active.withLockedValue { $0.contains(id) } }
+                    progress: { id in active.withLockedValue { $0[id].map { (done: $0, size: 1_000) } } }
                 ),
                 now: { clock.now },
                 fetchTimeout: timeout,
@@ -238,6 +239,19 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
         #expect(await h.sent.items.last == .photosThumbs(PhotosThumbs(ids: ["2"]))) // 1 is cached now
     }
 
+    // Follow-up M9: the phone can't fill the Mac's disk with thumbnails nobody asked for.
+    @Test func unrequestedThumbnailsAreDropped() async throws {
+        let h = try Harness()
+        await h.connect()
+        await h.client.handle(.photosThumb(PhotosThumb(id: "5", jpeg: jpeg)))
+        await h.client.requestThumbnails(["6"])
+        await h.client.handle(.photosThumb(PhotosThumb(id: "6", jpeg: jpeg)))
+        try await eventually { await h.thumbs.items.count == 1 }
+        #expect(await h.thumbs.items.map { if case .thumbnail(let id, _) = $0 { return id }; return "" } == ["6"])
+        await h.client.requestThumbnails(["5"]) // not cached: still asked for
+        #expect(await h.sent.items.last == .photosThumbs(PhotosThumbs(ids: ["5"])))
+    }
+
     @Test func thumbnailRequestsAreBatchedBySixty() async throws {
         let h = try Harness()
         await h.connect()
@@ -259,6 +273,23 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
         #expect(await fetch.value == .success(file))
         #expect(await client.fetchFile("9", toCache: true) == .success(file))
         #expect(await h.fetches().count == 1)
+    }
+
+    // Follow-up M2: double-click plus Space (or a drag during a preview) fetches the original once.
+    @Test func concurrentCacheFetchesOfOnePhotoShareATransfer() async throws {
+        let h = try Harness()
+        await h.connectWith([item(9, 100)])
+        let client = h.client
+        let first = Task { await client.fetchFile("9", toCache: true) }
+        try await eventually { await h.fetches().count == 1 }
+        let second = Task { await client.fetchFile("9", toCache: true) }
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(await h.fetches().count == 1)
+        let file = try makeTemporaryDirectory().appending(path: "IMG_9.jpg")
+        try Data([1]).write(to: file)
+        await client.transferFinished(transferId: "id3", url: file)
+        #expect(await first.value == .success(file))
+        #expect(await second.value == .success(file))
     }
 
     // Review Focus #4
@@ -297,10 +328,13 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
     @Test func aStartedTransferDoesNotTimeOut() async throws {
         let h = try Harness(timeout: .milliseconds(100))
         await h.connectWith([item(9, 100)])
-        _ = h.active.withLockedValue { $0.insert("id3") }
         let client = h.client
         let fetch = Task { await client.fetchFile("9", toCache: false) }
-        try await Task.sleep(for: .milliseconds(300))
+        // The transfer keeps moving, past several 100 ms checks.
+        for bytes in stride(from: Int64(10), through: 120, by: 10) {
+            h.active.withLockedValue { $0["id3"] = bytes }
+            try await Task.sleep(for: .milliseconds(25))
+        }
         let file = try makeTemporaryDirectory().appending(path: "IMG_9.jpg")
         await client.transferFinished(transferId: "id3", url: file)
         #expect(await fetch.value == .success(file))
@@ -327,6 +361,26 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
         await client.connectionChanged(.disconnected)
         _ = await preview.value
         for save in saves { _ = await save.value }
+    }
+
+    // Follow-up M1: an offer arrived but the bytes stopped moving (no disconnect): don't spin forever.
+    @Test func aStalledTransferFailsAndIsForgotten() async throws {
+        let h = try Harness(timeout: .milliseconds(100))
+        await h.connectWith([item(9, 100)])
+        h.active.withLockedValue { $0["id3"] = 10 }
+        #expect(await h.client.fetchFile("9", toCache: true) == .failure(.failed))
+        #expect(await h.forgotten.items == ["id3"])
+    }
+
+    @Test func resetAnswersPendingFetches() async throws {
+        let h = try Harness()
+        await h.connectWith([item(9, 100)])
+        let client = h.client
+        let fetch = Task { await client.fetchFile("9", toCache: true) }
+        try await eventually { await h.fetches().count == 1 }
+        await client.reset()
+        #expect(await fetch.value == .failure(.notConnected))
+        #expect(await client.state.items.isEmpty)
     }
 
     @Test func aDisconnectFailsPendingFetches() async throws {

@@ -269,6 +269,7 @@ final class AppModel {
         awaitingPairRequest = true
         await pairing.forget()
         await photosClient.reset()
+        await transferManager.forgetAllPhotos()
         photoThumbs = [:]
         photoSelection = []
         thumbImages.removeAllObjects()
