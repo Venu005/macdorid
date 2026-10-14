@@ -36,6 +36,10 @@ grep -q 'CLIPBOARD applied image bytes=3000' "$LOG" || { echo "the Mac never app
 grep -q 'RING state ringing=true' "$LOG" || { echo "the Mac never saw the phone ringing"; cat "$LOG"; exit 1; }
 grep -q 'LINK open https://example.com/phone' "$LOG" || { echo "the Mac never got the phone's link"; cat "$LOG"; exit 1; }
 grep -q 'MEDIA state title=Song playing=true art=0123456789abcdef' "$LOG" || { echo "the Mac never got the media state"; cat "$LOG"; exit 1; }
+grep -q 'PHOTOS page count=2 access=full' "$LOG" || { echo "the Mac never got a photos page"; cat "$LOG"; exit 1; }
+grep -q 'PHOTOS thumb id=2' "$LOG" || { echo "the Mac never got a thumbnail"; cat "$LOG"; exit 1; }
+grep -q 'PHOTOS saved IMG_2.jpg size=4000' "$LOG" || { echo "the Mac never saved the photo"; cat "$LOG"; exit 1; }
+grep -q 'PHOTOS gone id=424242' "$LOG" || { echo "the Mac never heard a photo was gone"; cat "$LOG"; exit 1; }
 cmp "$WORK/phone-to-mac.bin" "$WORK/mac-received/phone-to-mac.bin" || { echo "phone → Mac file differs"; exit 1; }
 cmp "$WORK/mac-to-phone.bin" "$WORK/phone-received/mac-to-phone.bin" || { echo "Mac → phone file differs"; exit 1; }
 echo "cross-platform test passed"

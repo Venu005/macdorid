@@ -13,6 +13,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Task 6:** Android `PhotoLibrary` (MediaStore paging by `date_added`/`_id`, albums by bucket, 256 px JPEG thumbnails via `loadThumbnail`) and `PhotosBridge` (requests queued to one worker, `ContentObserver` debounced to `photos.changed`); media read permissions in the manifest; `AppGraph.photosBridge`. Verified: Android gates.
 - **Task 7:** Android setup step "See your photos on your Mac" (first run only; setup is now 7 steps), Settings → Photos (All photos / Selected photos / Off; tapping asks again or opens app settings), access re-checked on resume. Verified: Android gates.
 - **Task 8:** Mac Photos page (album column, day-grouped 96 pt grid, click / ⌘ / ⇧ / ⌘A selection, selection bar, Space or double-click Quick Look, single-item drag-out, Save to Mac, dimmed while disconnected), the Phone page "Photos" line, and the photo cache emptied at launch. Verified: `swift test`, Mac app build with no warnings.
+- **Task 9:** cross-platform test covers photos: page, thumbnail, save to the receive folder over the transfer engine, and `gone`. Verified: `./scripts/cross-platform-test.sh` passed twice.
 
 ## 2026-10-13 — Photos plan (Plan 6)
 - **What:** self-reviewed the photos spec (§9, `06c1f71`) and wrote the implementation plan `docs/superpowers/plans/2026-10-13-macdroid-photos-6.md`. It has 10 tasks:

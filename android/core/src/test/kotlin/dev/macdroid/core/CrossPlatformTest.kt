@@ -6,26 +6,35 @@ import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.connection.MacLocator
 import dev.macdroid.core.connection.macSupports
-import dev.macdroid.core.pairing.InMemoryPairingStore
-import dev.macdroid.core.pairing.PairResult
-import dev.macdroid.core.pairing.PairingClient
-import dev.macdroid.core.pairing.PairingInvite
-import dev.macdroid.core.protocol.DeviceStatusBody
-import dev.macdroid.core.protocol.Features
-import dev.macdroid.core.protocol.HelloBody
-import dev.macdroid.core.protocol.Message
-import dev.macdroid.core.protocol.RingStateBody
-import dev.macdroid.core.protocol.RingAction
-import dev.macdroid.core.protocol.MediaCommandKind
-import dev.macdroid.core.protocol.LinkOpenBody
-import dev.macdroid.core.extras.MediaTracker
-import dev.macdroid.core.extras.MediaSnapshot
-import dev.macdroid.core.extras.MediaControl
 import dev.macdroid.core.extras.MediaArtwork
+import dev.macdroid.core.extras.MediaControl
+import dev.macdroid.core.extras.MediaSnapshot
+import dev.macdroid.core.extras.MediaTracker
 import dev.macdroid.core.notifications.InMemoryNotificationSettingsStore
 import dev.macdroid.core.notifications.NotificationCommand
 import dev.macdroid.core.notifications.NotificationForwarder
 import dev.macdroid.core.notifications.PhoneNotification
+import dev.macdroid.core.pairing.InMemoryPairingStore
+import dev.macdroid.core.pairing.PairResult
+import dev.macdroid.core.pairing.PairingClient
+import dev.macdroid.core.pairing.PairingInvite
+import dev.macdroid.core.photos.PhotoPageResult
+import dev.macdroid.core.photos.PhotoService
+import dev.macdroid.core.photos.PhotoSource
+import dev.macdroid.core.protocol.DeviceStatusBody
+import dev.macdroid.core.protocol.Features
+import dev.macdroid.core.protocol.HelloBody
+import dev.macdroid.core.protocol.LinkOpenBody
+import dev.macdroid.core.protocol.MediaCommandKind
+import dev.macdroid.core.protocol.Message
+import dev.macdroid.core.protocol.PhotoAccess
+import dev.macdroid.core.protocol.PhotoAlbumBody
+import dev.macdroid.core.protocol.PhotoItemBody
+import dev.macdroid.core.protocol.PhotoKind
+import dev.macdroid.core.protocol.PhotoKindFilter
+import dev.macdroid.core.protocol.RingAction
+import dev.macdroid.core.protocol.RingStateBody
+import dev.macdroid.core.protocol.TransferPurpose
 import dev.macdroid.core.tls.ClientIdentity
 import dev.macdroid.core.transfer.*
 import java.io.File
@@ -39,9 +48,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -53,6 +63,21 @@ import org.junit.Test
 
 /** Run via scripts/cross-platform-test.sh, which starts the Swift dev server and sets the URI. */
 class CrossPlatformTest {
+    /** Two items; "2" has a 4,000-byte original and a tiny JPEG thumbnail. */
+    private class FakePhotos(private val original: File) : PhotoSource {
+        override fun access() = PhotoAccess.Full
+        override fun albums() = listOf(PhotoAlbumBody("all", "All Photos", 2, "2"))
+        override fun page(albumId: String, kind: PhotoKindFilter, cursor: String?, limit: Int) = PhotoPageResult(
+            listOf(
+                PhotoItemBody("2", PhotoKind.Photo, "IMG_2.jpg", "image/jpeg", 1_791_892_700_000, 4_000, 4, 3),
+                PhotoItemBody("1", PhotoKind.Photo, "IMG_1.jpg", "image/jpeg", 1_791_892_600_000, 10, 4, 3),
+            ),
+            null,
+        )
+        override fun thumbnail(id: String) = if (id == "2") byteArrayOf(-1, -40, -1, -32, 0, 16) else null
+        override fun original(id: String) = if (id == "2") OutgoingFile(original.path, "IMG_2.jpg", original.length(), "image/jpeg") else null
+    }
+
     private fun newIdentity(name: String) = HeldCertificate.Builder().ecdsa256().commonName(name).build()
         .let { ClientIdentity(it.keyPair.private, it.certificate) }
 
@@ -96,6 +121,11 @@ class CrossPlatformTest {
             parts = { FolderSaveTarget.reopen(it) }, send = manager::send, retryDelayMs = 200,
         )
         engine.start(manager.incoming, manager.state.map { it is ConnectionState.Connected }) // before connecting: incoming has no replay
+        val photoFile = File.createTempFile("photo", ".jpg").apply { writeBytes(ByteArray(4_000) { (it % 251).toByte() }); deleteOnExit() }
+        val photoService = PhotoService(FakePhotos(photoFile), manager::send) { id, file -> engine.enqueueWithId(id, file, TransferPurpose.Photo) }
+        val photoRequests = Channel<Message>(Channel.UNLIMITED)
+        val photoCollector = scope.launch { manager.incoming.collect { photoRequests.trySend(it) } }
+        val photoWorker = scope.launch { for (m in photoRequests) photoService.handle(m) }
         val received = CopyOnWriteArrayList<Message>()
         val collector = scope.launch { manager.incoming.collect { received.add(it) } }
         manager.start()
@@ -108,11 +138,25 @@ class CrossPlatformTest {
             exchangeANotification(manager, received)
             exchangeClipboard(manager, engine, received)
             exchangeSmallWins(manager, received)
+            exchangePhotos(received)
             if (phoneFile != null && receiveDir != null) sendFilesBothWaysWithADrop(manager, engine, transport, File(phoneFile))
         } finally {
+            photoCollector.cancel()
+            photoWorker.cancel()
             collector.cancel()
             manager.stop()
             scope.cancel()
+        }
+    }
+
+    /** The Mac browses, takes a thumbnail, saves photo 2, and asks for one that's gone. */
+    private suspend fun exchangePhotos(received: List<Message>) {
+        withTimeout(20_000) {
+            while (received.none { it is Message.PhotosFetch && it.body.id == "424242" }) delay(50)
+        }
+        val save = received.filterIsInstance<Message.PhotosFetch>().first { it.body.id == "2" }
+        withTimeout(20_000) {
+            while (received.none { it is Message.TransferResult && it.body.transferId == save.body.transferId && it.body.ok }) delay(50)
         }
     }
 
