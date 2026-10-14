@@ -47,3 +47,7 @@ The full per-plan rulings are in the `docs/superpowers/plans/*-followups.md` fil
 | Photos: support full and limited Android access; the Mac shows what's granted | Personal use plus the cleanest Play story | Full only; selected only |
 | Photos: thumbnails over the WebSocket; originals over the transfer engine (`purpose: photo`); the Mac picks the transfer id and rejects unasked offers | The phone can't serve HTTP; originals get resume and checksums; no unasked pushes | A new HTTP route on the phone |
 | Photos page layout B: album column plus a day-grouped grid | Mirrors Photos.app | Album menu in the toolbar |
+| Photos ordered and paged by `DATE_ADDED`, then `_ID` (not `DATE_TAKEN`) | `DATE_TAKEN` can be null and MediaProvider rejects SQL functions (`COALESCE`) in selections; a stable, never-null key keeps the cursor exact | `DATE_TAKEN` with a fallback (costs: photos downloaded long after they were taken sort by arrival) |
+| The Mac asks for at most 3 photo originals at a time, previews and drags first | The phone offers at most 3 uploads at once; more would trip the 30 s "didn't respond" timeout | Asking for everything at once |
+| Photo drag-out is one item at a time via `registerFileRepresentation`; several go through Save to Mac | File promises for many items need an NSView bridge; one item covers the everyday case | `NSFilePromiseProvider` per item |
+| The photo cache (`Caches/PhotoCache/`) is emptied at every launch | Previews and drags are transient; no stale originals pile up | A size-capped cache |

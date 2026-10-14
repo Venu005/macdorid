@@ -18,7 +18,7 @@ open mac/build/Build/Products/Debug/MacDroid.app
 cd android && ./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug
 ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
-# Swift server ↔ Kotlin client end to end (pairing, battery, a notification with a reply, clipboard text both ways and an image, ring, links both ways, media state and a command, and 24 MiB files both ways with a mid-file disconnect; ~1 min)
+# Swift server ↔ Kotlin client end to end (pairing, battery, a notification with a reply, clipboard text both ways and an image, ring, links both ways, media state and a command, photos (page, thumbnail, save, gone), and 24 MiB files both ways with a mid-file disconnect; ~1 min)
 ./scripts/cross-platform-test.sh
 # The dev server alone: --receive-dir <dir> saves files from the phone there; --send-on-connect <file> sends that file when a phone connects
 #   mac/MacDroidCore/.build/debug/macdroid-devserver --host 127.0.0.1 --port 47999 --receive-dir /tmp/in --send-on-connect /tmp/out.bin
@@ -35,6 +35,7 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 5. Don't `pm clear`, grant permissions or tap on the owner's phone from automation.
 
 ## Gotchas
+- **Photos access (Plan 6):** Android 14+ asks for `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO` and `READ_MEDIA_VISUAL_USER_SELECTED` together ("Allow all" or "Select photos"); Android 13 has images/video only; 10–12 use `READ_EXTERNAL_STORAGE`. To test limited access: phone Settings → Apps → MacDroid → Permissions → Photos and videos → "Allow limited access". Mac thumbnails live in `~/Library/Containers/dev.macdroid.mac/Data/Library/Application Support/PhotoThumbs/`; previews and drags in `…/Data/Library/Caches/PhotoCache/` (emptied at launch).
 - **App icon sources:** the source art is `design/icon/`.
   - Mac PNGs are generated, so don't hand-edit `AppIcon.appiconset`.
   - The Android vectors in `res/drawable/ic_launcher_*.xml` mirror the SVG paths (100-unit frame, scaled 0.72 and offset 18 into the 108dp canvas). Update both when the art changes.
