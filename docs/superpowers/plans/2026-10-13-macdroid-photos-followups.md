@@ -23,4 +23,13 @@ Branch `feat/photos`. Built 2026-10-14; all gates and the cross-platform test pa
 
 ## Deferred minors
 
-(Filled in after the final review.)
+From the final review (2026-10-14). The 5 Important findings were fixed (see CHANGELOG).
+1. **No progress timeout after the offer:** once an offer has arrived, nothing times out; a stalled transfer spins until disconnect. Also, `finish` forgets after an await, so a late offer can slip into the cache unobserved.
+2. **Duplicate cache fetches:** concurrent cache fetches of the same photo (double-click plus Space, drag during preview) aren't coalesced.
+3. **Observer scope:** `PhotosBridge` observes all MediaStore files; downloads and received files also trigger `photos.changed`. Watch the Images and Video URIs only.
+4. **Stale selection:** a partial-access user re-picking a different set stays Partial→Partial, so no `photos.changed` is sent and the Mac shows the old set.
+5. **Settings fallback:** Settings → Photos opens app settings after the first "Don't allow", not only once Android stops asking; gate on `shouldShowRequestPermissionRationale`.
+6. **Forget leftovers:** Forget doesn't delete `Caches/PhotoCache` originals or clear `TransferManager.photoRequests` (emptied at the next launch).
+7. **KDoc:** `TransferEngine.enqueueWithId` took `enqueueClipboard`'s KDoc.
+8. **Busy phone:** when the phone is already sending 3 files, photo fetches can time out ("Your phone didn't respond").
+9. **Unrequested thumbnails:** the Mac accepts thumbnails it never asked for (bounded by trims; the peer is the trusted paired phone).

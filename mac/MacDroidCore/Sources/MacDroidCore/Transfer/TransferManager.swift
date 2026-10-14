@@ -216,8 +216,9 @@ public actor TransferManager {
             for record in active where record.isClipboard && record.direction == .toPhone {
                 await cancel(id: record.id)
             }
-            // A preview or drag can't wait for a reconnect; saves (visible) resume like files.
-            for record in active where record.purpose == .photo && record.isHidden {
+            // The Mac stops waiting for photos when the phone goes (the user is told), and the phone drops them on restart;
+            // resuming one later would land a file nobody is waiting for (final review I4).
+            for record in active where record.purpose == .photo {
                 await cancel(id: record.id)
             }
             for index in active.indices where active[index].phase == .active || active[index].phase == .verifying {

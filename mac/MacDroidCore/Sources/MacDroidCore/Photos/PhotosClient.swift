@@ -286,6 +286,8 @@ public actor PhotosClient {
     /// New photos at the top: the fresh first page, then every loaded item older than its last one (Review Focus #2).
     static func merge(firstPage: [PhotoItem], firstCursor: String?, old: [PhotoItem], oldCursor: String?) -> (items: [PhotoItem], cursor: String?) {
         guard let last = firstPage.last, firstCursor != nil else { return (firstPage, firstCursor) }
+        // No overlap (more than a page arrived): keeping the old items would leave a hole before them (final review I1).
+        guard let newestOld = old.first, !isOlder(newestOld, than: last) else { return (firstPage, firstCursor) }
         let older = old.filter { isOlder($0, than: last) }
         return older.isEmpty ? (firstPage, firstCursor) : (firstPage + older, oldCursor)
     }

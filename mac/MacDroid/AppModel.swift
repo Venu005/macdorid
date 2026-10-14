@@ -36,6 +36,8 @@ final class AppModel {
     private(set) var photos: PhotosState = .empty
     /// Thumbnails already on disk, by photo id; cells read this, so arrivals redraw them.
     private(set) var photoThumbs: [String: URL] = [:]
+    /// `photos.items` grouped by day, recomputed only when the items change (final review I5: not on every redraw).
+    private(set) var photoDays: [PhotoDay] = []
     var photoSelection: Set<String> = []
     @ObservationIgnored private var photoAnchor: String?
     /// Bound to `.quickLookPreview`.
@@ -48,6 +50,9 @@ final class AppModel {
     @ObservationIgnored private let thumbImages = NSCache<NSString, NSImage>()
     @ObservationIgnored private var pendingThumbs: Set<String> = []
     @ObservationIgnored private var thumbFlush: Task<Void, Never>?
+    /// Thumbnails that arrived, applied together every 100 ms so a batch of 60 redraws the grid once.
+    @ObservationIgnored private var arrivedThumbs: [String: URL] = [:]
+    @ObservationIgnored private var arrivalFlush: Task<Void, Never>?
     @ObservationIgnored private let mediaArt: IconCache
     @ObservationIgnored private let clipboardSync: ClipboardSync
     @ObservationIgnored private let watcher: PasteboardWatcher
@@ -189,7 +194,7 @@ final class AppModel {
         })
         tasks.append(Task { [weak self, photosClient] in
             for await event in photosClient.events {
-                if case .thumbnail(let id, let url) = event { self?.photoThumbs[id] = url }
+                if case .thumbnail(let id, let url) = event { self?.thumbnailArrived(id, url) }
             }
         })
         Task.detached(priority: .background) { [photoThumbnails] in photoThumbnails.trim() }
@@ -267,6 +272,7 @@ final class AppModel {
         photoThumbs = [:]
         photoSelection = []
         thumbImages.removeAllObjects()
+        arrivedThumbs = [:]
         await hub.disconnect()
     }
 
@@ -457,6 +463,7 @@ final class AppModel {
     // MARK: Photos
 
     private func photosChanged(_ state: PhotosState) {
+        if state.items != photos.items { photoDays = PhotosPresentation.days(state.items, now: Date()) }
         photos = state
         if !photoSelection.isEmpty { photoSelection.formIntersection(state.items.map(\.id)) }
     }
@@ -470,11 +477,25 @@ final class AppModel {
         return image
     }
 
+    private func thumbnailArrived(_ id: String, _ url: URL) {
+        arrivedThumbs[id] = url
+        guard arrivalFlush == nil else { return }
+        arrivalFlush = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(100))
+            guard let self else { return }
+            photoThumbs.merge(arrivedThumbs) { _, new in new }
+            arrivedThumbs = [:]
+            arrivalFlush = nil
+        }
+    }
+
     /// Asks the phone for thumbnails of cells that appeared, together after 50 ms.
     func needThumbnail(_ id: String) {
         guard photoThumbs[id] == nil else { return }
-        if let url = photoThumbnails.url(for: id) {
+        if let url = photoThumbnails.cachedURL(for: id) {
             photoThumbs[id] = url
+            // Mark it used for the cache's LRU off the main thread.
+            Task.detached(priority: .utility) { [photoThumbnails] in _ = photoThumbnails.url(for: id) }
             return
         }
         pendingThumbs.insert(id)

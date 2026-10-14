@@ -75,7 +75,7 @@ private struct PhotoGrid: View {
 
     var body: some View {
         let state = model.photos
-        let days = PhotosPresentation.days(state.items, now: Date())
+        let days = model.photoDays
         // The next page loads once a cell in about the last two rows appears (spec §5.2).
         let nearEnd = Set(state.items.suffix(20).map(\.id))
         ZStack(alignment: .bottom) {

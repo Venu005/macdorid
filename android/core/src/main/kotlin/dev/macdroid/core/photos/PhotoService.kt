@@ -27,8 +27,8 @@ interface PhotoSource {
 }
 
 /**
- * Answers the Mac's photos.* requests (spec §3–4). Not thread-safe: call [handle] from one worker,
- * since thumbnails and queries do disk I/O.
+ * Answers the Mac's photos.* requests (spec §3–4). Keeps no state of its own; call [handle] off the main thread
+ * (thumbnails and queries do disk I/O), through [PhotoLanes].
  */
 class PhotoService(
     private val source: PhotoSource,

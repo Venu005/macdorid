@@ -101,6 +101,26 @@ import Testing
         listener.cancel()
     }
 
+    // Final review I4: the Mac already told the user the save failed, and the phone drops photo transfers on restart.
+    @Test func savesAreCancelledOnDisconnectToo() async throws {
+        let f = try TransferFixture()
+        let m = manager(f, cache: try makeTemporaryDirectory())
+        let (events, listener) = listen(m)
+        await m.connectionChanged(true)
+        await m.expectPhoto(transferId: "p5", toCache: false)
+        await m.handle(photoOffer("p5", size: 100))
+        try await eventually {
+            let has = await m.hasTransfer("p5")
+            let sent = await f.phone.sent
+            return has && sent.contains { $0.acceptedID == "p5" }
+        }
+        await m.connectionChanged(false)
+        try await eventually { await events.items.contains(.photoFailed(transferId: "p5")) }
+        #expect(await !m.hasTransfer("p5"))
+        #expect(await m.snapshot.active.isEmpty)
+        listener.cancel()
+    }
+
     @Test func photoRecordsInTheCacheAreNotRestoredAfterARelaunch() {
         let now = Date()
         let record = TransferRecord(id: "p1", direction: .fromPhone, name: "a.jpg", size: 1, mime: "image/jpeg", phase: .active,

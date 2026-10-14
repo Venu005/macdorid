@@ -7,6 +7,7 @@ import android.os.Looper
 import android.provider.MediaStore
 import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.macSupports
+import dev.macdroid.core.photos.PhotoLanes
 import dev.macdroid.core.photos.PhotoService
 import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.Message
@@ -15,10 +16,8 @@ import dev.macdroid.core.protocol.TransferPurpose
 import dev.macdroid.core.transfer.TransferEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,10 +26,10 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 
 /**
- * Serves the Mac's photo browsing (spec §4): requests run one at a time on a worker, and library changes
+ * Serves the Mac's photo browsing (spec §4): requests run on two serial lanes (thumbnails apart from the rest), and library changes
  * reach the Mac as `photos.changed`, debounced by a second.
  */
-@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+@OptIn(FlowPreview::class)
 class PhotosBridge(
     private val context: Context,
     private val connection: ConnectionManager,
@@ -39,8 +38,7 @@ class PhotosBridge(
 ) {
     private val library = PhotoLibrary(context)
     private val service = PhotoService(library, connection::send) { id, file -> engine.enqueueWithId(id, file, TransferPurpose.Photo) }
-    private val worker = Dispatchers.IO.limitedParallelism(1)
-    private val requests = Channel<Message>(Channel.UNLIMITED)
+    private val lanes = PhotoLanes(scope, Dispatchers.IO) { service.handle(it) }
     private val changes = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private val _access = MutableStateFlow(library.access())
     val access: StateFlow<PhotoAccess> = _access.asStateFlow()
@@ -49,11 +47,8 @@ class PhotosBridge(
         // Collect quickly and queue: a slow thumbnail batch must never hold up other messages.
         scope.launch {
             connection.incoming.collect { message ->
-                if (message.isPhotoRequest()) requests.trySend(message)
+                if (message.isPhotoRequest()) lanes.submit(message)
             }
-        }
-        scope.launch(worker) {
-            for (message in requests) runCatching { service.handle(message) }
         }
         scope.launch {
             changes.debounce(CHANGE_DEBOUNCE_MS).collect {

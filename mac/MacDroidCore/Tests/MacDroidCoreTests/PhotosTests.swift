@@ -29,6 +29,19 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
         #expect(cache.save(id: "3", jpegBase64: (Data([0xFF, 0xD8]) + Data(count: ThumbnailCache.maxThumbBytes)).base64EncodedString()) == nil)
     }
 
+    // Final review I5: the grid checks the cache on the main thread for every cell, so that check must not write.
+    @Test func checkingWithoutTouchingKeepsTheLastUse() throws {
+        let cache = ThumbnailCache(directory: try makeTemporaryDirectory())
+        let url = try #require(cache.save(id: "7", jpegBase64: jpeg))
+        let old = Date(timeIntervalSince1970: 1)
+        try FileManager.default.setAttributes([.modificationDate: old], ofItemAtPath: url.path(percentEncoded: false))
+        #expect(cache.cachedURL(for: "7") == url)
+        #expect(cache.cachedURL(for: "8") == nil)
+        #expect(cache.cachedURL(for: "../7") == nil)
+        let date = try url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+        #expect(date == old)
+    }
+
     @Test func trimDeletesTheLeastRecentlyUsed() throws {
         let directory = try makeTemporaryDirectory()
         let cache = ThumbnailCache(directory: directory, limit: 2_500)
@@ -352,6 +365,18 @@ private func item(_ id: Int, _ seconds: Int64, kind: PhotoKind = .photo, size: I
         #expect(await h.client.state.items.map(\.id) == ["10", "9", "8", "7"])
         await h.client.loadMore()
         #expect(await h.sent.items.last == .photosQuery(PhotosQuery(requestId: "id6", albumId: "all", kind: .all, cursor: "80:7", limit: 200)))
+    }
+
+    // Final review I1: more than a page of new photos must not leave a hole between the new page and the old items.
+    @Test func aChangeWithMoreThanAPageOfNewPhotosStartsOver() async throws {
+        let h = try Harness()
+        await h.connectWith([item(9, 100), item(8, 90)], next: "90:8")
+        await h.client.handle(.photosChanged) // id3 albums, id4 merge page
+        // The new first page is entirely newer than what was loaded: photos between 200 and 100 are not loaded yet.
+        await h.client.handle(.photosPage(PhotosPage(requestId: "id4", access: .full, items: [item(301, 301), item(200, 200)], nextCursor: "200:200")))
+        #expect(await h.client.state.items.map(\.id) == ["301", "200"])
+        await h.client.loadMore()
+        #expect(await h.sent.items.last == .photosQuery(PhotosQuery(requestId: "id5", albumId: "all", kind: .all, cursor: "200:200", limit: 200)))
     }
 
     @Test func anAlbumThatDisappearedFallsBackToAllPhotos() async throws {

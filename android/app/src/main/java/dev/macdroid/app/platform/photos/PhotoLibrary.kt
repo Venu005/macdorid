@@ -69,7 +69,8 @@ class PhotoLibrary(private val context: Context) : PhotoSource {
         var lastAdded = 0L
         var lastId = 0L
         query(projection, selection, args, limit)?.use { c ->
-            while (c.moveToNext()) {
+            // Capped here too: older MediaProviders may ignore QUERY_ARG_LIMIT, and a whole library won't fit in one frame.
+            while (items.size < limit && c.moveToNext()) {
                 val id = c.getLong(0)
                 val video = c.getInt(1) == MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO
                 lastAdded = c.getLong(4)

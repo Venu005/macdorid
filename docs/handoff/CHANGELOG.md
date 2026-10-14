@@ -15,6 +15,14 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Task 8:** Mac Photos page (album column, day-grouped 96 pt grid, click / ⌘ / ⇧ / ⌘A selection, selection bar, Space or double-click Quick Look, single-item drag-out, Save to Mac, dimmed while disconnected), the Phone page "Photos" line, and the photo cache emptied at launch. Verified: `swift test`, Mac app build with no warnings.
 - **Task 9:** cross-platform test covers photos: page, thumbnail, save to the receive folder over the transfer engine, and `gone`. Verified: `./scripts/cross-platform-test.sh` passed twice.
 - **Task 10:** handoff updated (ARCHITECTURE photos components and fetch flow, DECISIONS, DEV-GUIDE photos access, STATUS, ROADMAP, README round table) and the owner checklist in `docs/superpowers/plans/2026-10-13-macdroid-photos-followups.md`. Gates: `swift test` 265, Mac app build with no warnings, Android `:core:test :app:testDebugUnitTest :app:assembleDebug` with no warnings, cross-platform test passed.
+- **Final review (Opus), 5 Important fixed:**
+  - I1: a change with more than a page of new photos no longer leaves a hole before the old items (start over instead of merging).
+  - I2: the phone runs thumbnails in their own lane (`PhotoLanes`), so a fetch never waits behind a thumbnail backlog.
+  - I3: page queries are capped in the loop too (older MediaProviders may ignore `QUERY_ARG_LIMIT`).
+  - I4: photo saves are cancelled on disconnect like previews; the phone drops them on restart anyway.
+  - I5: day groups are computed only when items change, thumbnail arrivals are batched every 100 ms, and the main thread no longer writes cache mtimes.
+  - Verified: `swift test` 268, Android gates, Mac app build with no warnings, cross-platform test passed.
+  - 9 minors deferred in `docs/superpowers/plans/2026-10-13-macdroid-photos-followups.md`.
 
 ## 2026-10-13 — Photos plan (Plan 6)
 - **What:** self-reviewed the photos spec (§9, `06c1f71`) and wrote the implementation plan `docs/superpowers/plans/2026-10-13-macdroid-photos-6.md`. It has 10 tasks:

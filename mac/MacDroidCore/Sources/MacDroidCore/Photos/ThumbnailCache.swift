@@ -28,6 +28,13 @@ public final class ThumbnailCache: Sendable {
         return url
     }
 
+    /// The cached thumbnail, without marking it used (cheap enough for the main thread; final review I5).
+    public func cachedURL(for id: String) -> URL? {
+        guard Self.isValid(id: id) else { return nil }
+        let url = file(id)
+        return FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) ? url : nil
+    }
+
     /// The cached thumbnail, marked as just used.
     public func url(for id: String) -> URL? {
         guard Self.isValid(id: id) else { return nil }
