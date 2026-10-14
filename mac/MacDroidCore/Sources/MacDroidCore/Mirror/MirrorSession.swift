@@ -47,11 +47,20 @@ public struct MirrorState: Equatable, Sendable {
     public init() {}
 }
 
+/// Which media stream may still deliver frames; read for every frame without an actor hop (final review I2).
+public final class MirrorStreamGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var open: Int?
+    func set(_ token: Int?) { lock.withLock { open = token } }
+    public func isOpen(_ token: Int) -> Bool { lock.withLock { open == token } }
+}
+
 /// One mirroring session at a time (spec §6.1): start/stop over the control WebSocket, the consent hint and timeout,
 /// the `/v1/mirror` gate, and the ping/pong clock offset for the latency readout.
 public actor MirrorSession {
     public nonisolated var states: AsyncStream<MirrorState> { broadcast.stream() }
     public nonisolated let meter = LatencyMeter()
+    public nonisolated let gate = MirrorStreamGate()
     public private(set) var state = MirrorState()
 
     private let broadcast = Broadcast<MirrorState>(replayLatest: true, initial: MirrorState())
@@ -66,7 +75,7 @@ public actor MirrorSession {
     private var tasks: [Task<Void, Never>] = []
     private var clock = ClockOffset()
     private var nextToken = 0
-    private var openToken: Int?
+    private var openToken: Int? { didSet { gate.set(openToken) } }
 
     public init(
         now: @escaping @Sendable () -> Int64 = MonotonicClock.micros,

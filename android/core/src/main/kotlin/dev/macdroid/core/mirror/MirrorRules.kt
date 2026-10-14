@@ -27,17 +27,25 @@ class SendPolicy(bitrateBps: Int) {
     val videoLimitBytes: Long = bitrateBps.toLong() / 8 * 300 / 1000
     val audioLimitBytes: Long = bitrateBps.toLong() / 8 * 200 / 1000
     private var dropping = false
+    /** The key frame asked for while backed up is usually dropped too: ask once more when the queue drains (final review I3). */
+    private var askOnDrain = false
 
     fun video(keyFrame: Boolean, queuedBytes: Long): VideoAdmit {
         if (queuedBytes > videoLimitBytes) {
+            askOnDrain = true
             if (dropping) return VideoAdmit.Drop
             dropping = true
             return if (keyFrame) VideoAdmit.Drop else VideoAdmit.DropAndRequestKey
         }
         if (dropping) {
-            if (!keyFrame) return VideoAdmit.Drop
+            if (!keyFrame) {
+                if (!askOnDrain) return VideoAdmit.Drop
+                askOnDrain = false
+                return VideoAdmit.DropAndRequestKey
+            }
             dropping = false
         }
+        askOnDrain = false
         return VideoAdmit.Send
     }
 

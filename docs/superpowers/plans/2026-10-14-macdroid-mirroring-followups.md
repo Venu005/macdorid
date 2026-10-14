@@ -35,3 +35,14 @@ Start with the phone **unlocked** (Android ends capture on lock).
 11. **Protected apps:** open a banking app → black (expected).
 12. Lock the phone mid-session → "Mirroring stopped" on the Mac (Android ends capture on lock).
 13. During a session the phone's speaker is silent and its sound plays on the Mac; afterwards the phone's volume is back.
+
+## Deferred minors (Plan 7 final review)
+1. **Output-device change:** `AVAudioEngine` stops when the output device changes (e.g. AirPods connect) and isn't restarted; observe `AVAudioEngineConfigurationChange`.
+2. **Audio counter:** `MirrorAudioPlayer.bufferedFrames` can go negative after `stop()`; completions from before the reset still arrive.
+3. **Teardown order:** the VirtualDisplay briefly targets a released encoder surface in `ScreenEncoder.resize`/`release`; detach the surface first.
+4. **Landscape window size:** rotating to landscape keeps the window's width, so it gets short; keep the long edge instead.
+5. **Second start:** `MirrorService.finished` is never reset if an instance gets a second start; guard `onStartCommand`.
+6. **Frame limit:** the 4 MiB WebSocket frame limit also applies to `/v1/ws` frames (control messages are still capped at 1 MiB).
+7. **Early frames:** frames sent before the media socket opens go out late, and the config frame is sent twice.
+8. **Thread visibility:** `stream`/`policy` in `MirrorService` are read on other threads without `@Volatile`.
+9. **Readout timing:** the latency readout measures to enqueue, not display (a slight underestimate).

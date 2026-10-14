@@ -48,6 +48,18 @@ extension Data {
         #expect(offset.micros == 6_000) // only the last five count
     }
 
+    // Final review I5: no frame for over a second while streaming means stalled, not live.
+    @Test func noFrameForASecondIsAStall() {
+        let meter = LatencyMeter()
+        #expect(!meter.isStalled(now: 5_000_000)) // nothing shown yet: not a stall
+        meter.setOffset(0)
+        meter.record(captureMicros: 90_000, displayedMicros: 100_000)
+        #expect(!meter.isStalled(now: 1_000_000))
+        #expect(meter.freshAverageMillis(now: 1_000_000) == 10)
+        #expect(meter.isStalled(now: 1_100_001))
+        #expect(meter.freshAverageMillis(now: 1_100_001) == nil)
+    }
+
     @Test func latencyUsesTheOffsetAndAverages() {
         let meter = LatencyMeter()
         meter.record(captureMicros: 10_000, displayedMicros: 20_000)
@@ -75,6 +87,15 @@ extension Data {
     @Test func aKeyFrameIsShownEvenWithABacklog() {
         var backlog = VideoBacklog()
         #expect(backlog.admit(keyFrame: true, waiting: 10) == .show)
+    }
+
+    // Final review I3: if the requested key frame is lost, ask again instead of waiting for the phone's periodic one.
+    @Test func aLongDropAsksAgainEveryThirtyFrames() {
+        var backlog = VideoBacklog()
+        #expect(backlog.admit(keyFrame: false, waiting: 4) == .dropAndRequestKeyFrame)
+        for _ in 1..<VideoBacklog.reaskEvery { #expect(backlog.admit(keyFrame: false, waiting: 0) == .drop) }
+        #expect(backlog.admit(keyFrame: false, waiting: 0) == .dropAndRequestKeyFrame)
+        #expect(backlog.admit(keyFrame: true, waiting: 0) == .show)
     }
 
     @Test func resyncWaitsForAKeyFrame() {
@@ -124,6 +145,14 @@ extension Data {
         #expect(MirrorPresentation.status(state(.stopped(.disconnected))) == "Phone not connected")
         #expect(MirrorPresentation.status(state(.stopped(.error))) == "Mirroring stopped")
         #expect(MirrorPresentation.status(state(.stopped(.user))) == "Mirroring stopped")
+    }
+
+    // Final review I5
+    @Test func aStalledStreamSaysReconnecting() {
+        let streaming = state(.streaming(width: 1, height: 1, rotation: 0))
+        #expect(MirrorPresentation.status(streaming, stalled: true) == "Reconnecting…")
+        #expect(MirrorPresentation.status(streaming, stalled: false) == nil)
+        #expect(MirrorPresentation.status(state(.stopped(.user)), stalled: true) == "Mirroring stopped")
     }
 
     @Test func audioNoticeOnlyWhenAskedForButMissing() {

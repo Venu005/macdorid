@@ -12,7 +12,7 @@ struct MirrorContentView: View {
         VStack(spacing: 0) {
             ZStack {
                 MirrorVideoView(layer: renderer.layer)
-                if let status = MirrorPresentation.status(model.mirror) {
+                if let status = MirrorPresentation.status(model.mirror, stalled: model.mirrorStalled) {
                     Text(status)
                         .font(.callout)
                         .multilineTextAlignment(.center)

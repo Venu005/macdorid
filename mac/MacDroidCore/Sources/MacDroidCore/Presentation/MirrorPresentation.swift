@@ -2,6 +2,12 @@
 public enum MirrorPresentation {
     public enum LatencyTone: Equatable, Sendable { case good, fair, poor }
 
+    /// While streaming but no frame has arrived for over a second (final review I5).
+    public static func status(_ state: MirrorState, stalled: Bool) -> String? {
+        if stalled, case .streaming = state.phase { return "Reconnecting…" }
+        return status(state)
+    }
+
     public static func status(_ state: MirrorState) -> String? {
         switch state.phase {
         case .idle, .streaming: nil

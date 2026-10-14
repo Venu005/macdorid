@@ -20,6 +20,7 @@ import dev.macdroid.app.graph
 import dev.macdroid.core.mirror.MirrorFrame
 import dev.macdroid.core.mirror.MirrorSize
 import dev.macdroid.core.mirror.SendPolicy
+import dev.macdroid.core.mirror.SmallSendBuffer
 import dev.macdroid.core.mirror.VideoAdmit
 import dev.macdroid.core.protocol.MirrorStartBody
 import dev.macdroid.core.protocol.MirrorStopReason
@@ -51,6 +52,12 @@ class MirrorService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /** The system stopped the service (task manager, low memory): clean up and tell the Mac (final review I6). */
+    override fun onDestroy() {
+        finish(MirrorStopReason.Ended)
+        super.onDestroy()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             finish(MirrorStopReason.User)
@@ -67,7 +74,12 @@ class MirrorService : Service() {
             finish(MirrorStopReason.Error)
             return START_NOT_STICKY
         }
-        begin(body, intent.getIntExtra(EXTRA_CODE, 0), data)
+        try {
+            begin(body, intent.getIntExtra(EXTRA_CODE, 0), data)
+        } catch (e: Exception) {
+            // A codec or capture refusing to start must end this session, not the whole app (final review I6).
+            finish(MirrorStopReason.Error)
+        }
         return START_NOT_STICKY
     }
 
@@ -84,6 +96,7 @@ class MirrorService : Service() {
         val http = TlsClientFactory.pinned(graph.identity, mac.fingerprint, graph.httpClient).newBuilder()
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .pingInterval(5, TimeUnit.SECONDS)
+            .socketFactory(SmallSendBuffer(SEND_BUFFER_BYTES)) // backlog stays visible to the send policy (final review I4)
             .build()
         stream = MediaStreamClient(http, mac.host, mac.port, body.sessionId,
             onOpen = {
@@ -98,7 +111,7 @@ class MirrorService : Service() {
             AudioCapturer(mp, ::onAudio).let { capturer -> capturer.start().also { if (it) audio = capturer } }
         if (audioOn && MUTE_PHONE_SPEAKER) {
             val am = getSystemService(AudioManager::class.java)
-            savedVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            savedVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC).also { MirrorVolume.remember(this, it) }
             am.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
         }
         displays.registerDisplayListener(displayListener, handler)
@@ -158,7 +171,12 @@ class MirrorService : Service() {
         val next = screenSize(body.maxSize)
         if (next == size) return
         size = next
-        encoder?.resize(next.first, next.second)
+        try {
+            encoder?.resize(next.first, next.second)
+        } catch (e: Exception) {
+            finish(MirrorStopReason.Error)
+            return
+        }
         graph.mirrorBridge.session.streaming(next.first, next.second, next.third, audio = audioOn, control = false)
     }
 
@@ -174,7 +192,10 @@ class MirrorService : Service() {
         encoder?.release()
         stream?.close()
         projection?.stop()
-        savedVolume?.let { getSystemService(AudioManager::class.java).setStreamVolume(AudioManager.STREAM_MUSIC, it, 0) }
+        savedVolume?.let {
+            getSystemService(AudioManager::class.java).setStreamVolume(AudioManager.STREAM_MUSIC, it, 0)
+            MirrorVolume.forget(this)
+        }
         if (reason != null) graph.mirrorBridge.session.ended(reason)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -195,6 +216,8 @@ class MirrorService : Service() {
         private const val EXTRA_DATA = "data"
         /** From the Task 1 probe, question 4: mute the phone's speaker while mirroring audio only if capture keeps working. */
         private const val MUTE_PHONE_SPEAKER = true
+        /** ~130 ms at 8 Mbps. */
+        private const val SEND_BUFFER_BYTES = 128 * 1024
         @Volatile private var running: MirrorService? = null
 
         fun start(context: Context, options: MirrorStartBody, resultCode: Int, data: Intent) {

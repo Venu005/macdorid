@@ -152,6 +152,8 @@ public final class MacDroidServer: Sendable {
         let sink = await mirror.currentSink()
         do {
             for try await message in messages {
+                // The session ended (stopped, replaced, timed out): stop reading; returning closes the stream.
+                guard mirror.gate.isOpen(token) else { break }
                 guard case .binary(let buffer) = message else { continue }
                 sink?.deliver(try MirrorFrame.decode(Data(buffer.readableBytesView)))
             }

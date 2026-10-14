@@ -31,6 +31,7 @@ class MirrorBridge(private val context: Context, private val connection: Connect
 
     fun start() {
         MirrorNotifications.createChannels(context)
+        MirrorVolume.restoreIfLeft(context) // a session that was killed mid-way left the phone muted
         scope.launch {
             connection.incoming.collect { message ->
                 // Pings are answered right here so the measured offset doesn't include a thread hop (spec §6.6).

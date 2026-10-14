@@ -26,6 +26,15 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Task 9:** Mac mirror window (aspect-locked to the phone, remembered frame, Keep on top, latency readout, Stop), `MirrorRenderer` (hardware decode, display immediately, drop to key frame, resync on a new format), `MirrorAudioPlayer` (40 ms cushion, skip ahead), `MirrorPresentation` copy, Mirror buttons on the Phone page and popover, the "Update MacDroid on your phone" line, and Settings → Mirroring (Quality, Frame rate, Phone audio, Show latency).
 - **Task 10:** cross-platform test covers mirroring: the Mac starts a session, a wrong session id is refused, the H.264 fixture is decoded on the Mac (20 frames, 4 key frames), 3 audio chunks arrive, a key-frame request reaches the phone, and the phone's stop is seen. Passed twice.
 - **Task 11:** probe removed (debug source set); handoff updated (ARCHITECTURE mirror components, DECISIONS, DEV-GUIDE, STATUS, ROADMAP, README) and the owner checklist in the follow-ups file. Gates: `swift test` 301, Mac app build with no warnings, Android gates with no warnings, cross-platform test passed.
+- **Final review (Opus), 6 Important fixed:**
+  - I1: clicking Mirror while mirroring brings the window forward instead of restarting (which silenced audio).
+  - I2: the Mac stops reading a media stream as soon as its session ends, and clears the picture on stop.
+  - I3: a lost key-frame request is repeated: the phone asks once more when its queue drains, and the Mac asks again every 30 dropped frames.
+  - I4: the media socket uses a 128 KB send buffer and TCP_NODELAY, so a backlog stays visible to the send policy.
+  - I5: no frame for over a second shows "Reconnecting…" and hides the latency.
+  - I6: capture setup failures end the session instead of crashing the app; `onDestroy` cleans up; the muted volume is persisted and restored at the next app start if the app was killed.
+  - Verified: `swift test` 305, Android gates, Mac app build with no warnings, cross-platform test passed.
+  - 9 minors deferred in `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`.
 
 ## 2026-10-14 — Mirroring plan (Plan 7)
 - **What:** wrote `docs/superpowers/plans/2026-10-14-macdroid-mirroring-7.md` (11 tasks):

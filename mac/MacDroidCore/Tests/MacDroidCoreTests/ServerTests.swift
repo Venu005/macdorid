@@ -249,4 +249,23 @@ final class CollectingSink: MirrorFrameSink {
         #expect(sink.frames.withLockedValue { $0.map(\.type) } == [.config, .video])
         #expect(sink.frames.withLockedValue { $0.last?.payload.count } == 300_000)
     }
+
+    // Final review I2: once the session ends, nothing more from its stream reaches the screen.
+    @Test func routeStopsDeliveringWhenTheSessionEnds() async throws {
+        let phone = try Identity.generate(commonName: "Phone")
+        let mirror = await activeSession()
+        let sink = CollectingSink()
+        await mirror.setSink(sink)
+        try await ServerHarness.run(pairedPhone: phone, mirror: mirror) { harness in
+            try await connect(phone, port: harness.port, session: "s1") { outbound in
+                let frame = MirrorFrame(type: .video, keyFrame: true, captureMicros: 1, payload: Data([0, 0, 0, 1, 0x65]))
+                try await outbound.write(.binary(ByteBuffer(bytes: frame.encoded())))
+                try await eventually { sink.frames.withLockedValue { $0.count } == 1 }
+                await mirror.stop()
+                try? await outbound.write(.binary(ByteBuffer(bytes: frame.encoded())))
+                try await Task.sleep(for: .milliseconds(200))
+            }
+        }
+        #expect(sink.frames.withLockedValue { $0.count } == 1)
+    }
 }

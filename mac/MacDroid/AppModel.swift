@@ -35,6 +35,8 @@ final class AppModel {
     @ObservationIgnored private let phoneExtras: PhoneExtras
     private(set) var mirror = MirrorState()
     private(set) var mirrorLatency: Int?
+    /// Streaming but no frame for over a second (final review I5).
+    private(set) var mirrorStalled = false
     var mirrorKeepOnTop = false { didSet { mirrorWindow?.setKeepOnTop(mirrorKeepOnTop) } }
     var mirrorQuality = UserDefaults.standard.object(forKey: "mirror.quality") as? Int ?? MirrorOptions.sharp {
         didSet { UserDefaults.standard.set(mirrorQuality, forKey: "mirror.quality") }
@@ -496,6 +498,11 @@ final class AppModel {
     // MARK: Mirroring
 
     func startMirroring() {
+        // Already mirroring: just bring the window forward; restarting would stop the new session's audio (final review I1).
+        if mirror.isActive, let mirrorWindow {
+            mirrorWindow.show(content: MirrorContentView(model: self, renderer: mirrorRenderer), title: phoneName)
+            return
+        }
         if mirrorWindow == nil {
             mirrorWindow = MirrorWindowController(onClose: { [weak self] in self?.mirrorWindowClosed() })
         }
@@ -528,7 +535,9 @@ final class AppModel {
                 mirrorLatencyTask = Task { [weak self, mirrorSession] in
                     while !Task.isCancelled {
                         try? await Task.sleep(for: .milliseconds(500))
-                        self?.mirrorLatency = mirrorSession.meter.averageMillis
+                        let now = MonotonicClock.micros()
+                        self?.mirrorStalled = mirrorSession.meter.isStalled(now: now)
+                        self?.mirrorLatency = mirrorSession.meter.freshAverageMillis(now: now)
                     }
                 }
             }
@@ -536,7 +545,9 @@ final class AppModel {
             mirrorLatencyTask?.cancel()
             mirrorLatencyTask = nil
             mirrorLatency = nil
+            mirrorStalled = false
             mirrorAudioPlayer.stop()
+            mirrorRenderer.reset() // no frozen picture that looks live (final review I2)
             if reason == .disconnected {
                 Task { [weak self] in
                     try? await Task.sleep(for: .seconds(10))

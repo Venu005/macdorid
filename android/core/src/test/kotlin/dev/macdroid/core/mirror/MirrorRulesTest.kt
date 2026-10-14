@@ -28,7 +28,7 @@ class MirrorRulesTest {
         assertEquals(200_000L, policy.audioLimitBytes)
         assertEquals(VideoAdmit.Send, policy.video(keyFrame = false, queuedBytes = 300_000))
         assertEquals(VideoAdmit.DropAndRequestKey, policy.video(keyFrame = false, queuedBytes = 300_001))
-        assertEquals(VideoAdmit.Drop, policy.video(keyFrame = false, queuedBytes = 0))
+        assertEquals(VideoAdmit.DropAndRequestKey, policy.video(keyFrame = false, queuedBytes = 0)) // drained: ask again once
         assertEquals(VideoAdmit.Drop, policy.video(keyFrame = true, queuedBytes = 400_000)) // still backed up
         assertEquals(VideoAdmit.Send, policy.video(keyFrame = true, queuedBytes = 10))
         assertEquals(VideoAdmit.Send, policy.video(keyFrame = false, queuedBytes = 10))
@@ -100,5 +100,17 @@ class MirrorRulesTest {
         assertNull(s.current)
         assertEquals(listOf(MirrorStopReason.Mac), ends)
         assertEquals(before, sent.size) // nothing to send to: the Mac is gone
+    }
+
+    // Final review I3: the key frame asked for while backed up is usually dropped too; ask again once the queue drains.
+    @Test fun aDrainedQueueAsksForAKeyFrameAgainOnce() {
+        val policy = SendPolicy(8_000_000)
+        assertEquals(VideoAdmit.DropAndRequestKey, policy.video(keyFrame = false, queuedBytes = 400_000))
+        assertEquals(VideoAdmit.Drop, policy.video(keyFrame = true, queuedBytes = 400_000)) // the requested one, still backed up
+        assertEquals(VideoAdmit.DropAndRequestKey, policy.video(keyFrame = false, queuedBytes = 1_000)) // drained: ask again
+        assertEquals(VideoAdmit.Drop, policy.video(keyFrame = false, queuedBytes = 1_000)) // only once
+        assertEquals(VideoAdmit.Drop, policy.video(keyFrame = false, queuedBytes = 400_000)) // backed up again
+        assertEquals(VideoAdmit.DropAndRequestKey, policy.video(keyFrame = false, queuedBytes = 1_000)) // drained again: ask again
+        assertEquals(VideoAdmit.Send, policy.video(keyFrame = true, queuedBytes = 1_000))
     }
 }

@@ -27,6 +27,9 @@ public final class LatencyMeter: @unchecked Sendable {
     private let lock = NSLock()
     private var offset: Int64?
     private var samples: [Int64] = []
+    private var lastDisplayed: Int64?
+    /// No frame for this long while streaming reads as a stall (final review I5); the phone repeats a still screen every 100 ms.
+    public static let stallMicros: Int64 = 1_000_000
 
     public init() {}
 
@@ -34,6 +37,7 @@ public final class LatencyMeter: @unchecked Sendable {
 
     public func record(captureMicros: Int64, displayedMicros: Int64) {
         lock.withLock {
+            lastDisplayed = displayedMicros
             guard let offset else { return }
             samples.append(displayedMicros - (captureMicros - offset))
             if samples.count > 30 { samples.removeFirst(samples.count - 30) }
@@ -47,10 +51,18 @@ public final class LatencyMeter: @unchecked Sendable {
         }
     }
 
+    public func isStalled(now: Int64) -> Bool {
+        lock.withLock { lastDisplayed.map { now - $0 > Self.stallMicros } ?? false }
+    }
+
+    /// The average, or nil while stalled (an old number would read as live).
+    public func freshAverageMillis(now: Int64) -> Int? { isStalled(now: now) ? nil : averageMillis }
+
     public func reset() {
         lock.withLock {
             offset = nil
             samples = []
+            lastDisplayed = nil
         }
     }
 }
