@@ -9,6 +9,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **M2:** concurrent cache fetches of the same photo (double-click plus Space, a drag during a preview) share one transfer. Test `concurrentCacheFetchesOfOnePhotoShareATransfer`.
 - **M1:** a photo fetch whose bytes stop moving for 30 s (not while verifying a finished file) now fails instead of spinning; forgetting a fetch (timeout, stall) also cancels a transfer that slipped in meanwhile. `PhotoTransfers.isActive` became `progress` (done, size); `TransferManager.photoProgress`, async `forgetPhoto`. Tests `aStalledTransferFailsAndIsForgotten`, `forgettingAPhotoCancelsItsTransfer`; `aStartedTransferDoesNotTimeOut` now moves its bytes.
 - **M6:** Forget now stops every photo transfer, clears expected photo ids and deletes the cached originals (`TransferManager.forgetAllPhotos`); `PhotosClient.reset` also answers pending fetches instead of leaving them to time out. Tests `forgettingAllPhotosEmptiesTheCache`, `resetAnswersPendingFetches`.
+- **M8:** on the phone, photos the Mac fetches have their own 3 upload slots, so a phone busy sending files still answers within the Mac's 30 s. PROTOCOL.md transfer rules updated. Test `photosHaveTheirOwnSlots`.
 
 ## 2026-10-14 — Photos merged to main
 - **What:** merged `feat/photos` into `main` (`37b425c`) at the owner's request: Plan 6 photo browsing and transfer with the final-review fixes.
