@@ -15,6 +15,7 @@ struct MenuBarPopover: View {
             } else {
                 deviceCard
                 tiles
+                if let call = model.calls.activeCall { activeCallRow(call) }
                 if model.extras.supportsMedia && model.extras.media.active { NowPlayingCard(model: model, extras: model.extras) }
                 transfers
             }
@@ -39,7 +40,7 @@ struct MenuBarPopover: View {
             Button {
                 model.requestPairing()
             } label: {
-                Text("Pair a Phone…").frame(maxWidth: .infinity)
+                Text("Pair a Phone").frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
@@ -75,6 +76,12 @@ struct MenuBarPopover: View {
                     .foregroundStyle(.secondary)
                     .help("Mirror your phone")
             }
+            if model.calls.supported {
+                Button { model.showDialer() } label: { Image(systemName: "phone").font(.system(size: 15)) }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Call from your phone")
+            }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.1)))
@@ -87,6 +94,22 @@ struct MenuBarPopover: View {
             PopoverTile(symbol: "macwindow", title: "Open MacDroid", hint: "⌘O") { model.showWindow(.phone) }
                 .keyboardShortcut("o")
         }
+    }
+
+    private func activeCallRow(_ call: CallInfo) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "phone.fill").foregroundStyle(.green)
+            Text("On a call with \(CallPresentation.title(call))").font(.callout).lineLimit(1)
+            Spacer(minLength: 0)
+            if let since = call.since {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Text(CallPresentation.duration(from: since, to: context.date)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                }
+            }
+            Button("Hang up") { model.hangUpCall(call.callId) }.buttonStyle(.bordered).tint(.red).controlSize(.small)
+        }
+        .padding(8)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.1)))
     }
 
     @ViewBuilder

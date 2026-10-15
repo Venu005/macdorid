@@ -4,6 +4,32 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Plan 10: calls on the Mac (built on feat/calls)
+- **Task 1:** on-device probe skipped (owner). The fallbacks in the plan cover it (label-matched buttons, error notices); background answer and dialing are checked in the owner checklist. Notes in `docs/superpowers/plans/2026-10-15-macdroid-calls-followups.md`.
+- **Task 2:** `call.state` / `call.action` / `call.dial` / `call.error` in both codecs, 5 fixtures, `calls` feature on both sides, PROTOCOL.md 'Calls rules'. Verified: `swift test` 318, `:core:test`, Mac app build.
+- **Task 3:** Android core `CallTracker` (changes only, ended on removal, re-send on reconnect, actions → the notification's intents or `callGone`/`notSupported`), `CallNumbers`, `CallLabels`. Verified: `:core:test` (CallTrackerTest 14).
+- **Task 4:** Mac core `CallCenter` (panel: notice → newest ringing → newest active; errors → notices; disconnect clears; dialing gated on `calls`), `PhoneNumbers` (clean, `tel:` links), `CallPresentation`. Verified: `swift test` 327.
+- **Task 5:** Android call notifications → `CallTracker` (kept out of notification mirroring); Answer/Decline/Hang up fire the phone app's own intents; `call.dial` via `TelecomManager.placeCall` (`CALL_PHONE`); Settings → Calls. Verified: `:core:test :app:testDebugUnitTest :app:assembleDebug`, no warnings.
+- **Task 6:** Mac call panel (non-activating, top right, sound on ring, timer, notices for 3 s), number pad on the Phone page, `tel:` links with confirmation, active call in the popover, Settings → Calls. Verified: Mac app build, no warnings.
+- **Task 7:** cross-platform test: the phone's ringing call reaches the Mac, the Mac answers and dials, and the end arrives. Verified: `scripts/cross-platform-test.sh` passed twice; all gates green.
+- **Task 8:** handoff updated (DECISIONS, STATUS, ROADMAP, README); owner checklist in the follow-ups file. Final gates: `swift test` 327 passed; Mac app build succeeded, no warnings; `:core:test :app:testDebugUnitTest :app:assembleDebug` passed, no warnings; cross-platform test passed. Not merged.
+- **Final review fixes** (fresh reviewer; 4 Important fixed, each with a test that failed first):
+  - **A stale action no longer loses the live call.** After a refused or failed action the phone sends the call's state again, and the Mac drops a call only for `callGone` (`aStaleActionResendsTheLiveCall`, `notSupportedKeepsTheCall`).
+  - **Missed-call notifications** with only the call category stay in notification mirroring. Older call notifications count as calls only with Answer, Hang up or the ongoing flag (`olderCallNotificationsNeedAFlagOrAButton`).
+  - **`tel:` links can't run phone codes.** Links containing `*` or `#` (call forwarding, USSD) are refused with "That doesn't look like a phone number"; the number pad still allows codes (`phoneCodesInLinksAreRefused`).
+  - **No leftover calls after the notification listener rebinds** (`CallTracker.sync`, `syncDropsCallsThatWentAway`).
+  - Verified: `swift test` 329; CallTrackerTest 17; Mac and Android builds with no warnings; cross-platform test passed.
+- **Owner check, step 9:** "Use MacDroid for phone links" failed with "The file couldn't be opened".
+  - **Cause:** macOS doesn't let a sandboxed app make itself the `tel:` handler. The same call from outside the app succeeded, and it made MacDroid the owner's handler.
+  - **Fix:** the button is replaced by a line in Settings → Calls that says which app opens phone links, and how to choose MacDroid (`phoneLinksLine`, test RED→GREEN; `swift test` 330).
+- **Owner feedback: a better dialer.** The cramped number pad on the Phone page is replaced by its own small **"Call"** window, opened from **Call…** on the Phone page or the phone icon in the popover:
+  - a large centred number, with ⌫ (hold it to clear)
+  - round 1–9 / `*` / 0 / `#` keys; hold 0 for `+`
+  - a big green call button; dialing closes the window, and the call panel takes over
+  - keyboard: digits, ⌘V paste (number only), Delete, Return to call, Esc to close
+  - typing rules live in the tested `DialInput` (`swift test` 336)
+- **Owner feedback: no "…" on buttons.** Removed the trailing ellipsis from all button labels (Call, Pair a Different Phone, Forget This Phone, Pair a Phone, Send Files, Muted Apps, Choose). The "Settings…" menu item keeps it, as macOS menus do. Verified: Mac app build.
+
 ## 2026-10-15 — Calls plan (Plan 10)
 - **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-calls-10.md`, with 8 tasks:
   1. an on-device probe with the owner

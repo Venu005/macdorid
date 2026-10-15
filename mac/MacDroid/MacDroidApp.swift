@@ -17,6 +17,7 @@ struct MacDroidApp: App {
         AppDelegate.onLaunch = {
             if AppDelegate.shouldOpenWindowAtLaunch(paired: model.pairedDevice != nil) { model.showWindow(.phone) }
         }
+        AppDelegate.onOpenURLs = { urls in model.openPhoneLinks(urls) }
         _model = State(initialValue: model)
     }
 

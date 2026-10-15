@@ -89,19 +89,17 @@ Number handling:
 - **When it closes:** when the call ends, from either side. A failed action shows its notice in the panel for 3 s, then the panel closes.
 
 ### 3.3 Dialing (app)
-- **Phone page:**
-  - a number pad: digits, `+`, `*`, `#`, delete, and paste (cleaned)
-  - **Call**, which sends at once
+- **Dialer window** (owner feedback; it replaced the planned number pad on the Phone page): opened from **Call…** on the Phone page and the popover's phone icon. It has round keys (hold 0 for `+`), ⌫ (hold to clear), paste (cleaned), and a green call button / Return that sends at once and closes the window.
 - **`tel:` links:**
   - The app declares the `tel` URL scheme.
-  - Settings → Calls has **"Use MacDroid for phone links"** (`NSWorkspace.setDefaultApplication(at:toOpenURLsWithScheme:)`; macOS asks the owner to confirm).
+  - Settings → Calls shows which app opens phone links. (The planned "Use MacDroid for phone links" button was dropped: the sandbox doesn't allow `NSWorkspace.setDefaultApplication`; see DECISIONS.)
   - A link shows **"Call <number> on your phone?"** with **Call** and **Cancel**.
   - If the phone isn't connected or doesn't support calls, it says so instead.
 
 ### 3.4 Settings
 Mac Settings gets a **Calls** section:
 - **"Show incoming calls"** (default on; off hides the panel and sound)
-- **"Use MacDroid for phone links"**
+- a line saying which app opens phone links
 - the note "Call audio stays on your phone."
 
 ## 4. Protocol

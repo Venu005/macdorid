@@ -63,6 +63,10 @@ public enum MessageCodec {
         case .inputKey(let body): return try encode(type: "input.key", id: id, body: body)
         case .inputText(let body): return try encode(type: "input.text", id: id, body: body)
         case .inputNotice(let body): return try encode(type: "input.notice", id: id, body: body)
+        case .callState(let body): return try encode(type: "call.state", id: id, body: body)
+        case .callAction(let body): return try encode(type: "call.action", id: id, body: body)
+        case .callDial(let body): return try encode(type: "call.dial", id: id, body: body)
+        case .callError(let body): return try encode(type: "call.error", id: id, body: body)
         case .unknown(let type): throw MessageCodecError.cannotEncodeUnknown(type)
         }
     }
@@ -117,6 +121,10 @@ public enum MessageCodec {
             case "input.key": return .inputKey(try decoder.decode(Incoming<InputKey>.self, from: data).body)
             case "input.text": return .inputText(try decoder.decode(Incoming<InputText>.self, from: data).body)
             case "input.notice": return .inputNotice(try decoder.decode(Incoming<InputNotice>.self, from: data).body)
+            case "call.state": return .callState(try decoder.decode(Incoming<CallState>.self, from: data).body)
+            case "call.action": return .callAction(try decoder.decode(Incoming<CallAction>.self, from: data).body)
+            case "call.dial": return .callDial(try decoder.decode(Incoming<CallDial>.self, from: data).body)
+            case "call.error": return .callError(try decoder.decode(Incoming<CallError>.self, from: data).body)
             case let other: return .unknown(type: other)
             }
         } catch {

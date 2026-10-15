@@ -18,7 +18,7 @@ open mac/build/Build/Products/Debug/MacDroid.app
 cd android && ./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug
 ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
-# Swift server ↔ Kotlin client end to end (pairing, battery, a notification with a reply, clipboard text both ways and an image, ring, links both ways, media state and a command, photos (page, thumbnail, save, gone), a mirroring session (session gate, H.264 fixture decoded, audio, key-frame request, remote control input and `input.notice`, stop), and 24 MiB files both ways with a mid-file disconnect; ~1 min)
+# Swift server ↔ Kotlin client end to end (pairing, battery, a notification with a reply, clipboard text both ways and an image, ring, links both ways, media state and a command, photos (page, thumbnail, save, gone), a mirroring session (session gate, H.264 fixture decoded, audio, key-frame request, remote control input and `input.notice`, stop), a call (ring, answer, dial, end), and 24 MiB files both ways with a mid-file disconnect; ~1 min)
 ./scripts/cross-platform-test.sh
 # The dev server alone: --receive-dir <dir> saves files from the phone there; --send-on-connect <file> sends that file when a phone connects
 #   mac/MacDroidCore/.build/debug/macdroid-devserver --host 127.0.0.1 --port 47999 --receive-dir /tmp/in --send-on-connect /tmp/out.bin
@@ -38,6 +38,7 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 - **Mirroring (Plan 7):**
   - **Starting:** Mac → Phone page or the popover → Mirror. With MacDroid control on, auto-Start presses "Share screen"; without it, the phone posts "Mirror to <Mac>? Tap to start" (Android blocks background activity starts).
   - **Locking:** Android ends screen capture when the phone locks, and shows no consent over the lock screen. Mirroring keeps the phone awake; start it on an unlocked phone.
+- **Calls (Plan 10):** grant "Make calls from your Mac" on the phone (Settings → Calls) to dial from the Mac. To make MacDroid open phone links, choose it as the default calling app in the handler app's settings (Settings → Calls says which app that is). The sandboxed app can't set this itself; from a terminal, a small Swift script calling `NSWorkspace.shared.setDefaultApplication(at:toOpenURLsWithScheme: "tel")` with the app's path also works. Call audio stays on the phone. Incoming calls need notification access, as for notification mirroring.
 - **Remote control (Plan 8):**
   - **Turning it on:** phone → MacDroid → Settings → Remote control → MacDroid control → Accessibility → turn on "MacDroid control". Don't toggle it from adb on the owner's phone.
   - **Auto-Start** (Settings → "Start mirroring without touching the phone", on by default in personal builds) presses "Share screen" by itself, but only on an unlocked phone and only while a session waits for consent.

@@ -9,6 +9,7 @@ struct GeneralSettingsView: View {
     @AppStorage(DockPolicy.showInDockKey) private var showInDock = true
     let model: AppModel
     @State private var showingMutedApps = false
+    @State private var phoneLinksHandler: String?
 
     var body: some View {
         @Bindable var files = model.files
@@ -38,7 +39,7 @@ struct GeneralSettingsView: View {
                 LabeledContent("Save received files to") {
                     HStack {
                         Text(files.folder.lastPathComponent).foregroundStyle(.secondary)
-                        Button("Choose…") { files.chooseFolder() }
+                        Button("Choose") { files.chooseFolder() }
                         if !files.usesDefaultFolder { Button("Use Downloads") { files.useDefaultFolder() } }
                     }
                 }
@@ -57,7 +58,7 @@ struct GeneralSettingsView: View {
             Section {
                 Toggle("Show phone notifications", isOn: Binding(get: { model.showPhoneNotifications }, set: { model.setShowPhoneNotifications($0) }))
                 LabeledContent("Apps") {
-                    Button("Muted Apps…") { showingMutedApps = true }
+                    Button("Muted Apps") { showingMutedApps = true }
                 }
             } header: {
                 Text("Notifications")
@@ -96,6 +97,16 @@ struct GeneralSettingsView: View {
             } footer: {
                 Text("Mirroring starts from the Phone page or the menu bar. Apps that block screenshots show black.")
                     .foregroundStyle(.secondary)
+            }
+            Section {
+                Toggle("Show incoming calls", isOn: $bindableModel.showIncomingCalls)
+                Text(CallPresentation.phoneLinksLine(handler: phoneLinksHandler))
+                    .foregroundStyle(.secondary)
+                    .onAppear { phoneLinksHandler = model.phoneLinksHandler() }
+            } header: {
+                Text("Calls")
+            } footer: {
+                Text("Call audio stays on your phone.").foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

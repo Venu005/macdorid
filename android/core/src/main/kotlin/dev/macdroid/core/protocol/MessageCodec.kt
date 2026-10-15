@@ -66,6 +66,10 @@ object MessageCodec {
             is Message.InputKey -> "input.key" to json.encodeToJsonElement(InputKeyBody.serializer(), message.body)
             is Message.InputText -> "input.text" to json.encodeToJsonElement(InputTextBody.serializer(), message.body)
             is Message.InputNotice -> "input.notice" to json.encodeToJsonElement(InputNoticeBody.serializer(), message.body)
+            is Message.CallState -> "call.state" to json.encodeToJsonElement(CallStateBody.serializer(), message.body)
+            is Message.CallAction -> "call.action" to json.encodeToJsonElement(CallActionBody.serializer(), message.body)
+            is Message.CallDial -> "call.dial" to json.encodeToJsonElement(CallDialBody.serializer(), message.body)
+            is Message.CallError -> "call.error" to json.encodeToJsonElement(CallErrorBody.serializer(), message.body)
             is Message.Unknown -> throw IllegalArgumentException("cannot encode unknown message type ${message.type}")
         }
         return buildJsonObject {
@@ -128,6 +132,10 @@ object MessageCodec {
                 "input.key" -> Message.InputKey(json.decodeFromJsonElement(InputKeyBody.serializer(), body))
                 "input.text" -> Message.InputText(json.decodeFromJsonElement(InputTextBody.serializer(), body))
                 "input.notice" -> Message.InputNotice(json.decodeFromJsonElement(InputNoticeBody.serializer(), body))
+                "call.state" -> Message.CallState(json.decodeFromJsonElement(CallStateBody.serializer(), body))
+                "call.action" -> Message.CallAction(json.decodeFromJsonElement(CallActionBody.serializer(), body))
+                "call.dial" -> Message.CallDial(json.decodeFromJsonElement(CallDialBody.serializer(), body))
+                "call.error" -> Message.CallError(json.decodeFromJsonElement(CallErrorBody.serializer(), body))
                 else -> Message.Unknown(type)
             }
         } catch (e: IllegalArgumentException) { // includes SerializationException

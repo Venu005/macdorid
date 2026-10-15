@@ -138,8 +138,9 @@ object Features {
     const val PHOTOS = "photos"
     const val MIRROR = "mirror"
     const val CONTROL = "control"
+    const val CALLS = "calls"
     /** What this app implements. */
-    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD, RING, LINKS, MEDIA, PHOTOS, MIRROR, CONTROL)
+    val SUPPORTED: List<String> = listOf(FILES, NOTIFICATIONS, CLIPBOARD, RING, LINKS, MEDIA, PHOTOS, MIRROR, CONTROL, CALLS)
 }
 
 @Serializable
@@ -264,6 +265,16 @@ data class NotificationErrorBody(val key: String, val reason: NotificationErrorR
 @Serializable enum class InputNoticeReason { @SerialName("noTextField") NoTextField }
 @Serializable data class InputNoticeBody(val reason: InputNoticeReason)
 
+// Calls (Plan 10)
+
+@Serializable enum class CallPhase { @SerialName("ringing") Ringing, @SerialName("active") Active, @SerialName("ended") Ended }
+@Serializable data class CallStateBody(val callId: String, val state: CallPhase, val name: String? = null, val number: String? = null)
+@Serializable enum class CallActionKind { @SerialName("answer") Answer, @SerialName("decline") Decline, @SerialName("hangUp") HangUp }
+@Serializable data class CallActionBody(val callId: String, val action: CallActionKind)
+@Serializable data class CallDialBody(val number: String)
+@Serializable enum class CallErrorReason { @SerialName("callGone") CallGone, @SerialName("notSupported") NotSupported, @SerialName("noPermission") NoPermission }
+@Serializable data class CallErrorBody(val reason: CallErrorReason, val callId: String? = null)
+
 sealed interface Message {
     data class Hello(val body: HelloBody) : Message
     data class DeviceStatus(val body: DeviceStatusBody) : Message
@@ -310,6 +321,10 @@ sealed interface Message {
     data class InputKey(val body: InputKeyBody) : Message
     data class InputText(val body: InputTextBody) : Message
     data class InputNotice(val body: InputNoticeBody) : Message
+    data class CallState(val body: CallStateBody) : Message
+    data class CallAction(val body: CallActionBody) : Message
+    data class CallDial(val body: CallDialBody) : Message
+    data class CallError(val body: CallErrorBody) : Message
     /** A type this version doesn't understand; decoded so callers can ignore it, never encoded. */
     data class Unknown(val type: String) : Message
 }

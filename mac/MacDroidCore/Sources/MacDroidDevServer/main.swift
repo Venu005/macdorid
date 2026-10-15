@@ -111,6 +111,27 @@ let extrasPrinter = Task {
     }
 }
 
+let calls = CallCenter(send: { try await hub.send($0) })
+await calls.attach(to: hub)
+
+let callPrinter = Task {
+    var answered = false
+    var sawCall = false
+    for await state in calls.states {
+        if case .ringing(let call) = state.panel, !answered {
+            answered = true
+            sawCall = true
+            print("CALL ringing name=\(call.name ?? "") number=\(call.number ?? "")")
+            await calls.answer(callId: call.callId)
+            if await calls.dial("+1 (555) 010-0000") == .sent { print("CALL dialled") }
+        }
+        if sawCall, state.calls.isEmpty {
+            sawCall = false
+            print("CALL ended")
+        }
+    }
+}
+
 let photos = PhotosClient(
     thumbnails: ThumbnailCache(directory: URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "macdroid-devserver-thumbs-\(UUID().uuidString)")),
     transfers: .manager(transfers),
@@ -290,4 +311,5 @@ linkPrinter.cancel()
 photosPrinter.cancel()
 thumbPrinter.cancel()
 mirrorPrinter.cancel()
+callPrinter.cancel()
 noticePrinter.cancel()

@@ -28,6 +28,7 @@ import Testing
         "mirror.start.json", "mirror.state.json", "mirror.state.stopped.json", "mirror.stop.json", "mirror.keyframe.json",
         "mirror.ping.json", "mirror.pong.json",
         "input.pointer.json", "input.scroll.json", "input.key.json", "input.text.json", "input.notice.json",
+        "call.state.json", "call.state.ended.json", "call.action.json", "call.dial.json", "call.error.json",
     ]
 
     @Test(arguments: messageFixtures)
@@ -102,8 +103,8 @@ import Testing
         #expect(throws: MessageCodecError.malformed) { try MessageCodec.decode(text) }
     }
 
-    @Test func supportedFeaturesIncludeControl() {
-        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos, Feature.mirror, Feature.control])
+    @Test func supportedFeaturesIncludeCalls() {
+        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos, Feature.mirror, Feature.control, Feature.calls])
     }
 
     @Test func inputFixturesDecode() throws {
@@ -176,5 +177,14 @@ import Testing
     @Test func clipboardLimitMatchesTheServerFrameLimit() {
         #expect(ClipboardLimits.maxFrameBytes == MacDroidServer.maxMessageSize)
         #expect(ClipboardLimits.maxImageBytes == 10 * 1024 * 1024)
+    }
+
+    @Test func callFixturesDecode() throws {
+        let id = "0|com.google.android.dialer|1|null|10123"
+        #expect(try MessageCodec.decode(Fixtures.text("call.state.json")) == .callState(CallState(callId: id, state: .ringing, name: "Mom", number: "+15551234567")))
+        #expect(try MessageCodec.decode(Fixtures.text("call.state.ended.json")) == .callState(CallState(callId: id, state: .ended)))
+        #expect(try MessageCodec.decode(Fixtures.text("call.action.json")) == .callAction(CallAction(callId: id, action: .hangUp)))
+        #expect(try MessageCodec.decode(Fixtures.text("call.dial.json")) == .callDial(CallDial(number: "+15551234567")))
+        #expect(try MessageCodec.decode(Fixtures.text("call.error.json")) == .callError(CallError(reason: .callGone, callId: id)))
     }
 }

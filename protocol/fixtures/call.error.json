@@ -1,0 +1,1 @@
+{ "v": 1, "type": "call.error", "id": "6f1c2a0e-0000-4000-8000-000000000074", "body": { "reason": "callGone", "callId": "0|com.google.android.dialer|1|null|10123" } }

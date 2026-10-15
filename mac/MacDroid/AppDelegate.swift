@@ -27,6 +27,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    /// Set by the app at startup: `tel:` links opened with MacDroid (Plan 10).
+    static var onOpenURLs: (@MainActor ([URL]) -> Void)?
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        Self.onOpenURLs?(urls)
+    }
+
     /// Open the window on launch, except at login when a phone is already paired (stay quietly in the menu bar).
     static func shouldOpenWindowAtLaunch(paired: Bool) -> Bool {
         !launchedAsLoginItem || !paired

@@ -54,9 +54,12 @@ struct PairedDeviceView: View {
                     if model.mirror.supported {
                         Button("Mirror") { model.startMirroring() }
                     }
-                    Button("Pair a Different Phone…") { Task { await model.startRepair() } }
+                    if model.calls.supported {
+                        Button("Call") { model.showDialer() }
+                    }
+                    Button("Pair a Different Phone") { Task { await model.startRepair() } }
                     Spacer()
-                    Button("Forget This Phone…", role: .destructive) { confirmForget = true }
+                    Button("Forget This Phone", role: .destructive) { confirmForget = true }
                 }
             }
         }

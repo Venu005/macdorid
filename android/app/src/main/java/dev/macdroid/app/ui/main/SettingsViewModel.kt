@@ -28,6 +28,7 @@ data class SettingsUi(
     val controlOn: Boolean = false,
     val autoStart: Boolean = true,
     val microphoneAllowed: Boolean = false,
+    val callsAllowed: Boolean = false,
 ) {
     val macSummary: String get() = mac?.let { "${it.name} · ${Fingerprint.display(it.fingerprint)}" } ?: "Not paired"
     val photosSummary: String get() = PhotosAccessText.label(photosAccess)
@@ -82,6 +83,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             controlOn = MacDroidControlService.running.value,
             autoStart = ControlPrefs.autoStart(app),
             microphoneAllowed = Permissions.granted(app, android.Manifest.permission.RECORD_AUDIO),
+            callsAllowed = Permissions.granted(app, android.Manifest.permission.CALL_PHONE),
         )
     }
 }

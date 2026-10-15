@@ -1,5 +1,9 @@
 package dev.macdroid.core
 
+import dev.macdroid.core.calls.CallCommand
+import dev.macdroid.core.calls.CallNotification
+import dev.macdroid.core.calls.CallTracker
+import dev.macdroid.core.calls.CallType
 import dev.macdroid.core.clipboard.ClipboardHub
 import dev.macdroid.core.clipboard.SendResult
 import dev.macdroid.core.connection.ConnectionManager
@@ -24,6 +28,7 @@ import dev.macdroid.core.pairing.PairingInvite
 import dev.macdroid.core.photos.PhotoPageResult
 import dev.macdroid.core.photos.PhotoService
 import dev.macdroid.core.photos.PhotoSource
+import dev.macdroid.core.protocol.CallActionKind
 import dev.macdroid.core.protocol.DeviceStatusBody
 import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.HelloBody
@@ -158,6 +163,7 @@ class CrossPlatformTest {
             exchangeANotification(manager, received)
             exchangeClipboard(manager, engine, received)
             exchangeSmallWins(manager, received)
+            exchangeCalls(manager, received)
             exchangePhotos(received)
             exchangeMirror(manager, store, phone, received)
             if (phoneFile != null && receiveDir != null) sendFilesBothWaysWithADrop(manager, engine, transport, File(phoneFile))
@@ -252,6 +258,20 @@ class CrossPlatformTest {
     }
 
     /** The Mac rings and sends a link; the phone answers, sends a link back, and shares its media. */
+    /** The phone rings; the Mac answers and dials a number; the call ends (Plan 10). */
+    private suspend fun exchangeCalls(manager: ConnectionManager, received: List<Message>) {
+        val tracker = CallTracker(manager::send)
+        tracker.connected()
+        val all = setOf(CallActionKind.Answer, CallActionKind.Decline, CallActionKind.HangUp)
+        tracker.posted(CallNotification("call-1", CallType.Incoming, "Mom", "+15551234567", all))
+        withTimeout(10_000) { while (received.none { it is Message.CallAction }) delay(50) }
+        assertEquals(CallCommand.Fire("call-1", CallActionKind.Answer), tracker.handle(received.filterIsInstance<Message.CallAction>().first()))
+        withTimeout(10_000) { while (received.none { it is Message.CallDial }) delay(50) }
+        assertEquals(CallCommand.Dial("+15550100000"), tracker.handle(received.filterIsInstance<Message.CallDial>().first()))
+        tracker.removed("call-1")
+        delay(300)
+    }
+
     private suspend fun exchangeSmallWins(manager: ConnectionManager, received: List<Message>) {
         withTimeout(10_000) { while (received.none { it is Message.DeviceRing }) delay(50) }
         assertEquals(RingAction.Start, received.filterIsInstance<Message.DeviceRing>().first().body.action)
