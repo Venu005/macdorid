@@ -127,6 +127,9 @@ class NotificationBridge(
             NotificationErrorReason.Failed
         } catch (e: SecurityException) {
             NotificationErrorReason.Failed
+        } catch (e: RuntimeException) {
+            // Never let an unexpected error kill the app's process (calls minor 5).
+            NotificationErrorReason.Failed
         }
     }
 }

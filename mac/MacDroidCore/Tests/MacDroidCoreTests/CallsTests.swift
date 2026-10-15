@@ -162,4 +162,45 @@ import Testing
             == "Phone links open in Phone. macOS doesn't let MacDroid change this itself: choose MacDroid as the default for calls in Phone's settings.")
         #expect(CallPresentation.phoneLinksLine(handler: nil) == "No app opens phone links yet.")
     }
+
+    // Minor 1: the call ended just as Decline was pressed; the notice still names Decline.
+    @Test func theNoticeNamesTheActionEvenWhenTheCallEnded() async {
+        let h = Harness()
+        await h.connect()
+        await h.phone("k1", .ringing)
+        await h.center.decline(callId: "k1")
+        await h.phone("k1", .ended)
+        await h.center.handle(.callError(CallError(reason: .callGone, callId: "k1")))
+        #expect(await h.center.state.panel == .notice("Couldn't decline — use your phone"))
+    }
+
+    // Minor 2: a new ringing call isn't hidden behind a notice.
+    @Test func aRingingCallShowsOverANotice() async {
+        let h = Harness()
+        await h.connect()
+        await h.center.handle(.callError(CallError(reason: .noPermission)))
+        await h.phone("k2", .ringing, name: "Dad")
+        guard case .ringing(let call) = await h.center.state.panel else { Issue.record("ringing call hidden"); return }
+        #expect(call.callId == "k2")
+        await h.phone("k2", .ended)
+        #expect(await h.center.state.panel == .notice("Allow MacDroid to make calls on your phone (phone Settings → Calls)"))
+    }
+
+    // Minor 3: a phone link that launched MacDroid waits briefly for the phone to connect.
+    @Test func waitsForThePhoneToConnect() async {
+        let h = Harness()
+        #expect(await !h.center.waitUntilSupported(timeout: .milliseconds(100)))
+        Task {
+            try? await Task.sleep(for: .milliseconds(100))
+            await h.connect()
+        }
+        #expect(await h.center.waitUntilSupported(timeout: .seconds(3)))
+    }
+
+    // Minor 4: vanity numbers in links are spelled out on the keypad, not dropped.
+    @Test func telLinksSpellVanityNumbers() {
+        #expect(PhoneNumbers.fromTelURL(URL(string: "tel:1-800-FLOWERS")!) == "18003569377")
+        #expect(PhoneNumbers.fromTelURL(URL(string: "tel:+1-800-go-fedex")!) == "+18004633339")
+        #expect(PhoneNumbers.clean("Call me on +1 (555) 123-4567!") == "+15551234567") // pasting still drops words
+    }
 }

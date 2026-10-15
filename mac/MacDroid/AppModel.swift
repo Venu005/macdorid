@@ -543,16 +543,20 @@ final class AppModel {
             alert.runModal()
             return
         }
-        guard calls.supported else {
-            alert.messageText = CallPresentation.dialProblem(calls.connected ? .unsupported : .notConnected) ?? ""
-            alert.runModal()
-            return
+        Task {
+            // A link that launched MacDroid: give the phone a few seconds to connect first (minor 3).
+            let ready = await callCenter.waitUntilSupported(timeout: .seconds(5))
+            guard ready else {
+                alert.messageText = CallPresentation.dialProblem(calls.connected ? .unsupported : .notConnected) ?? ""
+                alert.runModal()
+                return
+            }
+            alert.messageText = CallPresentation.confirmTitle(number: number)
+            alert.addButton(withTitle: "Call")
+            alert.addButton(withTitle: "Cancel")
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+            _ = await callCenter.dial(number)
         }
-        alert.messageText = CallPresentation.confirmTitle(number: number)
-        alert.addButton(withTitle: "Call")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        Task { _ = await callCenter.dial(number) }
     }
 
     /// Settings → Calls: the app that opens `tel:` links now (MacDroid can't set this itself from the sandbox).
@@ -562,20 +566,19 @@ final class AppModel {
     }
 
     private func callsChanged(_ state: CallsState) {
+        let previousNotice = calls.notice
         calls = state
-        switch state.panel {
-        case .none:
-            callPanel.hide()
-        case .ringing(let call):
-            if !ringingSeen.contains(call.callId) {
+        if state.panel == .none { callPanel.hide() } else { callPanel.show(CallPanelView(model: self)) }
+        // One sound per new ringing call, whatever the panel was showing (minor 2).
+        if state.showIncoming {
+            for call in state.calls where call.phase == .ringing && !ringingSeen.contains(call.callId) {
                 ringingSeen.insert(call.callId)
                 NSSound(named: "Glass")?.play()
             }
-            callPanel.show(CallPanelView(model: self))
-        case .active:
-            callPanel.show(CallPanelView(model: self))
-        case .notice:
-            callPanel.show(CallPanelView(model: self))
+        }
+        ringingSeen.formIntersection(state.calls.map(\.callId))
+        // The 3 s starts when a notice appears or changes, not on every update (minor 2).
+        if let notice = state.notice, notice != previousNotice {
             noticeTask?.cancel()
             noticeTask = Task { [callCenter] in
                 try? await Task.sleep(for: .seconds(3))
@@ -583,7 +586,6 @@ final class AppModel {
                 await callCenter.clearNotice()
             }
         }
-        ringingSeen.formIntersection(state.calls.map(\.callId))
     }
 
     // MARK: Mirroring

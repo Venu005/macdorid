@@ -25,6 +25,12 @@ public struct PeerInfo: Equatable, Sendable {
     public func supports(_ feature: String) -> Bool { features.contains(feature) }
 }
 
+/// A status change or a feature message, in the order the hub produced them (calls minor 7).
+public enum HubEvent: Equatable, Sendable {
+    case status(ConnectionStatus)
+    case message(Message)
+}
+
 public enum ConnectionStatus: Equatable, Sendable {
     case disconnected
     case connected(PeerInfo)
@@ -38,6 +44,11 @@ public enum HubError: Error, Equatable {
 public actor ConnectionHub {
     private let statusBroadcast = Broadcast<ConnectionStatus>(replayLatest: true, initial: .disconnected)
     private let messageBroadcast = Broadcast<Message>(replayLatest: false)
+    private let eventBroadcast = Broadcast<HubEvent>(replayLatest: false)
+
+    /// Status changes and feature messages in one ordered stream: a consumer that needs both in order (a "disconnected"
+    /// from an old session must not land after the new session's first messages) reads this instead of the two above.
+    public nonisolated var events: AsyncStream<HubEvent> { eventBroadcast.stream() }
 
     /// Status changes. Each access is a new subscription that starts with the current status.
     public nonisolated var statusUpdates: AsyncStream<ConnectionStatus> { statusBroadcast.stream() }
@@ -53,7 +64,11 @@ public actor ConnectionHub {
     private var latest: (id: UUID, fingerprint: String)?
 
     public private(set) var status: ConnectionStatus = .disconnected {
-        didSet { if status != oldValue { statusBroadcast.yield(status) } }
+        didSet {
+            guard status != oldValue else { return }
+            statusBroadcast.yield(status)
+            eventBroadcast.yield(.status(status))
+        }
     }
 
     public init(macName: String, appVersion: String, features: [String] = ProtocolInfo.features) {
@@ -131,6 +146,7 @@ public actor ConnectionHub {
         default:
             // Feature messages (transfers, notifications, clipboard) go to their managers.
             messageBroadcast.yield(message)
+            eventBroadcast.yield(.message(message))
         }
     }
 

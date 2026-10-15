@@ -2,6 +2,14 @@ import Foundation
 
 /// Phone numbers for `call.dial` (spec §3.1, §4): a leading `+`, digits, `*` and `#`; 1–32 characters.
 public enum PhoneNumbers {
+    private static let keypad: [Character: Character] = {
+        var map: [Character: Character] = [:]
+        for (digit, letters) in [("2", "ABC"), ("3", "DEF"), ("4", "GHI"), ("5", "JKL"), ("6", "MNO"), ("7", "PQRS"), ("8", "TUV"), ("9", "WXYZ")] {
+            for letter in letters { map[letter] = Character(digit) }
+        }
+        return map
+    }()
+
     public static func clean(_ raw: String) -> String? {
         var out = ""
         for ch in raw {
@@ -21,6 +29,7 @@ public enum PhoneNumbers {
         rest = String(rest.prefix { $0 != ";" && $0 != "?" })
         let decoded = rest.removingPercentEncoding ?? rest
         guard !decoded.contains("*"), !decoded.contains("#") else { return nil }
-        return clean(decoded)
+        // A link is all number, so letters are a vanity number (1-800-FLOWERS): spell them on the keypad (minor 4).
+        return clean(String(decoded.map { keypad[Character($0.uppercased())] ?? $0 }))
     }
 }
