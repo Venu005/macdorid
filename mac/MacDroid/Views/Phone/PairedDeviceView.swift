@@ -44,9 +44,6 @@ struct PairedDeviceView: View {
                     LabeledContent("Paired", value: device.pairedAt.formatted(date: .abbreviated, time: .omitted))
                 }
             }
-            if model.calls.supported {
-                Section("Call") { DialPadView(model: model) }
-            }
             Section {
                 HStack {
                     if model.extras.supportsRing {
@@ -56,6 +53,9 @@ struct PairedDeviceView: View {
                     }
                     if model.mirror.supported {
                         Button("Mirror") { model.startMirroring() }
+                    }
+                    if model.calls.supported {
+                        Button("Call…") { model.showDialer() }
                     }
                     Button("Pair a Different Phone…") { Task { await model.startRepair() } }
                     Spacer()

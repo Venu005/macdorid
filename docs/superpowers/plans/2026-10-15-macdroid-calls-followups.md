@@ -14,7 +14,7 @@ Skipped at the owner's request on 2026-10-15. The probe was built and installed,
 5. **Decline from the Mac:** the caller is declined, and the panel closes.
 6. **Answer on the phone** while the panel shows: it switches to "On a call with …".
 7. **Miss a call:** the panel closes when it stops ringing; the phone app's "Missed call" notification appears in the Mac's notifications.
-8. **Number pad:** Phone page → type or paste a number → **Call**. The phone starts the call, and the Mac shows "On a call with …".
+8. **Dialer:** Phone page → **Call…** (or the popover's phone icon) → type, click or paste a number (hold 0 for +) → the green button or Return. The phone starts the call, the window closes, and the Mac shows "On a call with …".
 9. **Phone link:** Settings → Calls should read "Phone links open in MacDroid." (set for the owner on 2026-10-15). Click a phone number link in Safari → "Call … on your phone?" → **Call**.
 10. **No permission:** turn off "Make calls from your Mac" in the phone's App settings → dial from the Mac → the notice "Allow MacDroid to make calls on your phone (phone Settings → Calls)".
 11. **Show incoming calls** off in Mac Settings: no panel or sound. Turn it back on.

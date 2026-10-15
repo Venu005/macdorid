@@ -22,6 +22,12 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Owner check, step 9:** "Use MacDroid for phone links" failed with "The file couldn't be opened".
   - **Cause:** macOS doesn't let a sandboxed app make itself the `tel:` handler. The same call from outside the app succeeded, and it made MacDroid the owner's handler.
   - **Fix:** the button is replaced by a line in Settings → Calls that says which app opens phone links, and how to choose MacDroid (`phoneLinksLine`, test RED→GREEN; `swift test` 330).
+- **Owner feedback: a better dialer.** The cramped number pad on the Phone page is replaced by its own small **"Call"** window, opened from **Call…** on the Phone page or the phone icon in the popover:
+  - a large centred number, with ⌫ (hold it to clear)
+  - round 1–9 / `*` / 0 / `#` keys; hold 0 for `+`
+  - a big green call button; dialing closes the window, and the call panel takes over
+  - keyboard: digits, ⌘V paste (number only), Delete, Return to call, Esc to close
+  - typing rules live in the tested `DialInput` (`swift test` 336)
 
 ## 2026-10-15 — Calls plan (Plan 10)
 - **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-calls-10.md`, with 8 tasks:

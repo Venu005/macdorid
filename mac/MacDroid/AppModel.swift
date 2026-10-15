@@ -35,6 +35,7 @@ final class AppModel {
     private(set) var calls: CallsState = .empty
     @ObservationIgnored private let callCenter: CallCenter
     @ObservationIgnored private let callPanel = CallPanelController()
+    @ObservationIgnored private let dialer = DialerWindowController()
     @ObservationIgnored private var noticeTask: Task<Void, Never>?
     @ObservationIgnored private var ringingSeen: Set<String> = []
     var showIncomingCalls = UserDefaults.standard.object(forKey: "calls.showIncoming") as? Bool ?? true {
@@ -520,6 +521,9 @@ final class AppModel {
     }
 
     // MARK: Calls (Plan 10)
+
+    /// The dialer window (Phone page "Call…", popover phone icon).
+    func showDialer() { dialer.show(DialerView(model: self, close: { [dialer] in dialer.close() })) }
 
     func answerCall(_ id: String) { Task { await callCenter.answer(callId: id) } }
     func declineCall(_ id: String) { Task { await callCenter.decline(callId: id) } }

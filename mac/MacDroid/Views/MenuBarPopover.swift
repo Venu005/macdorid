@@ -76,6 +76,12 @@ struct MenuBarPopover: View {
                     .foregroundStyle(.secondary)
                     .help("Mirror your phone")
             }
+            if model.calls.supported {
+                Button { model.showDialer() } label: { Image(systemName: "phone").font(.system(size: 15)) }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Call from your phone")
+            }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.1)))
