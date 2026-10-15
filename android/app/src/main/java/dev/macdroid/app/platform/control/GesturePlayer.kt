@@ -6,6 +6,7 @@ import android.graphics.Path
 import android.os.Handler
 import android.os.Looper
 import dev.macdroid.core.control.GestureSegment
+import dev.macdroid.core.control.ScrollBuffer
 import dev.macdroid.core.control.SegmentQueue
 
 /**
@@ -15,6 +16,9 @@ import dev.macdroid.core.control.SegmentQueue
 class GesturePlayer(private val service: AccessibilityService) {
     private val main = Handler(Looper.getMainLooper())
     private val queue = SegmentQueue()
+    private val scrolls = ScrollBuffer()
+    private var width = 0
+    private var height = 0
     private var stroke: GestureDescription.StrokeDescription? = null
     private var playing = false
 
@@ -23,9 +27,17 @@ class GesturePlayer(private val service: AccessibilityService) {
         pump()
     }
 
+    /** A scroll batch: it adds up with others until the phone is free for the next swipe. */
+    fun scroll(x: Double, y: Double, dx: Double, dy: Double, tMs: Long, width: Int, height: Int) {
+        this.width = width
+        this.height = height
+        scrolls.add(x, y, dx, dy, tMs)
+        pump()
+    }
+
     private fun pump() {
         if (playing) return
-        val segment = queue.next() ?: return
+        val segment = queue.next() ?: scrolls.take(width, height) ?: return
         val path = Path().apply {
             moveTo(segment.fromX, segment.fromY)
             lineTo(segment.toX, segment.toY)

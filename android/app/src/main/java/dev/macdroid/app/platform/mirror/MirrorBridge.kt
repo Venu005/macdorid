@@ -25,10 +25,15 @@ import kotlinx.coroutines.launch
  */
 class MirrorBridge(private val context: Context, private val connection: ConnectionManager, private val store: PairingStore, private val scope: CoroutineScope) {
     private val main = Handler(Looper.getMainLooper())
-    val session = MirrorPhoneSession(connection::send, SystemClock::elapsedRealtime) {
-        MirrorNotifications.cancelRequest(context)
-        MirrorService.stop()
-    }
+    val session = MirrorPhoneSession(
+        connection::send,
+        SystemClock::elapsedRealtime,
+        onEnd = {
+            MirrorNotifications.cancelRequest(context)
+            MirrorService.stop()
+        },
+        onInputEnd = { MacDroidControlService.instance?.reset() },
+    )
 
     fun start() {
         MirrorNotifications.createChannels(context)

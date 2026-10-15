@@ -62,3 +62,17 @@ Start with the phone **unlocked** (Android ends capture on lock).
 7. Click in the **black bars** beside the picture: nothing happens on the phone.
 8. Turn MacDroid control **off** while mirroring: the bar buttons grey out and "Turn on MacDroid control on your phone to use the mouse." appears. Turn it back on: control returns.
 9. Phone → Settings → Remote control → turn **"Start mirroring without touching the phone"** off; Mirror again: you tap Share screen yourself.
+
+## Plan 8 final review: open items
+- **Ruling (not fixed): Mac volume buttons during audio mirroring.** With phone audio on, the phone's speaker is muted; Mac Volume + raises the phone's media volume, so the phone speaker plays too, and the restore at the end overwrites it. This is what the spec says (volume keys → phone volume). Owner to decide: map volume to the Mac player while audio streams?
+- **Deferred minors:**
+  1. The 4,096 cap counts Characters on the Mac and UTF-16 units on the phone; emoji-heavy pastes over the cap can split a surrogate pair. Cap in UTF-16 units on the Mac, back off a trailing high surrogate, and say so in PROTOCOL.md.
+  2. Backspace removes one code point, not one grapheme (ZWJ emoji and flags take several presses).
+  3. Each keystroke rewrites the whole field (breaks undo/IME composition; may race the node cache when typing fast). Check on the device.
+  4. `GesturePlayer` doesn't pump again after `dispatchGesture` returns false; queued segments wait for the next input.
+  5. The dot cursor shows even when control is off and over the black bars.
+  6. `MirrorInputNSView.down` can stay true if control turns off mid-drag.
+  7. Unsent keys (Tab) go to `super.keyDown` and can move focus off the picture; dead keys and non-Latin input methods don't work (not an `NSTextInputClient`).
+  8. Esc is always Back, so it can't leave full screen on the mirror window.
+  9. Scroll deltas are normalised to the view, not the aspect-fit picture.
+  10. `CrossPlatformTest` has `delay(300)` straight before `delay(500)`.

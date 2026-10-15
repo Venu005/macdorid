@@ -1,6 +1,7 @@
 package dev.macdroid.core.control
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -96,5 +97,67 @@ class ControlRulesTest {
         assertNull(ConsentMatcher.startButton(other))
         val otherApp = Node(children = listOf(Node(text = "Share your screen with Zoom?"), Node(null, "Share screen", true)))
         assertNull(ConsentMatcher.startButton(otherApp))
+    }
+
+    // Final review C1: a wheel notch or a slow scroll must never become a tap on the phone.
+    @Test fun tinyScrollsNeverBecomeATap() {
+        val b = ScrollBuffer()
+        b.add(0.5, 0.5, 0.0, -0.001, 0)
+        assertNull(b.take(1080, 2400))
+        b.add(0.5, 0.5, 0.0, -0.01, 10)
+        assertNull(b.take(1080, 2400)) // still under 3 % of the screen
+        b.add(0.6, 0.6, 0.0, -0.03, 20) // keeps the first point
+        val swipe = b.take(1080, 2400)!!
+        assertEquals(seg(540f, 1200f, 540f, swipe.toY, 120, first = true, last = true), swipe)
+        assertEquals(1200f - 0.041f * 2400, swipe.toY, 0.5f)
+        assertNull(b.take(1080, 2400))
+    }
+
+    // Final review C1: batches that arrive while a swipe plays merge into the next swipe instead of queueing up.
+    @Test fun scrollBatchesMerge() {
+        val b = ScrollBuffer()
+        repeat(10) { b.add(0.5, 0.5, 0.0, -0.01, it * 33L) }
+        val swipe = b.take(1080, 2400)!!
+        assertEquals(1200f - 240f, swipe.toY, 0.5f)
+        assertNull(b.take(1080, 2400))
+    }
+
+    @Test fun aStaleScrollRemainderIsForgotten() {
+        val b = ScrollBuffer()
+        b.add(0.5, 0.5, 0.0, -0.02, 0)
+        b.add(0.2, 0.2, 0.0, -0.02, 2_000) // a new scroll, long after: starts afresh here
+        assertNull(b.take(1080, 2400))
+        b.add(0.2, 0.2, 0.0, -0.02, 2_030)
+        val swipe = b.take(1080, 2400)!!
+        assertEquals(216f, swipe.fromX, 0.5f)
+        assertEquals(480f - 96f, swipe.toY, 0.5f)
+    }
+
+    // Final review I3: the shade or another app's dialog with "MacDroid" somewhere must not be pressed.
+    @Test fun consentNeedsMacDroidNamedInTheDialog() {
+        val recorder = Node(children = listOf(Node("com.android.systemui:id/screen_share_permission_dialog", children = listOf(
+            Node(text = "Start recording?"), Node("android:id/button1", "Start", true)))))
+        assertNull(ConsentMatcher.startButton(recorder))
+        val shade = Node(children = listOf(Node(text = "MacDroid"), Node(text = "Mirror to MacBook? Tap to start"),
+            Node(text = "Stopwatch"), Node(null, "Start", true)))
+        assertNull(ConsentMatcher.startButton(shade))
+    }
+
+    // Final review I5: Return in a single-line field submits instead of adding a newline.
+    @Test fun returnSubmitsSingleLineFields() {
+        assertTrue(TextEdit.submits("\n", multiLine = false))
+        assertFalse(TextEdit.submits("\n", multiLine = true))
+        assertFalse(TextEdit.submits("a\n", multiLine = false))
+    }
+
+    // Final review I1: password fields read back as bullets; edit what we typed, never the bullets.
+    @Test fun passwordsAreEditedFromWhatWasTyped() {
+        val shadow = SecretShadow()
+        assertEquals("", shadow.current("field", shownLength = 0))
+        shadow.remember("field", "ab")
+        assertEquals("ab", shadow.current("field", shownLength = 2))
+        assertNull(shadow.current("field", shownLength = 3)) // typed on the phone too: unknown
+        assertNull(shadow.current("other", shownLength = 2))
+        assertEquals("", shadow.current("other", shownLength = 0))
     }
 }

@@ -113,6 +113,38 @@ object ScrollGesture {
     }
 }
 
+/**
+ * Scroll batches from the Mac wait here until the phone is free to play the next swipe, adding up meanwhile, so a long
+ * scroll doesn't queue seconds of swipes (spec §3.5 "coalesced"). A swipe is never shorter than [minFraction] of the
+ * screen: anything shorter would be a tap under Android's touch slop (final review C1).
+ */
+class ScrollBuffer(private val minFraction: Double = 0.03, private val staleMs: Long = 500) {
+    private var x = 0.0
+    private var y = 0.0
+    private var dx = 0.0
+    private var dy = 0.0
+    private var lastT: Long? = null
+
+    @Synchronized fun add(x: Double, y: Double, dx: Double, dy: Double, tMs: Long) {
+        val last = lastT
+        if (last == null || tMs - last > staleMs) {
+            this.x = x; this.y = y
+            this.dx = 0.0; this.dy = 0.0
+        }
+        this.dx += dx
+        this.dy += dy
+        lastT = tMs
+    }
+
+    /** The next swipe, or null while what has built up is still too short. */
+    @Synchronized fun take(width: Int, height: Int): GestureSegment? {
+        if (maxOf(kotlin.math.abs(dx), kotlin.math.abs(dy)) < minFraction) return null
+        val swipe = ScrollGesture.swipe(x, y, dx, dy, width, height)
+        dx = 0.0; dy = 0.0
+        return swipe
+    }
+}
+
 /** Typing into the focused field (spec §3.5): insert at the cursor or over the selection; delete whole characters. */
 object TextEdit {
     fun insert(current: String, selStart: Int, selEnd: Int, text: String): Pair<String, Int> {
@@ -128,10 +160,34 @@ object TextEdit {
         return (current.substring(0, before) + current.substring(start)) to before
     }
 
+    /** Return alone in a single-line field means "submit" (search, send), not a newline (final review I5). */
+    fun submits(text: String, multiLine: Boolean): Boolean = text == "\n" && !multiLine
+
     private fun range(current: String, selStart: Int, selEnd: Int): Pair<Int, Int> {
         val a = if (selStart < 0) current.length else selStart.coerceAtMost(current.length)
         val b = if (selEnd < 0) current.length else selEnd.coerceAtMost(current.length)
         return minOf(a, b) to maxOf(a, b)
+    }
+}
+
+/**
+ * Password fields read back as bullets, so typing into one edits what MacDroid typed there, not the bullets (final
+ * review I1). Unknown when the field holds text MacDroid didn't type. Main thread.
+ */
+class SecretShadow {
+    private var key: String? = null
+    private var text = ""
+
+    /** What the field holds, if known: empty for an empty field, or what was typed here, if it still has that length. */
+    fun current(key: String, shownLength: Int): String? = when {
+        shownLength == 0 -> ""
+        key == this.key && text.length == shownLength -> text
+        else -> null
+    }
+
+    fun remember(key: String, text: String) {
+        this.key = key
+        this.text = text
     }
 }
 
@@ -149,13 +205,21 @@ interface UiNode {
 object ConsentMatcher {
     private const val CONTAINER = "com.android.systemui:id/screen_share_permission_dialog"
     private const val POSITIVE = "android:id/button1"
+    private const val APP = "MacDroid"
     private val labels = setOf("share screen", "start", "start now")
 
     fun startButton(root: UiNode): UiNode? {
         val nodes = flatten(root)
-        if (nodes.any { it.viewId == CONTAINER }) return nodes.firstOrNull { it.viewId == POSITIVE && it.clickable }
-        // Older dialogs without the container id: only when the dialog names MacDroid.
-        if (nodes.none { it.text?.contains("MacDroid") == true }) return null
+        val container = nodes.firstOrNull { it.viewId == CONTAINER }
+        if (container != null) {
+            // System UI reuses this dialog for its own recorder and Cast: only when it names MacDroid (final review I3).
+            val inside = flatten(container)
+            if (inside.none { it.text?.contains(APP) == true }) return null
+            return inside.firstOrNull { it.viewId == POSITIVE && it.clickable }
+        }
+        // Older dialogs without the container id: only when the question is for MacDroid ("… with MacDroid?"), so the
+        // shade with MacDroid's own notification and another app's "Start" doesn't match.
+        if (nodes.none { it.text?.contains("with $APP", ignoreCase = true) == true }) return null
         return nodes.firstOrNull { it.clickable && it.text?.trim()?.lowercase() in labels }
     }
 

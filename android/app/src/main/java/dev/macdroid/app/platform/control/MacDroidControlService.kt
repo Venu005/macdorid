@@ -2,6 +2,7 @@ package dev.macdroid.app.platform.control
 
 import android.accessibilityservice.AccessibilityService
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -12,7 +13,7 @@ import dev.macdroid.app.graph
 import dev.macdroid.app.platform.mirror.ScreenSize
 import dev.macdroid.core.control.ConsentMatcher
 import dev.macdroid.core.control.GestureTracker
-import dev.macdroid.core.control.ScrollGesture
+import dev.macdroid.core.control.SecretShadow
 import dev.macdroid.core.control.TextEdit
 import dev.macdroid.core.protocol.InputKeyName
 import dev.macdroid.core.protocol.InputNoticeBody
@@ -31,7 +32,11 @@ class MacDroidControlService : AccessibilityService() {
     private val main = Handler(Looper.getMainLooper())
     private val tracker = GestureTracker()
     private lateinit var player: GesturePlayer
-    private val longPress = Runnable { player.play(tracker.tick(SystemClock.uptimeMillis())) }
+    private val secrets = SecretShadow()
+    private val longPress = Runnable {
+        // The session may have ended since the button went down (final review I2).
+        if (graph.mirrorBridge.session.isStreaming) player.play(tracker.tick(SystemClock.uptimeMillis()))
+    }
 
     override fun onServiceConnected() {
         player = GesturePlayer(this)
@@ -89,13 +94,33 @@ class MacDroidControlService : AccessibilityService() {
             is Message.InputScroll -> {
                 val (w, h) = ScreenSize.current(this)
                 val b = message.body
-                player.play(listOf(ScrollGesture.swipe(b.x, b.y, b.dx, b.dy, w, h)))
+                player.scroll(b.x, b.y, b.dx, b.dy, now, w, h)
             }
             is Message.InputKey -> key(message.body.key)
-            is Message.InputText -> edit { text, start, end -> TextEdit.insert(text, start, end, message.body.text.take(MAX_TEXT)) }
+            is Message.InputText -> {
+                val typed = message.body.text.take(MAX_TEXT)
+                if (!submit(typed)) edit { text, start, end -> TextEdit.insert(text, start, end, typed) }
+            }
             else -> Unit
         }
     }
+
+    /** The session stopped streaming: lift any finger the Mac left down (final review I2). Main thread. */
+    fun reset() {
+        if (!::player.isInitialized) return
+        main.removeCallbacks(longPress)
+        player.play(tracker.cancel())
+    }
+
+    /** Return alone in a single-line field presses the keyboard's action (search, send) instead (final review I5). */
+    private fun submit(typed: String): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+        val node = focusedField() ?: return false
+        if (!TextEdit.submits(typed, node.isMultiLine)) return false
+        return node.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.id)
+    }
+
+    private fun focusedField(): AccessibilityNodeInfo? = findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.takeIf { it.isEditable }
 
     private fun key(key: InputKeyName) {
         when (key) {
@@ -115,13 +140,17 @@ class MacDroidControlService : AccessibilityService() {
 
     /** Edits the focused text field, or tells the Mac there isn't one (spec §8). */
     private fun edit(change: (text: String, selStart: Int, selEnd: Int) -> Pair<String, Int>) {
-        val node = findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.takeIf { it.isEditable }
+        val node = focusedField()
         if (node == null) {
             graph.connectionManager.send(Message.InputNotice(InputNoticeBody(InputNoticeReason.NoTextField)))
             return
         }
-        val current = if (node.isShowingHintText) "" else node.text?.toString().orEmpty()
+        val shown = if (node.isShowingHintText) "" else node.text?.toString().orEmpty()
+        // A password field shows bullets: edit what MacDroid typed there, or leave it alone if that's unknown (final review I1).
+        val key = "${node.windowId}:${node.viewIdResourceName}"
+        val current = if (node.isPassword) secrets.current(key, shown.length) ?: return else shown
         val (text, cursor) = change(current, node.textSelectionStart, node.textSelectionEnd)
+        if (node.isPassword) secrets.remember(key, text)
         node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, Bundle().apply {
             putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
         })

@@ -39,7 +39,8 @@ class MirrorRulesTest {
     private val sent = mutableListOf<Message>()
     private val ends = mutableListOf<MirrorStopReason>()
     private var now = 0L
-    private fun session() = MirrorPhoneSession({ sent += it; true }, { now }, { ends += it })
+    private var inputEnds = 0
+    private fun session() = MirrorPhoneSession({ sent += it; true }, { now }, { ends += it }, onInputEnd = { inputEnds++ })
     private val start = MirrorStartBody("s1", 1920, 60, true)
 
     @Test fun aSessionStartsStreamsAndEnds() {
@@ -141,5 +142,25 @@ class MirrorRulesTest {
         assertFalse(s.isStreaming)
         s.start(start)
         assertFalse(s.isStreaming) // waiting for consent: no input yet
+    }
+
+    // Final review I2: leaving streaming, however it happens, lifts any finger the Mac left down.
+    @Test fun leavingStreamingEndsInput() {
+        val s = session()
+        s.start(start)
+        s.macStopped("s1") // never streamed: nothing to lift
+        assertEquals(0, inputEnds)
+        s.start(start)
+        s.streaming(864, 1920, 0, audio = false, control = true)
+        s.macStopped("s1")
+        assertEquals(1, inputEnds)
+        s.start(MirrorStartBody("s2", 1920, 60, true))
+        s.streaming(864, 1920, 0, audio = false, control = true)
+        s.connectionLost()
+        assertEquals(2, inputEnds)
+        s.start(MirrorStartBody("s3", 1920, 60, true))
+        s.streaming(864, 1920, 0, audio = false, control = true)
+        s.ended(MirrorStopReason.User)
+        assertEquals(3, inputEnds)
     }
 }

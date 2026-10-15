@@ -35,7 +35,8 @@ final class MirrorInputNSView: NSView {
 
     override func scrollWheel(with event: NSEvent) {
         guard enabled, let at = fraction(event) else { return }
-        let delta = InputMapper.scroll(deltaX: event.scrollingDeltaX, deltaY: event.scrollingDeltaY, in: bounds.size)
+        let delta = InputMapper.scroll(deltaX: event.scrollingDeltaX, deltaY: event.scrollingDeltaY,
+                                       precise: event.hasPreciseScrollingDeltas, in: bounds.size)
         if let pending = scroll {
             scroll = (pending.x, pending.y, pending.dx + delta.dx, pending.dy + delta.dy)
         } else {

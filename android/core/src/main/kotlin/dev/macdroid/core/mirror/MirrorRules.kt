@@ -55,12 +55,14 @@ class SendPolicy(bitrateBps: Int) {
 /**
  * The phone's side of one mirroring session (spec §3.1, §3.6): reports state to the Mac and decides when it ends.
  * [onEnd] runs when something other than the capture itself ended the session (the Mac, a timeout, a lost connection),
- * so the bridge can stop the capture service. Not thread-safe: call from one thread.
+ * so the bridge can stop the capture service. [onInputEnd] runs whenever a streaming session ends, however it ends, so
+ * remote control can lift a finger the Mac left down. Not thread-safe: call from one thread.
  */
 class MirrorPhoneSession(
     private val send: (Message) -> Boolean,
     private val clockMs: () -> Long,
     private val onEnd: (MirrorStopReason) -> Unit,
+    private val onInputEnd: () -> Unit = {},
 ) {
     var current: String? = null
         private set
@@ -137,10 +139,12 @@ class MirrorPhoneSession(
     }
 
     private fun clear() {
+        val wasStreaming = isStreaming
         current = null
         options = null
         isStreaming = false
         lastStreaming = null
+        if (wasStreaming) onInputEnd()
     }
 
     companion object {

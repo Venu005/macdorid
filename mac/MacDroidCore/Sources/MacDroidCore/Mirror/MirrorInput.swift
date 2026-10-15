@@ -14,10 +14,15 @@ public enum InputMapper {
         return CGPoint(x: x, y: y)
     }
 
+    /// How far one mouse-wheel line scrolls, in view points (final review C1: one notch is a real swipe on the phone).
+    public static let pointsPerLine: CGFloat = 40
+
     /// Scroll deltas (content direction, as macOS reports them with natural scrolling) as fractions of the view.
-    public static func scroll(deltaX: CGFloat, deltaY: CGFloat, in view: CGSize) -> (dx: Double, dy: Double) {
+    /// `precise` is false for a mouse wheel, which reports lines rather than points.
+    public static func scroll(deltaX: CGFloat, deltaY: CGFloat, precise: Bool = true, in view: CGSize) -> (dx: Double, dy: Double) {
         guard view.width > 0, view.height > 0 else { return (0, 0) }
-        return (Double(deltaX / view.width), Double(deltaY / view.height))
+        let scale = precise ? 1 : pointsPerLine
+        return (Double(deltaX * scale / view.width), Double(deltaY * scale / view.height))
     }
 }
 

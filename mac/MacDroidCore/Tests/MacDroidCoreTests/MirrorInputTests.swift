@@ -26,6 +26,13 @@ import Testing
         #expect(s.dy == -0.125)
     }
 
+    // Final review C1: a mouse wheel reports lines, not points; one notch must be a real swipe, not a sub-slop tap.
+    @Test func wheelLinesScaleToPoints() {
+        let s = InputMapper.scroll(deltaX: 0, deltaY: -1, precise: false, in: CGSize(width: 500, height: 1200))
+        #expect(abs(s.dy - (-InputMapper.pointsPerLine / 1200)) < 1e-9)
+        #expect(InputMapper.pointsPerLine / 1200 >= 0.03)
+    }
+
     @Test func movesAreThrottledTo120Hz() {
         var throttle = MoveThrottle()
         let first = throttle.allows(atMillis: 0)
