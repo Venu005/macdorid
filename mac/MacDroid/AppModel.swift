@@ -551,14 +551,10 @@ final class AppModel {
         Task { _ = await callCenter.dial(number) }
     }
 
-    /// Settings → Calls: make MacDroid the handler for `tel:` links (macOS asks the user to confirm).
-    func usePhoneLinks() async -> String {
-        do {
-            try await NSWorkspace.shared.setDefaultApplication(at: Bundle.main.bundleURL, toOpenURLsWithScheme: "tel")
-            return "Phone links now open in MacDroid."
-        } catch {
-            return "macOS didn't change it: \(error.localizedDescription)"
-        }
+    /// Settings → Calls: the app that opens `tel:` links now (MacDroid can't set this itself from the sandbox).
+    func phoneLinksHandler() -> String? {
+        guard let url = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "tel:1")!) else { return nil }
+        return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
     }
 
     private func callsChanged(_ state: CallsState) {

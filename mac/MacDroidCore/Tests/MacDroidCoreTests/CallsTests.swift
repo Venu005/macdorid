@@ -154,4 +154,12 @@ import Testing
         #expect(PhoneNumbers.fromTelURL(URL(string: "tel:+15551234567")!) == "+15551234567")
         #expect(PhoneNumbers.clean("*#06#") == "*#06#") // the number pad still allows codes
     }
+
+    // The sandbox doesn't let MacDroid make itself the tel: handler, so Settings shows who handles phone links instead.
+    @Test func phoneLinksLine() {
+        #expect(CallPresentation.phoneLinksLine(handler: "MacDroid") == "Phone links open in MacDroid.")
+        #expect(CallPresentation.phoneLinksLine(handler: "Phone")
+            == "Phone links open in Phone. macOS doesn't let MacDroid change this itself: choose MacDroid as the default for calls in Phone's settings.")
+        #expect(CallPresentation.phoneLinksLine(handler: nil) == "No app opens phone links yet.")
+    }
 }

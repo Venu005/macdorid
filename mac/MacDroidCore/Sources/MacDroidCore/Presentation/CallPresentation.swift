@@ -25,6 +25,13 @@ public enum CallPresentation {
         }
     }
 
+    /// Settings → Calls: which app opens `tel:` links. The sandbox doesn't let MacDroid make itself the handler.
+    public static func phoneLinksLine(handler: String?) -> String {
+        guard let handler else { return "No app opens phone links yet." }
+        if handler == "MacDroid" { return "Phone links open in MacDroid." }
+        return "Phone links open in \(handler). macOS doesn't let MacDroid change this itself: choose MacDroid as the default for calls in \(handler)'s settings."
+    }
+
     public static func confirmTitle(number: String) -> String { "Call \(number) on your phone?" }
 
     public static func dialProblem(_ result: DialResult) -> String? {

@@ -9,7 +9,7 @@ struct GeneralSettingsView: View {
     @AppStorage(DockPolicy.showInDockKey) private var showInDock = true
     let model: AppModel
     @State private var showingMutedApps = false
-    @State private var phoneLinksMessage: String?
+    @State private var phoneLinksHandler: String?
 
     var body: some View {
         @Bindable var files = model.files
@@ -100,10 +100,9 @@ struct GeneralSettingsView: View {
             }
             Section {
                 Toggle("Show incoming calls", isOn: $bindableModel.showIncomingCalls)
-                HStack {
-                    Button("Use MacDroid for phone links") { Task { phoneLinksMessage = await model.usePhoneLinks() } }
-                    if let phoneLinksMessage { Text(phoneLinksMessage).foregroundStyle(.secondary) }
-                }
+                Text(CallPresentation.phoneLinksLine(handler: phoneLinksHandler))
+                    .foregroundStyle(.secondary)
+                    .onAppear { phoneLinksHandler = model.phoneLinksHandler() }
             } header: {
                 Text("Calls")
             } footer: {

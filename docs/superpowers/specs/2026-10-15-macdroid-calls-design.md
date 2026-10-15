@@ -94,14 +94,14 @@ Number handling:
   - **Call**, which sends at once
 - **`tel:` links:**
   - The app declares the `tel` URL scheme.
-  - Settings → Calls has **"Use MacDroid for phone links"** (`NSWorkspace.setDefaultApplication(at:toOpenURLsWithScheme:)`; macOS asks the owner to confirm).
+  - Settings → Calls shows which app opens phone links. (The planned "Use MacDroid for phone links" button was dropped: the sandbox doesn't allow `NSWorkspace.setDefaultApplication`; see DECISIONS.)
   - A link shows **"Call <number> on your phone?"** with **Call** and **Cancel**.
   - If the phone isn't connected or doesn't support calls, it says so instead.
 
 ### 3.4 Settings
 Mac Settings gets a **Calls** section:
 - **"Show incoming calls"** (default on; off hides the panel and sound)
-- **"Use MacDroid for phone links"**
+- a line saying which app opens phone links
 - the note "Call audio stays on your phone."
 
 ## 4. Protocol

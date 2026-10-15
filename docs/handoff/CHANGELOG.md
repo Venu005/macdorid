@@ -19,6 +19,9 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
   - **`tel:` links can't run phone codes.** Links containing `*` or `#` (call forwarding, USSD) are refused with "That doesn't look like a phone number"; the number pad still allows codes (`phoneCodesInLinksAreRefused`).
   - **No leftover calls after the notification listener rebinds** (`CallTracker.sync`, `syncDropsCallsThatWentAway`).
   - Verified: `swift test` 329; CallTrackerTest 17; Mac and Android builds with no warnings; cross-platform test passed.
+- **Owner check, step 9:** "Use MacDroid for phone links" failed with "The file couldn't be opened".
+  - **Cause:** macOS doesn't let a sandboxed app make itself the `tel:` handler. The same call from outside the app succeeded, and it made MacDroid the owner's handler.
+  - **Fix:** the button is replaced by a line in Settings → Calls that says which app opens phone links, and how to choose MacDroid (`phoneLinksLine`, test RED→GREEN; `swift test` 330).
 
 ## 2026-10-15 — Calls plan (Plan 10)
 - **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-calls-10.md`, with 8 tasks:
