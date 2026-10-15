@@ -4,6 +4,11 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Merged mirroring and remote control (Plans 7 and 8) to main
+- **What:** `feat/mirroring` merged into `main` locally as `75ac85b` (`--no-ff`) at the owner's request, after they tried mirroring and control on their phone and Mac. Not pushed.
+- **Verified on `main`:** `swift test` 317; Mac app build (no code warnings); `:core:test :app:testDebugUnitTest :app:assembleDebug` (no warnings); cross-platform test passed.
+- **Open:** the owner checklists, the deferred minors and the volume ruling in `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`.
+
 ## 2026-10-15 — Decision: no locked or screen-off mirroring
 - **What:** the owner asked about iPhone-style mirroring (phone locked, showing "in use"). On Android a normal app can't do that: capture ends on lock, and a cover on the phone would be captured too. Screen-off mirroring through Shizuku (as scrcpy does) was offered and declined. Mirroring stays as built, with the phone unlocked and its screen on. Recorded in DECISIONS.md.
 - **Branch:** `feat/mirroring` (docs only). Also installed the current build on the owner's phone (`installDebug` over Wireless debugging) and Mac.

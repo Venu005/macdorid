@@ -3,7 +3,7 @@
 > **Picking up?** The next action is in [ROADMAP.md](ROADMAP.md) under "Next":
 > 1. File transfer (Plan 2), notifications (Plan 3) and clipboard (Plan 4) are all **merged to `main`** (version 0.4.0).
 > 2. Still open: the 2 GB+ file-transfer check, and the 9 deferred minors in `docs/superpowers/plans/2026-10-13-macdroid-notifications-clipboard-followups.md`.
-> 3. Small wins (Plan 5) and photos (Plan 6) are merged to `main`. The 9 photos minors are fixed and merged (`2807ce9`).
+> 3. Small wins (Plan 5) and photos (Plan 6) are merged to `main`. The 9 photos minors are fixed and merged (`2807ce9`). Screen mirroring and remote control (Plans 7 and 8) are merged too (`75ac85b`); their minors are in `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`.
 > 4. The Finder Share extension is parked (see ROADMAP; one open question). Next options: a planning session to rank the later rounds (photo gallery, screen mirroring, SMS, webcam, USB), or the deferred minors.
 
 Read this first if you're picking the project up, whether you're a person, a Claude Code session or a Claude Desktop session.
@@ -29,7 +29,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 | Plan 4 | Clipboard sync (Mac→phone automatic, phone→Mac on demand, Mac history) | **Done, merged to `main`** (owner-verified) |
 | Plan 5 | Small wins: ring my phone, open links on the other device, media controls | **Done, merged to `main`** (owner-tested) |
 | Plan 6 | Photos: browse the phone's photos and videos on the Mac (albums, day grid, Quick Look, Save to Mac, drag out), full or limited access | **Done, merged to `main`** (follow-up minors merged too) |
-| Plans 7–8 | Screen mirroring with phone audio (own window, 50–80 ms target) and remote control via an accessibility service | Both built on `feat/mirroring`; pending the owner's check |
+| Plans 7–8 | Screen mirroring with phone audio (own window, 50–80 ms target) and remote control via an accessibility service | **Done, merged to `main`** (2026-10-15, `75ac85b`); owner tried it; checklist and minors in the follow-ups file |
 | Later | SMS, screen mirroring, webcam/mic, USB transport | Out of scope so far |
 
 ## Documents
