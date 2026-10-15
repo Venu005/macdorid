@@ -113,4 +113,33 @@ class MirrorRulesTest {
         assertEquals(VideoAdmit.DropAndRequestKey, policy.video(keyFrame = false, queuedBytes = 1_000)) // drained again: ask again
         assertEquals(VideoAdmit.Send, policy.video(keyFrame = true, queuedBytes = 1_000))
     }
+
+    // Review Focus #1 (arming) and #2 (gating)
+    @Test fun notArmedWithoutAWaitingSession() {
+        val s = session()
+        assertFalse(s.awaitingConsent)
+        s.start(start)
+        assertTrue(s.awaitingConsent)
+        s.streaming(864, 1920, 0, audio = false, control = true)
+        assertFalse(s.awaitingConsent)
+        s.ended(MirrorStopReason.User)
+        assertFalse(s.awaitingConsent)
+    }
+
+    @Test fun controlChangeResendsTheState() {
+        val s = session()
+        s.controlChanged(true) // no session: nothing
+        assertTrue(sent.isEmpty())
+        s.start(start)
+        s.streaming(864, 1920, 90, audio = true, control = false)
+        s.controlChanged(true)
+        assertEquals(Message.MirrorState(MirrorStateBody("s1", MirrorPhaseName.Streaming, 864, 1920, 90, audio = true, control = true)), sent.last())
+    }
+
+    @Test fun phoneIgnoresInputWhenNotStreaming() {
+        val s = session()
+        assertFalse(s.isStreaming)
+        s.start(start)
+        assertFalse(s.isStreaming) // waiting for consent: no input yet
+    }
 }

@@ -70,6 +70,19 @@ class MirrorPhoneSession(
         private set
     private var startedAt = 0L
 
+    /** A session is waiting for the capture consent: the only time auto-Start may act (spec §3.1). */
+    val awaitingConsent: Boolean get() = current != null && !isStreaming
+
+    private var lastStreaming: MirrorStateBody? = null
+
+    /** The control service was turned on or off mid-session: tell the Mac (spec §5.1 `control`). */
+    fun controlChanged(control: Boolean) {
+        val last = lastStreaming ?: return
+        if (!isStreaming || last.sessionId != current) return
+        lastStreaming = last.copy(control = control)
+        send(Message.MirrorState(lastStreaming!!))
+    }
+
     fun start(body: MirrorStartBody): Boolean {
         if (current != null) endHere(MirrorStopReason.Mac, report = true)
         current = body.sessionId
@@ -89,7 +102,9 @@ class MirrorPhoneSession(
     fun streaming(width: Int, height: Int, rotation: Int, audio: Boolean, control: Boolean) {
         val id = current ?: return
         isStreaming = true
-        send(Message.MirrorState(MirrorStateBody(id, MirrorPhaseName.Streaming, width, height, rotation, audio = audio, control = control)))
+        val body = MirrorStateBody(id, MirrorPhaseName.Streaming, width, height, rotation, audio = audio, control = control)
+        lastStreaming = body
+        send(Message.MirrorState(body))
     }
 
     fun ended(reason: MirrorStopReason) {
@@ -125,6 +140,7 @@ class MirrorPhoneSession(
         current = null
         options = null
         isStreaming = false
+        lastStreaming = null
     }
 
     companion object {
