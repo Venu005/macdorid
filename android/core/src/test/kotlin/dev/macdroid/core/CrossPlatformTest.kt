@@ -6,6 +6,8 @@ import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.connection.MacLocator
 import dev.macdroid.core.connection.macSupports
+import dev.macdroid.core.control.GestureSegment
+import dev.macdroid.core.control.GestureTracker
 import dev.macdroid.core.extras.MediaArtwork
 import dev.macdroid.core.extras.MediaControl
 import dev.macdroid.core.extras.MediaSnapshot
@@ -25,6 +27,9 @@ import dev.macdroid.core.photos.PhotoSource
 import dev.macdroid.core.protocol.DeviceStatusBody
 import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.HelloBody
+import dev.macdroid.core.protocol.InputKeyName
+import dev.macdroid.core.protocol.InputNoticeBody
+import dev.macdroid.core.protocol.InputNoticeReason
 import dev.macdroid.core.protocol.LinkOpenBody
 import dev.macdroid.core.protocol.MediaCommandKind
 import dev.macdroid.core.protocol.Message
@@ -36,6 +41,7 @@ import dev.macdroid.core.protocol.PhotoAlbumBody
 import dev.macdroid.core.protocol.PhotoItemBody
 import dev.macdroid.core.protocol.PhotoKind
 import dev.macdroid.core.protocol.PhotoKindFilter
+import dev.macdroid.core.protocol.PointerAction
 import dev.macdroid.core.protocol.RingAction
 import dev.macdroid.core.protocol.RingStateBody
 import dev.macdroid.core.protocol.TransferPurpose
@@ -183,7 +189,7 @@ class CrossPlatformTest {
         assertFalse("a wrong session must be refused", withTimeout(10_000) { open("not-the-session").second.await() })
         val (socket, opened) = open(start.sessionId)
         assertTrue(withTimeout(10_000) { opened.await() })
-        manager.send(Message.MirrorState(MirrorStateBody(start.sessionId, MirrorPhaseName.Streaming, 320, 240, 0, audio = true, control = false)))
+        manager.send(Message.MirrorState(MirrorStateBody(start.sessionId, MirrorPhaseName.Streaming, 320, 240, 0, audio = true, control = true)))
         val h264 = File(System.getProperty("fixturesDir"), "h264/sample.h264").readBytes()
         var micros = 1_000L
         for ((type, key, bytes) in h264Frames(h264)) {
@@ -192,6 +198,18 @@ class CrossPlatformTest {
         }
         repeat(3) { socket.send(MirrorFrame.encode(MirrorFrame.TYPE_AUDIO, false, micros + it * 10_000, ByteArray(1_920)).toByteString()) }
         withTimeout(10_000) { while (received.none { it is Message.MirrorKeyframe }) delay(50) }
+        withTimeout(10_000) { while (received.none { it is Message.InputText }) delay(50) }
+        val pointers = received.filterIsInstance<Message.InputPointer>().map { it.body }
+        assertEquals(listOf(PointerAction.Down, PointerAction.Up), pointers.map { it.action })
+        // The phone's rules turn that into a tap at the middle of a 1080×2400 screen.
+        val tracker = GestureTracker()
+        tracker.down((pointers[0].x * 1080).toFloat(), (pointers[0].y * 2400).toFloat(), 0)
+        assertEquals(listOf(GestureSegment(540f, 1200f, 540f, 1200f, 50, first = true, last = true)), tracker.up(540f, 1200f, 60))
+        assertEquals(InputKeyName.Back, received.filterIsInstance<Message.InputKey>().single().body.key)
+        assertEquals(1, received.count { it is Message.InputScroll })
+        // No text field focused on this "phone": say so.
+        assertTrue(manager.send(Message.InputNotice(InputNoticeBody(InputNoticeReason.NoTextField))))
+        delay(300)
         delay(500)
         manager.send(Message.MirrorState(MirrorStateBody(start.sessionId, MirrorPhaseName.Stopped, reason = MirrorStopReason.User)))
         socket.close(1000, null)

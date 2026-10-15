@@ -170,6 +170,7 @@ await mirror.setSink(DevMirrorSink())
 let mirrorPrinter = Task {
     var started = false
     var askedForKey = false
+    var sentInput = false
     for await state in mirror.states {
         if state.supported, !started {
             started = true
@@ -182,11 +183,32 @@ let mirrorPrinter = Task {
                 askedForKey = true
                 await mirror.requestKeyFrame()
             }
+            if state.controlAvailable, !sentInput {
+                sentInput = true
+                let inputs: [Message] = [
+                    .inputPointer(InputPointer(action: .down, x: 0.5, y: 0.5, t: 1)),
+                    .inputPointer(InputPointer(action: .up, x: 0.5, y: 0.5, t: 60)),
+                    .inputScroll(InputScroll(x: 0.5, y: 0.5, dx: 0, dy: -0.1)),
+                    .inputKey(InputKey(key: .back)),
+                    .inputText(InputText(text: "hi")),
+                ]
+                var sent = 0
+                for input in inputs {
+                    if await mirror.sendInput(input) { sent += 1 }
+                }
+                print("CONTROL sent \(sent)")
+            }
         case .stopped(let reason):
             if started { print("MIRROR stopped \(reason)") }
         default:
             break
         }
+    }
+}
+
+let noticePrinter = Task {
+    for await message in hub.messages {
+        if case .inputNotice(let body) = message { print("CONTROL notice \(body.reason.rawValue)") }
     }
 }
 
@@ -268,3 +290,4 @@ linkPrinter.cancel()
 photosPrinter.cancel()
 thumbPrinter.cancel()
 mirrorPrinter.cancel()
+noticePrinter.cancel()
