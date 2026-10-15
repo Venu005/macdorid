@@ -4,6 +4,10 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Merged the calls minors to main
+- **What:** `fix/calls-minors` merged into `main` locally as `73fb277` (`--no-ff`) at the owner's request. Not pushed.
+- **Verified on `main`:** `swift test` 341; Mac app build (no code warnings); `:core:test :app:testDebugUnitTest :app:assembleDebug` (no warnings); cross-platform test passed.
+
 ## 2026-10-15 — Calls: the 8 deferred minors fixed (fix/calls-minors)
 - **Owner:** calls from the Mac work (Answer, Decline, Hang up confirmed). The 8 deferred minors from the Plan 10 final review are now fixed:
   1. **The notice names the right action** when a call ends as Decline or Hang up is pressed (`theNoticeNamesTheActionEvenWhenTheCallEnded`).
