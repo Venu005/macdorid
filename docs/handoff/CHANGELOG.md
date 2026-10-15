@@ -4,6 +4,10 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Decision: no locked or screen-off mirroring
+- **What:** the owner asked about iPhone-style mirroring (phone locked, showing "in use"). On Android a normal app can't do that: capture ends on lock, and a cover on the phone would be captured too. Screen-off mirroring through Shizuku (as scrcpy does) was offered and declined. Mirroring stays as built, with the phone unlocked and its screen on. Recorded in DECISIONS.md.
+- **Branch:** `feat/mirroring` (docs only). Also installed the current build on the owner's phone (`installDebug` over Wireless debugging) and Mac.
+
 ## 2026-10-15 — Plan 8: remote control (built on feat/mirroring)
 - **Task 1:** `input.pointer/scroll/key/text` and `input.notice` (a ruling: carries "Click a text field on the phone first") in both codecs, 5 fixtures, `control` feature on both sides, PROTOCOL.md "Remote control rules".
 - **Task 2:** Android core control rules: `GestureTracker` (tap, long-press, continued drag strokes), `SegmentQueue` (coalescing), `ScrollGesture`, `TextEdit` (cursor, selection, whole-emoji delete), `ConsentMatcher` (only MacDroid's screen-share consent), `MirrorPhoneSession.awaitingConsent` and `controlChanged`. Verified: `:core:test` (ControlRulesTest 11, MirrorRulesTest 10).
