@@ -4,6 +4,18 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Calls plan (Plan 10)
+- **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-calls-10.md`, with 8 tasks:
+  1. an on-device probe with the owner
+  2. `call.*` protocol
+  3. Android core `CallTracker`
+  4. Mac core `CallCenter`
+  5. Android call notifications, actions and dialing
+  6. the Mac panel, number pad, links and settings
+  7. the cross-platform test
+  8. the handoff and checklist
+- **Branch:** `main` (plan only); the work goes on `feat/calls`.
+
 ## 2026-10-15 — Spec: calls on the Mac (Plan 10)
 - **What:** wrote `docs/superpowers/specs/2026-10-15-macdroid-calls-design.md` after brainstorming with the owner:
   - **Incoming:** a call panel on the Mac (name/number, Answer, Decline; Hang up during a call), driven by the phone app's call-style notification, which the notification listener already sees.
