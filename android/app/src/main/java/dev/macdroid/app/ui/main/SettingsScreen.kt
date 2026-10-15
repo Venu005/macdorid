@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryChargingFull
+import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Laptop
@@ -66,6 +67,12 @@ fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewMode
         val canAskAgain = activity != null && PhotosAccessText.permissions(Build.VERSION.SDK_INT)
             .any { ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
         if (PhotosAccessText.openSettingsAfter(result, canAskAgain)) context.openAppSettings()
+    }
+    val callsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        // Android shows nothing once the permission was denied twice: then send the user to the app's settings instead.
+        val canAskAgain = activity != null && ActivityCompat.shouldShowRequestPermissionRationale(activity, android.Manifest.permission.CALL_PHONE)
+        if (!granted && !canAskAgain) context.openAppSettings()
+        viewModel.refresh()
     }
     var showMac by remember { mutableStateOf(false) }
     var confirmForget by remember { mutableStateOf(false) }
@@ -146,6 +153,15 @@ fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewMode
                 supportingContent = { Text(if (ui.microphoneAllowed) "Allowed" else "Not allowed") },
                 leadingContent = { Icon(Icons.Rounded.Mic, contentDescription = null) },
                 modifier = Modifier.clickable { context.openAppSettings() },
+            )
+        }
+        item { SectionHeader("Calls") }
+        item {
+            ListItem(
+                headlineContent = { Text("Make calls from your Mac") },
+                supportingContent = { Text(if (ui.callsAllowed) "Allowed" else "Off: tap to allow") },
+                leadingContent = { Icon(Icons.Rounded.Call, contentDescription = null) },
+                modifier = Modifier.clickable { if (!ui.callsAllowed) callsPermission.launch(android.Manifest.permission.CALL_PHONE) },
             )
         }
         item { SectionHeader("Setup") }

@@ -10,15 +10,23 @@ class MacDroidNotificationListener : NotificationListenerService() {
 
     override fun onListenerConnected() {
         bridge.listenerConnected(this)
+        graph.callBridge.listenerConnected(this)
         graph.mediaWatcher.refresh()
     }
 
-    override fun onListenerDisconnected() = bridge.listenerDisconnected()
+    override fun onListenerDisconnected() {
+        bridge.listenerDisconnected()
+        graph.callBridge.listenerDisconnected()
+    }
 
     override fun onNotificationPosted(sbn: StatusBarNotification, rankingMap: RankingMap) {
+        if (graph.callBridge.posted(sbn)) return // calls go to the Mac's call panel, not its notification list (Plan 10)
         val ranking = Ranking().takeIf { rankingMap.getRanking(sbn.key, it) }
         bridge.posted(sbn, ranking)
     }
 
-    override fun onNotificationRemoved(sbn: StatusBarNotification, rankingMap: RankingMap) = bridge.removed(sbn.key)
+    override fun onNotificationRemoved(sbn: StatusBarNotification, rankingMap: RankingMap) {
+        graph.callBridge.removed(sbn.key)
+        bridge.removed(sbn.key)
+    }
 }

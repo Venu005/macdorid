@@ -10,6 +10,7 @@ import dev.macdroid.app.platform.NsdMacLocator
 import dev.macdroid.app.platform.PrefsPairingStore
 import dev.macdroid.app.platform.SavePrompter
 import dev.macdroid.app.platform.SaveTargets
+import dev.macdroid.app.platform.calls.CallBridge
 import dev.macdroid.app.platform.clipboard.ClipboardBridge
 import dev.macdroid.app.platform.clipboard.ClipboardImages
 import dev.macdroid.app.platform.clipboard.ClipboardPrefs
@@ -84,6 +85,7 @@ class AppGraph(private val context: Context) {
 
     /** Mirrors notifications to the Mac (spec §3.1); runs for the whole process like the transfer engine. */
     val notificationBridge = NotificationBridge(context, connectionManager, appScope).also { it.start() }
+    val callBridge = CallBridge(context, connectionManager, appScope).also { it.start() }
 
     val clipboardPrefs = ClipboardPrefs(context)
     /** Clipboard sync (spec §4.2–4.3); runs for the whole process. */
