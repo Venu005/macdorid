@@ -32,6 +32,18 @@ final class AppModel {
     private(set) var transfers: TransferSnapshot = .empty
     private(set) var clipboard: ClipboardState = .empty
     private(set) var extras: PhoneExtrasState = .empty
+    private(set) var calls: CallsState = .empty
+    @ObservationIgnored private let callCenter: CallCenter
+    @ObservationIgnored private let callPanel = CallPanelController()
+    @ObservationIgnored private var noticeTask: Task<Void, Never>?
+    @ObservationIgnored private var ringingSeen: Set<String> = []
+    var showIncomingCalls = UserDefaults.standard.object(forKey: "calls.showIncoming") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(showIncomingCalls, forKey: "calls.showIncoming")
+            let on = showIncomingCalls
+            Task { await callCenter.setShowIncoming(on) }
+        }
+    }
     @ObservationIgnored private let phoneExtras: PhoneExtras
     private(set) var mirror = MirrorState()
     private(set) var mirrorLatency: Int?
@@ -180,6 +192,8 @@ final class AppModel {
         let mediaArt = IconCache(directory: URL.applicationSupportDirectory.appending(path: "MediaArt", directoryHint: .isDirectory))
         self.mediaArt = mediaArt
         phoneExtras = PhoneExtras(art: mediaArt, send: { message in try await hub.send(message) })
+        callCenter = CallCenter(send: { message in try await hub.send(message) },
+                                showIncoming: UserDefaults.standard.object(forKey: "calls.showIncoming") as? Bool ?? true)
         let mirrorSession = MirrorSession(send: { message in try await hub.send(message) })
         self.mirrorSession = mirrorSession
         let photoThumbnails = ThumbnailCache(directory: URL.applicationSupportDirectory.appending(path: "PhotoThumbs", directoryHint: .isDirectory))
@@ -216,6 +230,10 @@ final class AppModel {
         tasks.append(Task { [phoneExtras, hub] in await phoneExtras.attach(to: hub) })
         tasks.append(Task { [weak self, phoneExtras] in
             for await state in phoneExtras.states { self?.extras = state }
+        })
+        tasks.append(Task { [callCenter, hub] in await callCenter.attach(to: hub) })
+        tasks.append(Task { [weak self, callCenter] in
+            for await state in callCenter.states { self?.callsChanged(state) }
         })
         tasks.append(Task { [mirrorSession, hub, mirrorRenderer] in
             await mirrorSession.attach(to: hub)
@@ -499,6 +517,67 @@ final class AppModel {
         }
         transientError = nil
         return url
+    }
+
+    // MARK: Calls (Plan 10)
+
+    func answerCall(_ id: String) { Task { await callCenter.answer(callId: id) } }
+    func declineCall(_ id: String) { Task { await callCenter.decline(callId: id) } }
+    func hangUpCall(_ id: String) { Task { await callCenter.hangUp(callId: id) } }
+
+    /// The number pad's Call: nil when sent, else what went wrong.
+    func dial(_ raw: String) async -> String? { CallPresentation.dialProblem(await callCenter.dial(raw)) }
+
+    /// `tel:` links (spec §3.3): confirm, then dial on the phone.
+    func openPhoneLinks(_ urls: [URL]) {
+        guard let number = urls.lazy.compactMap(PhoneNumbers.fromTelURL).first else { return }
+        NSApp.activate()
+        let alert = NSAlert()
+        guard calls.supported else {
+            alert.messageText = CallPresentation.dialProblem(calls.connected ? .unsupported : .notConnected) ?? ""
+            alert.runModal()
+            return
+        }
+        alert.messageText = CallPresentation.confirmTitle(number: number)
+        alert.addButton(withTitle: "Call")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        Task { _ = await callCenter.dial(number) }
+    }
+
+    /// Settings → Calls: make MacDroid the handler for `tel:` links (macOS asks the user to confirm).
+    func usePhoneLinks() async -> String {
+        do {
+            try await NSWorkspace.shared.setDefaultApplication(at: Bundle.main.bundleURL, toOpenURLsWithScheme: "tel")
+            return "Phone links now open in MacDroid."
+        } catch {
+            return "macOS didn't change it: \(error.localizedDescription)"
+        }
+    }
+
+    private func callsChanged(_ state: CallsState) {
+        calls = state
+        switch state.panel {
+        case .none:
+            callPanel.hide()
+        case .ringing(let call):
+            if !ringingSeen.contains(call.callId) {
+                ringingSeen.insert(call.callId)
+                NSSound(named: "Glass")?.play()
+            }
+            callPanel.show(CallPanelView(model: self))
+        case .active:
+            callPanel.show(CallPanelView(model: self))
+        case .notice:
+            callPanel.show(CallPanelView(model: self))
+            noticeTask?.cancel()
+            noticeTask = Task { [callCenter] in
+                try? await Task.sleep(for: .seconds(3))
+                guard !Task.isCancelled else { return }
+                await callCenter.clearNotice()
+            }
+        }
+        ringingSeen.formIntersection(state.calls.map(\.callId))
     }
 
     // MARK: Mirroring

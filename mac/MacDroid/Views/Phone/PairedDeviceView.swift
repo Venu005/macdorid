@@ -44,6 +44,9 @@ struct PairedDeviceView: View {
                     LabeledContent("Paired", value: device.pairedAt.formatted(date: .abbreviated, time: .omitted))
                 }
             }
+            if model.calls.supported {
+                Section("Call") { DialPadView(model: model) }
+            }
             Section {
                 HStack {
                     if model.extras.supportsRing {

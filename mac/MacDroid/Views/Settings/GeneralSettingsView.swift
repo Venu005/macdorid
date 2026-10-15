@@ -9,6 +9,7 @@ struct GeneralSettingsView: View {
     @AppStorage(DockPolicy.showInDockKey) private var showInDock = true
     let model: AppModel
     @State private var showingMutedApps = false
+    @State private var phoneLinksMessage: String?
 
     var body: some View {
         @Bindable var files = model.files
@@ -96,6 +97,17 @@ struct GeneralSettingsView: View {
             } footer: {
                 Text("Mirroring starts from the Phone page or the menu bar. Apps that block screenshots show black.")
                     .foregroundStyle(.secondary)
+            }
+            Section {
+                Toggle("Show incoming calls", isOn: $bindableModel.showIncomingCalls)
+                HStack {
+                    Button("Use MacDroid for phone links") { Task { phoneLinksMessage = await model.usePhoneLinks() } }
+                    if let phoneLinksMessage { Text(phoneLinksMessage).foregroundStyle(.secondary) }
+                }
+            } header: {
+                Text("Calls")
+            } footer: {
+                Text("Call audio stays on your phone.").foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

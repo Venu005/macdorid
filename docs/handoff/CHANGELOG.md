@@ -10,6 +10,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Task 3:** Android core `CallTracker` (changes only, ended on removal, re-send on reconnect, actions → the notification's intents or `callGone`/`notSupported`), `CallNumbers`, `CallLabels`. Verified: `:core:test` (CallTrackerTest 14).
 - **Task 4:** Mac core `CallCenter` (panel: notice → newest ringing → newest active; errors → notices; disconnect clears; dialing gated on `calls`), `PhoneNumbers` (clean, `tel:` links), `CallPresentation`. Verified: `swift test` 327.
 - **Task 5:** Android call notifications → `CallTracker` (kept out of notification mirroring); Answer/Decline/Hang up fire the phone app's own intents; `call.dial` via `TelecomManager.placeCall` (`CALL_PHONE`); Settings → Calls. Verified: `:core:test :app:testDebugUnitTest :app:assembleDebug`, no warnings.
+- **Task 6:** Mac call panel (non-activating, top right, sound on ring, timer, notices for 3 s), number pad on the Phone page, `tel:` links with confirmation, active call in the popover, Settings → Calls. Verified: Mac app build, no warnings.
 
 ## 2026-10-15 — Calls plan (Plan 10)
 - **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-calls-10.md`, with 8 tasks:
