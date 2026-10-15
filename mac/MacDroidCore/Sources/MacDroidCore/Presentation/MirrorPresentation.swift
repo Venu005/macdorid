@@ -25,5 +25,13 @@ public enum MirrorPresentation {
     }
 
     /// Green under 100 ms, orange under 150, red above (spec §6.3).
+    public static let textFieldNotice = "Click a text field on the phone first"
+
+    /// Streaming to a phone that supports control, but its control service is off (spec §8).
+    public static func controlNotice(_ state: MirrorState) -> String? {
+        guard case .streaming = state.phase, state.phoneFeatures.contains(Feature.control), state.control != true else { return nil }
+        return "Turn on MacDroid control on your phone to use the mouse."
+    }
+
     public static func latencyTone(_ ms: Int) -> LatencyTone { ms < 100 ? .good : ms < 150 ? .fair : .poor }
 }

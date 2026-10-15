@@ -36,6 +36,8 @@ public struct MirrorState: Equatable, Sendable {
     public var control: Bool?
     public var connected = false
     public var phoneFeatures: Set<String> = []
+    /// The phone said no text field has focus; shown until the next text (Plan 8).
+    public var textFieldMissing = false
 
     public var supported: Bool { connected && phoneFeatures.contains(Feature.mirror) }
     public var isActive: Bool {
@@ -43,6 +45,11 @@ public struct MirrorState: Equatable, Sendable {
         case .starting, .streaming: true
         default: false
         }
+    }
+    /// Input can go to the phone: streaming, the phone has `control`, and its control service is on.
+    public var controlAvailable: Bool {
+        guard case .streaming = phase else { return false }
+        return phoneFeatures.contains(Feature.control) && control == true
     }
     public init() {}
 }
@@ -151,6 +158,18 @@ public actor MirrorSession {
         try? await send(.mirrorKeyframe(MirrorSessionRef(sessionId: id)))
     }
 
+    /// Sends an `input.*` message only while control is available (Review Focus #2).
+    public func sendInput(_ message: Message) async -> Bool {
+        guard state.controlAvailable else { return false }
+        if case .inputText = message, state.textFieldMissing { update { $0.textFieldMissing = false } }
+        do {
+            try await send(message)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     // MARK: Media stream gate (spec §5.3)
 
     public func accepts(session: String) -> Bool { state.isActive && session == state.sessionId }
@@ -195,6 +214,8 @@ public actor MirrorSession {
         case .mirrorPong(let body):
             clock.add(t0: body.t0, t1: body.t1, t2: body.t2, t3: now())
             meter.setOffset(clock.micros)
+        case .inputNotice(let body):
+            if body.reason == .noTextField, state.isActive { update { $0.textFieldMissing = true } }
         default:
             break
         }
@@ -252,7 +273,10 @@ public actor MirrorSession {
     private func finish(_ reason: MirrorEndReason) {
         cancelTimers()
         openToken = nil
-        update { $0.phase = .stopped(reason) }
+        update {
+            $0.phase = .stopped(reason)
+            $0.textFieldMissing = false
+        }
     }
 
     private func cancelTimers() {
