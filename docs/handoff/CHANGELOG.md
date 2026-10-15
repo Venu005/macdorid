@@ -4,6 +4,15 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Spec: calls on the Mac (Plan 10)
+- **What:** wrote `docs/superpowers/specs/2026-10-15-macdroid-calls-design.md` after brainstorming with the owner:
+  - **Incoming:** a call panel on the Mac (name/number, Answer, Decline; Hang up during a call), driven by the phone app's call-style notification, which the notification listener already sees.
+  - **Outgoing:** a number pad on the Phone page, and `tel:` links (with confirmation) via `TelecomManager.placeCall` (`CALL_PHONE`).
+  - **Protocol:** a `calls` feature with `call.state` / `call.action` / `call.dial` / `call.error`.
+  - **Audio** stays on the phone (Android doesn't allow otherwise); no auto-speaker (owner's choice A).
+  - Task 1 is an on-device probe.
+- **Branch:** `main` (spec only); the work goes on `feat/calls`.
+
 ## 2026-10-15 — Webcam parked
 - **What:** brainstormed "phone as a Mac webcam" and parked it before a spec.
   - A system-wide camera needs a camera extension, which needs a paid Apple Developer Team ID (the owner plans to enrol later).
