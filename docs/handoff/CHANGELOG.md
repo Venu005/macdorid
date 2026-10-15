@@ -4,6 +4,18 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Automatic clipboard plan (Plan 9)
+- **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-auto-clipboard-9.md`, with 7 tasks:
+  1. an on-device probe with the owner
+  2. `clipboard.set` `auto`
+  3. Android core `CopyDetector` / `AutoClipboardPolicy`
+  4. a silent Mac apply
+  5. the service trigger, reader and Clipboard-tab switch
+  6. the cross-platform test
+  7. the handoff and checklist
+- **Rulings in the plan:** the switch lives on the Clipboard tab, next to "Get Mac clipboard" (the phone's Settings has no Clipboard section); a copy is the preview appearing or showing different text, so two quick copies both count.
+- **Branch:** `main` (plan only); the work goes on `feat/auto-clipboard`.
+
 ## 2026-10-15 — Spec: automatic phone → Mac clipboard (Plan 9)
 - **What:** wrote `docs/superpowers/specs/2026-10-15-macdroid-auto-clipboard-design.md` after brainstorming with the owner. Copying text on the phone goes to the Mac by itself:
   - The "MacDroid control" service sees System UI's "copied" preview and briefly opens the invisible `ClipboardSendActivity` to read and send.
