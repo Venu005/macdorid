@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 import Hummingbird
 import HummingbirdTLS
 import HummingbirdWebSocket
@@ -58,6 +59,8 @@ struct WebSocketTransport: MessageTransport {
 
 public final class MacDroidServer: Sendable {
     public static let maxMessageSize = 1 << 20
+    /// The mirroring session id on `/v1/mirror` (spec §5.3).
+    public static let sessionHeader = HTTPField.Name("X-MacDroid-Session")!
 
     private let identity: Identity
     private let pairing: PairingManager
@@ -65,15 +68,17 @@ public final class MacDroidServer: Sendable {
     private let macName: String
     private let configuration: ServerConfiguration
     private let transfers: TransferManager?
+    private let mirror: MirrorSession?
     private let logger = Logger(label: "dev.macdroid.server")
 
-    public init(identity: Identity, pairing: PairingManager, hub: ConnectionHub, macName: String, configuration: ServerConfiguration = .init(), transfers: TransferManager? = nil) {
+    public init(identity: Identity, pairing: PairingManager, hub: ConnectionHub, macName: String, configuration: ServerConfiguration = .init(), transfers: TransferManager? = nil, mirror: MirrorSession? = nil) {
         self.identity = identity
         self.pairing = pairing
         self.hub = hub
         self.macName = macName
         self.configuration = configuration
         self.transfers = transfers
+        self.mirror = mirror
     }
 
     /// Runs until the calling task is cancelled. `onRunning` receives the bound port.
@@ -87,32 +92,43 @@ public final class MacDroidServer: Sendable {
 
         let pairing = self.pairing
         let hub = self.hub
+        let mirror = self.mirror
         let app = Application(
             router: makeRouter(),
             server: try .tls(
                 .http1WebSocketUpgrade(
-                    configuration: .init(ws: .init(maxFrameSize: Self.maxMessageSize, autoPing: .enabled(timePeriod: .seconds(15))))
+                    configuration: .init(ws: .init(maxFrameSize: MirrorFrame.maxSize, autoPing: .enabled(timePeriod: .seconds(15))))
                 ) { request, channel, _ in
-                    guard request.path == "/v1/ws",
-                          let certificate = try await channel.nioSSL_peerCertificate().get() else {
-                        return .dontUpgrade
-                    }
+                    guard let certificate = try await channel.nioSSL_peerCertificate().get() else { return .dontUpgrade }
                     let fingerprint = try Fingerprint.of(certificate)
                     guard await pairing.isTrusted(fingerprint: fingerprint) else { return .dontUpgrade }
-                    return .upgrade([:]) { inbound, outbound, _ in
-                        let (stream, continuation) = AsyncThrowingStream.makeStream(of: String.self)
-                        let session = Task {
-                            await hub.run(transport: WebSocketTransport(outbound: outbound), incoming: stream, peerFingerprint: fingerprint)
-                        }
-                        do {
-                            for try await message in inbound.messages(maxSize: Self.maxMessageSize) {
-                                if case .text(let text) = message { continuation.yield(text) }
+                    switch request.path {
+                    case "/v1/ws":
+                        return .upgrade([:]) { inbound, outbound, _ in
+                            let (stream, continuation) = AsyncThrowingStream.makeStream(of: String.self)
+                            let session = Task {
+                                await hub.run(transport: WebSocketTransport(outbound: outbound), incoming: stream, peerFingerprint: fingerprint)
                             }
-                            continuation.finish()
-                        } catch {
-                            continuation.finish(throwing: error)
+                            do {
+                                for try await message in inbound.messages(maxSize: Self.maxMessageSize) {
+                                    if case .text(let text) = message { continuation.yield(text) }
+                                }
+                                continuation.finish()
+                            } catch {
+                                continuation.finish(throwing: error)
+                            }
+                            await session.value
                         }
-                        await session.value
+                    case "/v1/mirror":
+                        // Only the session the Mac started, while it is starting or streaming (spec §5.3).
+                        guard let mirror, let session = request.headerFields[Self.sessionHeader], await mirror.accepts(session: session) else {
+                            return .dontUpgrade
+                        }
+                        return .upgrade([:]) { inbound, _, _ in
+                            await Self.receiveMirror(inbound.messages(maxSize: MirrorFrame.maxSize), session: session, mirror: mirror)
+                        }
+                    default:
+                        return .dontUpgrade
                     }
                 },
                 configuration: TLSChannelConfiguration(
@@ -128,6 +144,23 @@ public final class MacDroidServer: Sendable {
             logger: logger
         )
         try await app.runService(gracefulShutdownSignals: [])
+    }
+
+    /// Media frames go straight to the sink without awaiting the UI; an invalid frame ends the stream (spec §5.2).
+    static func receiveMirror(_ messages: WebSocketInboundMessageStream, session: String, mirror: MirrorSession) async {
+        guard let token = await mirror.streamOpened(session: session) else { return }
+        let sink = await mirror.currentSink()
+        do {
+            for try await message in messages {
+                // The session ended (stopped, replaced, timed out): stop reading; returning closes the stream.
+                guard mirror.gate.isOpen(token) else { break }
+                guard case .binary(let buffer) = message else { continue }
+                sink?.deliver(try MirrorFrame.decode(Data(buffer.readableBytesView)))
+            }
+        } catch {
+            // closed, or a bad frame: the phone reconnects once or reports the error (spec §8)
+        }
+        await mirror.streamClosed(token: token)
     }
 
     private func makeRouter() -> Router<MacDroidRequestContext> {

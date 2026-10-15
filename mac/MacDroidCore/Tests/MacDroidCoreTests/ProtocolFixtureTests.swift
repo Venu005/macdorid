@@ -25,6 +25,9 @@ import Testing
         "media.art.json", "media.command.json",
         "photos.albums.json", "photos.albumList.json", "photos.query.json", "photos.page.json", "photos.thumbs.json",
         "photos.thumb.json", "photos.fetch.json", "photos.fetchFailed.json", "photos.changed.json", "transfer.offer.photo.json",
+        "mirror.start.json", "mirror.state.json", "mirror.state.stopped.json", "mirror.stop.json", "mirror.keyframe.json",
+        "mirror.ping.json", "mirror.pong.json",
+        "input.pointer.json", "input.scroll.json", "input.key.json", "input.text.json", "input.notice.json",
     ]
 
     @Test(arguments: messageFixtures)
@@ -99,8 +102,28 @@ import Testing
         #expect(throws: MessageCodecError.malformed) { try MessageCodec.decode(text) }
     }
 
-    @Test func supportedFeaturesIncludePhotos() {
-        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos])
+    @Test func supportedFeaturesIncludeControl() {
+        #expect(ProtocolInfo.features == [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos, Feature.mirror, Feature.control])
+    }
+
+    @Test func inputFixturesDecode() throws {
+        #expect(try MessageCodec.decode(Fixtures.text("input.pointer.json")) == .inputPointer(InputPointer(action: .down, x: 0.25, y: 0.5, t: 123_456)))
+        #expect(try MessageCodec.decode(Fixtures.text("input.scroll.json")) == .inputScroll(InputScroll(x: 0.5, y: 0.6, dx: 0, dy: -0.125)))
+        #expect(try MessageCodec.decode(Fixtures.text("input.key.json")) == .inputKey(InputKey(key: .volumeUp)))
+        #expect(try MessageCodec.decode(Fixtures.text("input.text.json")) == .inputText(InputText(text: "On my way 🙂\n")))
+        #expect(try MessageCodec.decode(Fixtures.text("input.notice.json")) == .inputNotice(InputNotice(reason: .noTextField)))
+    }
+
+    @Test func mirrorFixturesDecode() throws {
+        let s = "5e55a0b1-1111-4222-8333-444455556666"
+        #expect(try MessageCodec.decode(Fixtures.text("mirror.start.json")) == .mirrorStart(MirrorStart(sessionId: s, maxSize: 1920, fps: 60, audio: true)))
+        #expect(try MessageCodec.decode(Fixtures.text("mirror.state.json")) == .mirrorState(MirrorStateUpdate(
+            sessionId: s, state: .streaming, width: 864, height: 1920, rotation: 0, audio: true, control: false)))
+        #expect(try MessageCodec.decode(Fixtures.text("mirror.state.stopped.json")) == .mirrorState(MirrorStateUpdate(sessionId: s, state: .stopped, reason: .consentTimeout)))
+        #expect(try MessageCodec.decode(Fixtures.text("mirror.stop.json")) == .mirrorStop(MirrorSessionRef(sessionId: s)))
+        #expect(try MessageCodec.decode(Fixtures.text("mirror.keyframe.json")) == .mirrorKeyframe(MirrorSessionRef(sessionId: s)))
+        #expect(try MessageCodec.decode(Fixtures.text("mirror.ping.json")) == .mirrorPing(MirrorPing(t0: 1_000_000)))
+        #expect(try MessageCodec.decode(Fixtures.text("mirror.pong.json")) == .mirrorPong(MirrorPong(t0: 1_000_000, t1: 9_000_500, t2: 9_000_600)))
     }
 
     @Test func photosFixturesDecode() throws {

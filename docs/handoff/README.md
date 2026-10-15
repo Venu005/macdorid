@@ -29,7 +29,7 @@ A clone of **LinkMyMac** (Android ↔ Mac integration). The phone and Mac pair o
 | Plan 4 | Clipboard sync (Mac→phone automatic, phone→Mac on demand, Mac history) | **Done, merged to `main`** (owner-verified) |
 | Plan 5 | Small wins: ring my phone, open links on the other device, media controls | **Done, merged to `main`** (owner-tested) |
 | Plan 6 | Photos: browse the phone's photos and videos on the Mac (albums, day grid, Quick Look, Save to Mac, drag out), full or limited access | **Done, merged to `main`** (follow-up minors merged too) |
-| Plans 7–8 | Screen mirroring with phone audio (own window, 50–80 ms target) and remote control via an accessibility service | Spec approved; Plan 7 written, awaiting review |
+| Plans 7–8 | Screen mirroring with phone audio (own window, 50–80 ms target) and remote control via an accessibility service | Both built on `feat/mirroring`; pending the owner's check |
 | Later | SMS, screen mirroring, webcam/mic, USB transport | Out of scope so far |
 
 ## Documents

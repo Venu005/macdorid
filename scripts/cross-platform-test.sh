@@ -40,6 +40,12 @@ grep -q 'PHOTOS page count=2 access=full' "$LOG" || { echo "the Mac never got a 
 grep -q 'PHOTOS thumb id=2' "$LOG" || { echo "the Mac never got a thumbnail"; cat "$LOG"; exit 1; }
 grep -q 'PHOTOS saved IMG_2.jpg size=4000' "$LOG" || { echo "the Mac never saved the photo"; cat "$LOG"; exit 1; }
 grep -q 'PHOTOS gone id=424242' "$LOG" || { echo "the Mac never heard a photo was gone"; cat "$LOG"; exit 1; }
+grep -q 'MIRROR streaming 320x240' "$LOG" || { echo "the Mac never saw the phone streaming"; cat "$LOG"; exit 1; }
+grep -q 'MIRROR video frames=20 keys=4 decoded=20' "$LOG" || { echo "the Mac didn't get and decode the video"; cat "$LOG"; exit 1; }
+grep -q 'MIRROR audio chunks=3' "$LOG" || { echo "the Mac didn't get the audio"; cat "$LOG"; exit 1; }
+grep -q 'MIRROR stopped user' "$LOG" || { echo "the Mac never saw the phone stop mirroring"; cat "$LOG"; exit 1; }
+grep -q 'CONTROL sent 5' "$LOG" || { echo "the Mac never sent input"; cat "$LOG"; exit 1; }
+grep -q 'CONTROL notice noTextField' "$LOG" || { echo "the Mac never heard the phone's notice"; cat "$LOG"; exit 1; }
 cmp "$WORK/phone-to-mac.bin" "$WORK/mac-received/phone-to-mac.bin" || { echo "phone → Mac file differs"; exit 1; }
 cmp "$WORK/mac-to-phone.bin" "$WORK/phone-received/mac-to-phone.bin" || { echo "Mac → phone file differs"; exit 1; }
 echo "cross-platform test passed"

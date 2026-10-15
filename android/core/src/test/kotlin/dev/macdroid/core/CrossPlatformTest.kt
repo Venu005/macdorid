@@ -6,10 +6,13 @@ import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.connection.MacLocator
 import dev.macdroid.core.connection.macSupports
+import dev.macdroid.core.control.GestureSegment
+import dev.macdroid.core.control.GestureTracker
 import dev.macdroid.core.extras.MediaArtwork
 import dev.macdroid.core.extras.MediaControl
 import dev.macdroid.core.extras.MediaSnapshot
 import dev.macdroid.core.extras.MediaTracker
+import dev.macdroid.core.mirror.MirrorFrame
 import dev.macdroid.core.notifications.InMemoryNotificationSettingsStore
 import dev.macdroid.core.notifications.NotificationCommand
 import dev.macdroid.core.notifications.NotificationForwarder
@@ -24,18 +27,26 @@ import dev.macdroid.core.photos.PhotoSource
 import dev.macdroid.core.protocol.DeviceStatusBody
 import dev.macdroid.core.protocol.Features
 import dev.macdroid.core.protocol.HelloBody
+import dev.macdroid.core.protocol.InputKeyName
+import dev.macdroid.core.protocol.InputNoticeBody
+import dev.macdroid.core.protocol.InputNoticeReason
 import dev.macdroid.core.protocol.LinkOpenBody
 import dev.macdroid.core.protocol.MediaCommandKind
 import dev.macdroid.core.protocol.Message
+import dev.macdroid.core.protocol.MirrorPhaseName
+import dev.macdroid.core.protocol.MirrorStateBody
+import dev.macdroid.core.protocol.MirrorStopReason
 import dev.macdroid.core.protocol.PhotoAccess
 import dev.macdroid.core.protocol.PhotoAlbumBody
 import dev.macdroid.core.protocol.PhotoItemBody
 import dev.macdroid.core.protocol.PhotoKind
 import dev.macdroid.core.protocol.PhotoKindFilter
+import dev.macdroid.core.protocol.PointerAction
 import dev.macdroid.core.protocol.RingAction
 import dev.macdroid.core.protocol.RingStateBody
 import dev.macdroid.core.protocol.TransferPurpose
 import dev.macdroid.core.tls.ClientIdentity
+import dev.macdroid.core.tls.TlsClientFactory
 import dev.macdroid.core.transfer.*
 import java.io.File
 import java.io.FilterInputStream
@@ -44,6 +55,8 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -55,8 +68,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import okhttp3.HttpUrl
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
 import okhttp3.tls.HeldCertificate
+import okio.ByteString.Companion.toByteString
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -139,6 +159,7 @@ class CrossPlatformTest {
             exchangeClipboard(manager, engine, received)
             exchangeSmallWins(manager, received)
             exchangePhotos(received)
+            exchangeMirror(manager, store, phone, received)
             if (phoneFile != null && receiveDir != null) sendFilesBothWaysWithADrop(manager, engine, transport, File(phoneFile))
         } finally {
             photoCollector.cancel()
@@ -150,6 +171,76 @@ class CrossPlatformTest {
     }
 
     /** The Mac browses, takes a thumbnail, saves photo 2, and asks for one that's gone. */
+    /** The Mac starts mirroring; a wrong session is refused; the fixture stream and audio go through; the phone stops. */
+    private suspend fun exchangeMirror(manager: ConnectionManager, store: InMemoryPairingStore, phone: ClientIdentity, received: List<Message>) {
+        withTimeout(20_000) { while (received.none { it is Message.MirrorStart }) delay(50) }
+        val start = received.filterIsInstance<Message.MirrorStart>().first().body
+        val mac = store.paired.value!!
+        val http = TlsClientFactory.pinned(phone, mac.fingerprint).newBuilder().readTimeout(0, TimeUnit.MILLISECONDS).build()
+        fun open(session: String): Pair<WebSocket, CompletableDeferred<Boolean>> {
+            val opened = CompletableDeferred<Boolean>()
+            val url = HttpUrl.Builder().scheme("https").host(mac.host).port(mac.port).addPathSegments("v1/mirror").build()
+            val socket = http.newWebSocket(Request.Builder().url(url).header("X-MacDroid-Session", session).build(), object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) { opened.complete(true) }
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) { opened.complete(false) }
+            })
+            return socket to opened
+        }
+        assertFalse("a wrong session must be refused", withTimeout(10_000) { open("not-the-session").second.await() })
+        val (socket, opened) = open(start.sessionId)
+        assertTrue(withTimeout(10_000) { opened.await() })
+        manager.send(Message.MirrorState(MirrorStateBody(start.sessionId, MirrorPhaseName.Streaming, 320, 240, 0, audio = true, control = true)))
+        val h264 = File(System.getProperty("fixturesDir"), "h264/sample.h264").readBytes()
+        var micros = 1_000L
+        for ((type, key, bytes) in h264Frames(h264)) {
+            socket.send(MirrorFrame.encode(type, key, micros, bytes).toByteString())
+            micros += 33_333
+        }
+        repeat(3) { socket.send(MirrorFrame.encode(MirrorFrame.TYPE_AUDIO, false, micros + it * 10_000, ByteArray(1_920)).toByteString()) }
+        withTimeout(10_000) { while (received.none { it is Message.MirrorKeyframe }) delay(50) }
+        withTimeout(10_000) { while (received.none { it is Message.InputText }) delay(50) }
+        val pointers = received.filterIsInstance<Message.InputPointer>().map { it.body }
+        assertEquals(listOf(PointerAction.Down, PointerAction.Up), pointers.map { it.action })
+        // The phone's rules turn that into a tap at the middle of a 1080×2400 screen.
+        val tracker = GestureTracker()
+        tracker.down((pointers[0].x * 1080).toFloat(), (pointers[0].y * 2400).toFloat(), 0)
+        assertEquals(listOf(GestureSegment(540f, 1200f, 540f, 1200f, 50, first = true, last = true)), tracker.up(540f, 1200f, 60))
+        assertEquals(InputKeyName.Back, received.filterIsInstance<Message.InputKey>().single().body.key)
+        assertEquals(1, received.count { it is Message.InputScroll })
+        // No text field focused on this "phone": say so.
+        assertTrue(manager.send(Message.InputNotice(InputNoticeBody(InputNoticeReason.NoTextField))))
+        delay(300)
+        delay(500)
+        manager.send(Message.MirrorState(MirrorStateBody(start.sessionId, MirrorPhaseName.Stopped, reason = MirrorStopReason.User)))
+        socket.close(1000, null)
+        delay(300)
+    }
+
+    /** The fixture as the phone sends it: SPS+PPS as one config frame, then one frame per slice. */
+    private fun h264Frames(data: ByteArray): List<Triple<Int, Boolean, ByteArray>> {
+        val starts = mutableListOf<Int>()
+        var i = 0
+        while (i + 3 < data.size) {
+            if (data[i] == 0.toByte() && data[i + 1] == 0.toByte() && data[i + 2] == 0.toByte() && data[i + 3] == 1.toByte()) { starts += i; i += 4 }
+            else if (data[i] == 0.toByte() && data[i + 1] == 0.toByte() && data[i + 2] == 1.toByte()) { starts += i; i += 3 }
+            else i++
+        }
+        val nals = starts.mapIndexed { n, s -> data.copyOfRange(s, if (n + 1 < starts.size) starts[n + 1] else data.size) }
+        fun type(nal: ByteArray): Int { val header = if (nal[2] == 1.toByte()) nal[3] else nal[4]; return header.toInt() and 0x1F }
+        val out = mutableListOf<Triple<Int, Boolean, ByteArray>>()
+        var params = ByteArray(0)
+        for (nal in nals) {
+            when (type(nal)) {
+                7, 8 -> params += nal
+                1, 5 -> {
+                    if (params.isNotEmpty()) { out += Triple(MirrorFrame.TYPE_CONFIG, false, params); params = ByteArray(0) }
+                    out += Triple(MirrorFrame.TYPE_VIDEO, type(nal) == 5, nal)
+                }
+            }
+        }
+        return out
+    }
+
     private suspend fun exchangePhotos(received: List<Message>) {
         withTimeout(20_000) {
             while (received.none { it is Message.PhotosFetch && it.body.id == "424242" }) delay(50)

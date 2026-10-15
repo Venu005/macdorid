@@ -4,6 +4,70 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Decision: no locked or screen-off mirroring
+- **What:** the owner asked about iPhone-style mirroring (phone locked, showing "in use"). On Android a normal app can't do that: capture ends on lock, and a cover on the phone would be captured too. Screen-off mirroring through Shizuku (as scrcpy does) was offered and declined. Mirroring stays as built, with the phone unlocked and its screen on. Recorded in DECISIONS.md.
+- **Branch:** `feat/mirroring` (docs only). Also installed the current build on the owner's phone (`installDebug` over Wireless debugging) and Mac.
+
+## 2026-10-15 — Plan 8: remote control (built on feat/mirroring)
+- **Task 1:** `input.pointer/scroll/key/text` and `input.notice` (a ruling: carries "Click a text field on the phone first") in both codecs, 5 fixtures, `control` feature on both sides, PROTOCOL.md "Remote control rules".
+- **Task 2:** Android core control rules: `GestureTracker` (tap, long-press, continued drag strokes), `SegmentQueue` (coalescing), `ScrollGesture`, `TextEdit` (cursor, selection, whole-emoji delete), `ConsentMatcher` (only MacDroid's screen-share consent), `MirrorPhoneSession.awaitingConsent` and `controlChanged`. Verified: `:core:test` (ControlRulesTest 11, MirrorRulesTest 10).
+- **Task 3:** Mac core input: `InputMapper` (aspect-fit fractions, nothing in the black bars, scroll fractions), `MoveThrottle` (≤ 120 Hz), `MirrorKeys`, `MirrorSession.sendInput` gated on streaming + `control` + the phone's service, and the control/text-field notices. Verified: `swift test` 316, Mac app build with no warnings.
+- **Task 4:** Android 'MacDroid control' accessibility service: gestures with continued strokes and coalescing, Back/Home/Recents/lock, volume, text into the focused field (or `input.notice`), auto-Start of the screen-share consent while a session waits; `ScreenSize`; Settings → Remote control (service status, auto-Start switch, microphone); `STORE_BUILD` flag; `control` reported in `mirror.state` and on changes. Verified: `:core:test :app:testDebugUnitTest :app:assembleDebug` with no warnings; on-device check is in the owner checklist.
+- **Task 5:** Mac input over the mirror picture: click/drag as pointer events (≤ 120 Hz, nothing in the black bars, lift when leaving), right-click Back, scroll batched every 33 ms, typing in 30 ms batches, ⌘V paste, Delete/Return/Esc; Back/Home/Recents/Volume/Lock bar buttons; control and text-field notices; ordered sending through one stream. Verified: `swift test` 316, Mac app build with no code warnings.
+- **Task 6:** cross-platform test covers remote control: the Mac sends pointer, scroll, key and text only once the phone reports control on; the phone's gesture rules turn the click into a tap; the phone's `input.notice` reaches the Mac. Verified: `scripts/cross-platform-test.sh` passed twice; all gates green.
+- **Task 7:** handoff updated (ARCHITECTURE, DECISIONS, DEV-GUIDE, STATUS, ROADMAP, README); owner checklist added to `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`. Final gates: `swift test` 316 passed; Mac app build succeeded with no code warnings; `:core:test :app:testDebugUnitTest :app:assembleDebug` passed with no warnings; cross-platform test passed. Not merged: the owner checks Plans 7 and 8 together.
+- **Final review fixes** (fresh reviewer; one Critical, five Important fixed, each with a test that failed first):
+  - **Scrolling could tap:** a wheel notch or slow scroll made a swipe under Android's touch slop (a click), and every 33 ms batch queued its own 120 ms swipe. Now the phone's `ScrollBuffer` adds batches up while a swipe plays and never sends one under 3 % of the screen; the Mac scales wheel lines to 40 points (`tinyScrollsNeverBecomeATap`, `scrollBatchesMerge`, `aStaleScrollRemainderIsForgotten`, `wheelLinesScaleToPoints`).
+  - **Stuck finger:** a session ending mid-drag or mid-long-press now lifts the finger (`MirrorPhoneSession` `onInputEnd` → `MacDroidControlService.reset()`; the long-press timer re-checks the session) (`leavingStreamingEndsInput`).
+  - **Auto-Start:** the consent container must name MacDroid (System UI reuses it for its recorder and Cast), and the fallback needs "… with MacDroid", so the shade can't match (`consentNeedsMacDroidNamedInTheDialog`).
+  - **Passwords:** password fields read back as bullets; typing now edits what MacDroid typed there (`SecretShadow`), and leaves a field with unknown contents alone (`passwordsAreEditedFromWhatWasTyped`).
+  - **Return** in a single-line field presses the keyboard action (search, send) instead of adding a newline (`returnSubmitsSingleLineFields`).
+  - **Tap position:** `ScreenSize` uses logical pixels (`maximumWindowMetrics`), so a lowered screen-resolution setting doesn't shift taps.
+  - Verified: `swift test` 317; Mac app build; Android gates with no warnings; cross-platform test passed.
+
+## 2026-10-14 — Remote control plan (Plan 8)
+- **What:** wrote `docs/superpowers/plans/2026-10-14-macdroid-remote-control-8.md` (7 tasks): `input.*` protocol (+ `input.notice`, a ruling), Android core gesture/text/consent rules, Mac core input mapping and gating, the "MacDroid control" accessibility service with auto-Start and Settings → Remote control, the Mac input view and bar buttons, cross-platform, final checklist. Auto-Start also answers the owner's "it asks for Share screen every time".
+- **Branch:** `feat/mirroring` (plan only).
+
+## 2026-10-14 — Mirroring: lower audio delay (owner report)
+- **What:** the owner heard the Mac's sound lag. Diagnostics showed the Mac's audio queue sitting near 100 ms instead of the 40 ms target, plus an 80 ms capture buffer on the phone. Now:
+  - Past 80 ms queued, the Mac drops chunks until it is back at 40 ms (test `aFullQueueCatchesUpToTheTarget`).
+  - The phone's playback-capture buffer is Android's minimum (at least two 10 ms chunks).
+- **Also found:** the earlier "sound only on the phone" was Bluetooth earbuds plus the volume being raised again. Sound plays on the Mac once the phone is on its speaker with mirroring running. The owner's Wi-Fi is 2.4 GHz (channel 6, 802.11n) and was congested during testing: Mac → router ping averaged 339 ms. Retest on a calm network or 5 GHz.
+- **Branch:** `feat/mirroring`. Verified: `swift test` 306, Mac app build, Android build; installed on both devices.
+
+## 2026-10-14 — Plan 7: mirroring (in progress on feat/mirroring)
+- **Task 1:** on-device probe with the owner (debug source set only); results in `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`:
+  - background start needs the accessibility service
+  - auto-Start presses "Share screen" (`android:id/button1`) on an unlocked phone
+  - capture ends when the phone locks, and the lock screen can't be captured
+  - playback capture works with the phone muted
+- **Task 2:** `mirror.*` control messages (start, state, stop, keyframe, ping, pong) in both codecs, 7 fixtures, `mirror` feature on both sides. Verified: `swift test` 275, `:core:test`, `assembleDebug`.
+- **Task 3:** media frame header (`MirrorFrame`) on both sides with the shared `mirror-frames.json` fixture; PROTOCOL.md "Mirroring media stream".
+- **Task 4:** Mac core `H264` (Annex-B split, SPS/PPS → format, AVCC sample buffers marked display-immediately) and the shared `h264/sample.h264` fixture (ffmpeg, 320×240 then 240×320, parameter sets once per half like MediaCodec), made by `scripts/make-h264-fixture.sh`.
+- **Task 5:** Mac core mirroring timing (monotonic clock, clock-offset median of 5, latency meter over 30 frames), `VideoBacklog` (drop to the next key frame past 3 waiting) and `AudioJitter` (start at 40 ms, skip over 100 ms, rebuild after running dry).
+- **Task 6:** Mac core `MirrorSession` (start/stop, 20 s consent hint, 60 s timeout, ping/pong offset, end reasons, disconnect) and the `/v1/mirror` route gated by `X-MacDroid-Session`; the WebSocket max frame is now 4 MiB with control messages still capped at 1 MiB; `swift-http-types` declared explicitly in `Package.swift` (already resolved through Hummingbird).
+- **Task 7:** Android core `MirrorSize` (fit to maxSize, multiples of 16, bitrate), `SendPolicy` (drop video to a key frame past 300 ms queued, audio past 200 ms; ruling: time at the bitrate instead of the spec's 1 MB, which is a second of lag) and `MirrorPhoneSession` (states, replace, 60 s consent timeout, Mac stop, lost connection).
+- **Task 8:** Android mirroring:
+  - the consent notification and activity (wakes the screen, microphone permission, entire screen only)
+  - the `mediaProjection` foreground service holding a screen wake lock (capture ends on lock, from the probe)
+  - the H.264 surface encoder (CBR, no B-frames, key frame on request, rebuilt on rotation)
+  - playback-capture audio with the phone's speaker muted meanwhile (restored at the end)
+  - the pinned `/v1/mirror` stream with one reconnect and the send policy
+  - Verified: Android gates; capture is checked on device in the owner checklist.
+- **Task 9:** Mac mirror window (aspect-locked to the phone, remembered frame, Keep on top, latency readout, Stop), `MirrorRenderer` (hardware decode, display immediately, drop to key frame, resync on a new format), `MirrorAudioPlayer` (40 ms cushion, skip ahead), `MirrorPresentation` copy, Mirror buttons on the Phone page and popover, the "Update MacDroid on your phone" line, and Settings → Mirroring (Quality, Frame rate, Phone audio, Show latency).
+- **Task 10:** cross-platform test covers mirroring: the Mac starts a session, a wrong session id is refused, the H.264 fixture is decoded on the Mac (20 frames, 4 key frames), 3 audio chunks arrive, a key-frame request reaches the phone, and the phone's stop is seen. Passed twice.
+- **Task 11:** probe removed (debug source set); handoff updated (ARCHITECTURE mirror components, DECISIONS, DEV-GUIDE, STATUS, ROADMAP, README) and the owner checklist in the follow-ups file. Gates: `swift test` 301, Mac app build with no warnings, Android gates with no warnings, cross-platform test passed.
+- **Final review (Opus), 6 Important fixed:**
+  - I1: clicking Mirror while mirroring brings the window forward instead of restarting (which silenced audio).
+  - I2: the Mac stops reading a media stream as soon as its session ends, and clears the picture on stop.
+  - I3: a lost key-frame request is repeated: the phone asks once more when its queue drains, and the Mac asks again every 30 dropped frames.
+  - I4: the media socket uses a 128 KB send buffer and TCP_NODELAY, so a backlog stays visible to the send policy.
+  - I5: no frame for over a second shows "Reconnecting…" and hides the latency.
+  - I6: capture setup failures end the session instead of crashing the app; `onDestroy` cleans up; the muted volume is persisted and restored at the next app start if the app was killed.
+  - Verified: `swift test` 305, Android gates, Mac app build with no warnings, cross-platform test passed.
+  - 9 minors deferred in `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`.
+
 ## 2026-10-14 — Mirroring plan (Plan 7)
 - **What:** wrote `docs/superpowers/plans/2026-10-14-macdroid-mirroring-7.md` (11 tasks):
   1. an on-device probe with the owner

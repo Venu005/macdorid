@@ -18,7 +18,7 @@ open mac/build/Build/Products/Debug/MacDroid.app
 cd android && ./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug
 ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
-# Swift server ↔ Kotlin client end to end (pairing, battery, a notification with a reply, clipboard text both ways and an image, ring, links both ways, media state and a command, photos (page, thumbnail, save, gone), and 24 MiB files both ways with a mid-file disconnect; ~1 min)
+# Swift server ↔ Kotlin client end to end (pairing, battery, a notification with a reply, clipboard text both ways and an image, ring, links both ways, media state and a command, photos (page, thumbnail, save, gone), a mirroring session (session gate, H.264 fixture decoded, audio, key-frame request, remote control input and `input.notice`, stop), and 24 MiB files both ways with a mid-file disconnect; ~1 min)
 ./scripts/cross-platform-test.sh
 # The dev server alone: --receive-dir <dir> saves files from the phone there; --send-on-connect <file> sends that file when a phone connects
 #   mac/MacDroidCore/.build/debug/macdroid-devserver --host 127.0.0.1 --port 47999 --receive-dir /tmp/in --send-on-connect /tmp/out.bin
@@ -35,12 +35,22 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 5. Don't `pm clear`, grant permissions or tap on the owner's phone from automation.
 
 ## Gotchas
+- **Mirroring (Plan 7):**
+  - **Starting:** Mac → Phone page or the popover → Mirror. With MacDroid control on, auto-Start presses "Share screen"; without it, the phone posts "Mirror to <Mac>? Tap to start" (Android blocks background activity starts).
+  - **Locking:** Android ends screen capture when the phone locks, and shows no consent over the lock screen. Mirroring keeps the phone awake; start it on an unlocked phone.
+- **Remote control (Plan 8):**
+  - **Turning it on:** phone → MacDroid → Settings → Remote control → MacDroid control → Accessibility → turn on "MacDroid control". Don't toggle it from adb on the owner's phone.
+  - **Auto-Start** (Settings → "Start mirroring without touching the phone", on by default in personal builds) presses "Share screen" by itself, but only on an unlocked phone and only while a session waits for consent.
+  - **Testing input:** `scripts/cross-platform-test.sh` covers the messages and the gate; gestures, typing and auto-Start are checked by hand (owner checklist in `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`).
+  - **Probe results:** `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md` (the consent dialog is System UI's "Share your screen with MacDroid?", button `android:id/button1` "Share screen").
+  - **The H.264 test fixture** is regenerated with `scripts/make-h264-fixture.sh` (needs ffmpeg with libx264).
 - **Photos access (Plan 6):** Android 14+ asks for `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO` and `READ_MEDIA_VISUAL_USER_SELECTED` together ("Allow all" or "Select photos"); Android 13 has images/video only; 10–12 use `READ_EXTERNAL_STORAGE`. To test limited access: phone Settings → Apps → MacDroid → Permissions → Photos and videos → "Allow limited access". Mac thumbnails live in `~/Library/Containers/dev.macdroid.mac/Data/Library/Application Support/PhotoThumbs/`; previews and drags in `…/Data/Library/Caches/PhotoCache/` (emptied at launch).
 - **App icon sources:** the source art is `design/icon/`.
   - Mac PNGs are generated, so don't hand-edit `AppIcon.appiconset`.
   - The Android vectors in `res/drawable/ic_launcher_*.xml` mirror the SVG paths (100-unit frame, scaled 0.72 and offset 18 into the 108dp canvas). Update both when the art changes.
   - AppKit's SVG renderer ignores filters such as drop shadows, so keep the art flat.
 - **Hummingbird + tracing pin:** Hummingbird 2.27 imports `ServiceContextModule`, which swift-distributed-tracing 1.6 removed. `Package.swift` pins tracing `"1.3.0"..<"1.6.0"` and links the `Tracing` product to silence an unused-dependency warning. Keep both.
+- **HTTPTypes:** `Package.swift` declares `swift-http-types` (≥ 1.8.0) for the mirroring session header. It was already resolved through Hummingbird, so `Package.resolved` didn't change.
 - **Shutdown log noise:** Hummingbird logs `Server shutdown error: Already closed` when its task is cancelled (tests, quit). It's harmless.
 - **No client certs with macOS `curl`:** `/usr/bin/curl` (SecureTransport) can't present PEM client certificates. Use `openssl s_client -cert … -key …` or the Swift/Kotlin tests.
 - **WS client SNI:** Swift `WebSocketClient` needs a hostname (`localhost`), not an IP literal.

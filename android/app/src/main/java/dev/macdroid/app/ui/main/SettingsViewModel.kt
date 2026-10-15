@@ -6,6 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.macdroid.app.graph
 import dev.macdroid.app.platform.Permissions
+import dev.macdroid.app.platform.control.ControlPrefs
+import dev.macdroid.app.platform.control.MacDroidControlService
 import dev.macdroid.app.service.ConnectionService
 import dev.macdroid.app.ui.presentation.PhotosAccessText
 import dev.macdroid.core.pairing.PairedMac
@@ -23,6 +25,9 @@ data class SettingsUi(
     val notificationsAllowed: Boolean,
     val batteryUnrestricted: Boolean,
     val photosAccess: PhotoAccess = PhotoAccess.None,
+    val controlOn: Boolean = false,
+    val autoStart: Boolean = true,
+    val microphoneAllowed: Boolean = false,
 ) {
     val macSummary: String get() = mac?.let { "${it.name} · ${Fingerprint.display(it.fingerprint)}" } ?: "Not paired"
     val photosSummary: String get() = PhotosAccessText.label(photosAccess)
@@ -61,6 +66,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         refresh()
     }
 
+    fun setAutoStart(on: Boolean) {
+        ControlPrefs.setAutoStart(getApplication(), on)
+        refresh()
+    }
+
     private fun read(): SettingsUi {
         val app = getApplication<Application>()
         return SettingsUi(
@@ -69,6 +79,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             notificationsAllowed = Permissions.hasNotifications(app),
             batteryUnrestricted = app.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(app.packageName),
             photosAccess = graph.photosBridge.access.value,
+            controlOn = MacDroidControlService.running.value,
+            autoStart = ControlPrefs.autoStart(app),
+            microphoneAllowed = Permissions.granted(app, android.Manifest.permission.RECORD_AUDIO),
         )
     }
 }

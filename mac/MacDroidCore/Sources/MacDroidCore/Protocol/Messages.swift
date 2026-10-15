@@ -4,7 +4,7 @@ public enum ProtocolInfo {
     public static let version = 1
     public static let serviceType = "_macdroid._tcp"
     /// Features this app implements, sent in `hello` (spec §2.1).
-    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos]
+    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos, Feature.mirror, Feature.control]
 }
 
 /// Names used in `hello.features`. A feature is active only when both sides list it.
@@ -16,6 +16,8 @@ public enum Feature {
     public static let links = "links"
     public static let media = "media"
     public static let photos = "photos"
+    public static let mirror = "mirror"
+    public static let control = "control"
 }
 
 public struct Hello: Codable, Equatable, Sendable {
@@ -546,6 +548,125 @@ public struct PhotosFetchFailed: Codable, Equatable, Sendable {
     }
 }
 
+// MARK: Mirroring (Plan 7)
+
+public struct MirrorStart: Codable, Equatable, Sendable {
+    public var sessionId: String
+    public var maxSize: Int
+    public var fps: Int
+    public var audio: Bool
+    public init(sessionId: String, maxSize: Int, fps: Int, audio: Bool) {
+        self.sessionId = sessionId
+        self.maxSize = maxSize
+        self.fps = fps
+        self.audio = audio
+    }
+}
+
+public enum MirrorPhaseName: String, Codable, Sendable { case starting, streaming, stopped }
+
+public enum MirrorStopReason: String, Codable, Sendable { case user, mac, denied, consentTimeout, noPermission, ended, error }
+
+public struct MirrorStateUpdate: Codable, Equatable, Sendable {
+    public var sessionId: String
+    public var state: MirrorPhaseName
+    public var width: Int?
+    public var height: Int?
+    /// 0, 90, 180 or 270.
+    public var rotation: Int?
+    public var reason: MirrorStopReason?
+    /// Audio is actually being captured.
+    public var audio: Bool?
+    /// The phone's control service is on (Plan 8).
+    public var control: Bool?
+    public init(sessionId: String, state: MirrorPhaseName, width: Int? = nil, height: Int? = nil, rotation: Int? = nil,
+                reason: MirrorStopReason? = nil, audio: Bool? = nil, control: Bool? = nil) {
+        self.sessionId = sessionId
+        self.state = state
+        self.width = width
+        self.height = height
+        self.rotation = rotation
+        self.reason = reason
+        self.audio = audio
+        self.control = control
+    }
+}
+
+public struct MirrorSessionRef: Codable, Equatable, Sendable {
+    public var sessionId: String
+    public init(sessionId: String) { self.sessionId = sessionId }
+}
+
+/// Clock offset probe; all times are monotonic microseconds (spec §6.6).
+public struct MirrorPing: Codable, Equatable, Sendable {
+    public var t0: Int64
+    public init(t0: Int64) { self.t0 = t0 }
+}
+
+public struct MirrorPong: Codable, Equatable, Sendable {
+    public var t0: Int64
+    public var t1: Int64
+    public var t2: Int64
+    public init(t0: Int64, t1: Int64, t2: Int64) {
+        self.t0 = t0
+        self.t1 = t1
+        self.t2 = t2
+    }
+}
+
+// MARK: Remote control (Plan 8)
+
+public enum PointerAction: String, Codable, Sendable { case down, move, up, cancel }
+
+/// A pointer event as 0–1 fractions of the mirrored picture (spec §5.1).
+public struct InputPointer: Codable, Equatable, Sendable {
+    public var action: PointerAction
+    public var x: Double
+    public var y: Double
+    /// Mac milliseconds; only differences matter.
+    public var t: Int64
+    public init(action: PointerAction, x: Double, y: Double, t: Int64) {
+        self.action = action
+        self.x = x
+        self.y = y
+        self.t = t
+    }
+}
+
+/// A scroll at (x, y); dx/dy are how far the content moves, as fractions of the picture, in finger direction.
+public struct InputScroll: Codable, Equatable, Sendable {
+    public var x: Double
+    public var y: Double
+    public var dx: Double
+    public var dy: Double
+    public init(x: Double, y: Double, dx: Double, dy: Double) {
+        self.x = x
+        self.y = y
+        self.dx = dx
+        self.dy = dy
+    }
+}
+
+public enum InputKeyName: String, Codable, Sendable { case back, home, recents, volumeUp, volumeDown, power, backspace }
+
+public struct InputKey: Codable, Equatable, Sendable {
+    public var key: InputKeyName
+    public init(key: InputKeyName) { self.key = key }
+}
+
+public struct InputText: Codable, Equatable, Sendable {
+    public static let maxLength = 4096
+    public var text: String
+    public init(text: String) { self.text = text }
+}
+
+public enum InputNoticeReason: String, Codable, Sendable { case noTextField }
+
+public struct InputNotice: Codable, Equatable, Sendable {
+    public var reason: InputNoticeReason
+    public init(reason: InputNoticeReason) { self.reason = reason }
+}
+
 public enum Message: Equatable, Sendable {
     case hello(Hello)
     case deviceStatus(DeviceStatus)
@@ -581,6 +702,17 @@ public enum Message: Equatable, Sendable {
     case photosFetch(PhotosFetch)
     case photosFetchFailed(PhotosFetchFailed)
     case photosChanged
+    case mirrorStart(MirrorStart)
+    case mirrorState(MirrorStateUpdate)
+    case mirrorStop(MirrorSessionRef)
+    case mirrorKeyframe(MirrorSessionRef)
+    case mirrorPing(MirrorPing)
+    case mirrorPong(MirrorPong)
+    case inputPointer(InputPointer)
+    case inputScroll(InputScroll)
+    case inputKey(InputKey)
+    case inputText(InputText)
+    case inputNotice(InputNotice)
     /// A type this version doesn't understand. Decoded so callers can ignore it; never encoded.
     case unknown(type: String)
 }

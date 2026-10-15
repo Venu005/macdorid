@@ -31,6 +31,9 @@ class MessageCodecTest {
         "media.art.json", "media.command.json",
         "photos.albums.json", "photos.albumList.json", "photos.query.json", "photos.page.json", "photos.thumbs.json",
         "photos.thumb.json", "photos.fetch.json", "photos.fetchFailed.json", "photos.changed.json", "transfer.offer.photo.json",
+        "mirror.start.json", "mirror.state.json", "mirror.state.stopped.json", "mirror.stop.json", "mirror.keyframe.json",
+        "mirror.ping.json", "mirror.pong.json",
+        "input.pointer.json", "input.scroll.json", "input.key.json", "input.text.json", "input.notice.json",
     )
 
     @Test fun fixturesRoundTrip() {
@@ -116,8 +119,29 @@ class MessageCodecTest {
         }
     }
 
-    @Test fun supportedFeaturesIncludePhotos() {
-        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media", "photos"), Features.SUPPORTED)
+    @Test fun supportedFeaturesIncludeControl() {
+        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media", "photos", "mirror", "control"), Features.SUPPORTED)
+    }
+
+    @Test fun inputFixturesDecode() {
+        assertEquals(Message.InputPointer(InputPointerBody(PointerAction.Down, 0.25, 0.5, 123_456)), MessageCodec.decode(Fixtures.text("input.pointer.json")))
+        assertEquals(Message.InputScroll(InputScrollBody(0.5, 0.6, 0.0, -0.125)), MessageCodec.decode(Fixtures.text("input.scroll.json")))
+        assertEquals(Message.InputKey(InputKeyBody(InputKeyName.VolumeUp)), MessageCodec.decode(Fixtures.text("input.key.json")))
+        assertEquals(Message.InputText(InputTextBody("On my way 🙂\n")), MessageCodec.decode(Fixtures.text("input.text.json")))
+        assertEquals(Message.InputNotice(InputNoticeBody(InputNoticeReason.NoTextField)), MessageCodec.decode(Fixtures.text("input.notice.json")))
+    }
+
+    @Test fun mirrorFixturesDecode() {
+        val s = "5e55a0b1-1111-4222-8333-444455556666"
+        assertEquals(Message.MirrorStart(MirrorStartBody(s, 1920, 60, true)), MessageCodec.decode(Fixtures.text("mirror.start.json")))
+        assertEquals(Message.MirrorState(MirrorStateBody(s, MirrorPhaseName.Streaming, width = 864, height = 1920, rotation = 0, audio = true, control = false)),
+            MessageCodec.decode(Fixtures.text("mirror.state.json")))
+        assertEquals(Message.MirrorState(MirrorStateBody(s, MirrorPhaseName.Stopped, reason = MirrorStopReason.ConsentTimeout)),
+            MessageCodec.decode(Fixtures.text("mirror.state.stopped.json")))
+        assertEquals(Message.MirrorStop(MirrorSessionBody(s)), MessageCodec.decode(Fixtures.text("mirror.stop.json")))
+        assertEquals(Message.MirrorKeyframe(MirrorSessionBody(s)), MessageCodec.decode(Fixtures.text("mirror.keyframe.json")))
+        assertEquals(Message.MirrorPing(MirrorPingBody(1_000_000)), MessageCodec.decode(Fixtures.text("mirror.ping.json")))
+        assertEquals(Message.MirrorPong(MirrorPongBody(1_000_000, 9_000_500, 9_000_600)), MessageCodec.decode(Fixtures.text("mirror.pong.json")))
     }
 
     @Test fun photosFixturesDecode() {

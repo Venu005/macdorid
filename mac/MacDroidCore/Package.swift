@@ -16,6 +16,8 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.30.0"),
         .package(url: "https://github.com/apple/swift-certificates.git", from: "1.21.0"),
         .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"6.0.0"),
+        // Already resolved through Hummingbird; declared because the server reads the mirroring session header.
+        .package(url: "https://github.com/apple/swift-http-types.git", from: "1.8.0"),
         // Hummingbird 2.27.1 imports ServiceContextModule, which swift-distributed-tracing 1.6.0 removed.
         .package(url: "https://github.com/apple/swift-distributed-tracing.git", "1.3.0"..<"1.6.0"),
     ],
@@ -26,6 +28,7 @@ let package = Package(
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "HummingbirdTLS", package: "hummingbird"),
                 .product(name: "HummingbirdWebSocket", package: "hummingbird-websocket"),
+                .product(name: "HTTPTypes", package: "swift-http-types"),
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
                 .product(name: "NIOSSL", package: "swift-nio-ssl"),
@@ -41,6 +44,7 @@ let package = Package(
                 "MacDroidCore",
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
                 .product(name: "WSClient", package: "swift-websocket"),
+                .product(name: "HTTPTypes", package: "swift-http-types"),
             ]
         ),
     ]

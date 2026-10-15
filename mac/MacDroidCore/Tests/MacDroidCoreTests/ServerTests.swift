@@ -1,6 +1,8 @@
 import Foundation
+import HTTPTypes
 import HummingbirdTesting
 import Logging
+import NIOConcurrencyHelpers
 import NIOCore
 import NIOSSL
 import Testing
@@ -15,6 +17,7 @@ struct ServerHarness {
     static func run(
         pairedPhone: Identity? = nil,
         transfers: TransferManager? = nil,
+        mirror: MirrorSession? = nil,
         _ body: (ServerHarness) async throws -> Void
     ) async throws {
         let store = InMemoryPairedDeviceStore()
@@ -27,7 +30,8 @@ struct ServerHarness {
             identity: try Identity.generate(commonName: "Test Mac"),
             pairing: pairing, hub: hub, macName: "Test Mac",
             configuration: ServerConfiguration(host: "127.0.0.1", port: 0),
-            transfers: transfers
+            transfers: transfers,
+            mirror: mirror
         )
         let (ports, portContinuation) = AsyncStream.makeStream(of: Int.self)
         let task = Task { try await server.run { port in portContinuation.yield(port) } }
@@ -185,5 +189,83 @@ func pairBody(code: String) -> ByteBuffer {
             #expect(try await client.get("/v1/nothing-here").status == .notFound)
             try await client.shutdown()
         }
+    }
+}
+
+final class CollectingSink: MirrorFrameSink {
+    let frames = NIOLockedValueBox<[MirrorFrame]>([])
+    func deliver(_ frame: MirrorFrame) { frames.withLockedValue { $0.append(frame) } }
+}
+
+@Suite struct MirrorRouteTests {
+    func activeSession() async -> MirrorSession {
+        let session = MirrorSession(makeId: { "s1" }, send: { _ in })
+        await session.connectionChanged(.connected(PeerInfo(device: "Phone", app: "0.7.0", features: ProtocolInfo.features)))
+        _ = await session.start(MirrorOptions())
+        return session
+    }
+
+    func connect(_ phone: Identity, port: Int, session: String, _ body: @escaping @Sendable (WebSocketOutboundWriter) async throws -> Void) async throws {
+        var headers = HTTPFields()
+        headers[MacDroidServer.sessionHeader] = session
+        try await WebSocketClient.connect(
+            url: "wss://localhost:\(port)/v1/mirror",
+            configuration: .init(maxFrameSize: MirrorFrame.maxSize, additionalHeaders: headers),
+            tlsConfiguration: try phone.clientTLS(),
+            logger: Logger(label: "test")
+        ) { _, outbound, _ in try await body(outbound) }
+    }
+
+    // Review Focus #1
+    @Test func routeRejectsUnknownSessions() async throws {
+        let phone = try Identity.generate(commonName: "Phone")
+        let mirror = await activeSession()
+        try await ServerHarness.run(pairedPhone: phone, mirror: mirror) { harness in
+            await #expect(throws: (any Error).self) {
+                try await connect(phone, port: harness.port, session: "s0") { _ in Issue.record("a wrong session must not upgrade") }
+            }
+            await mirror.stop()
+            await #expect(throws: (any Error).self) {
+                try await connect(phone, port: harness.port, session: "s1") { _ in Issue.record("a stopped session must not upgrade") }
+            }
+        }
+    }
+
+    @Test func routeDeliversFramesToTheSink() async throws {
+        let phone = try Identity.generate(commonName: "Phone")
+        let mirror = await activeSession()
+        let sink = CollectingSink()
+        await mirror.setSink(sink)
+        try await ServerHarness.run(pairedPhone: phone, mirror: mirror) { harness in
+            try await connect(phone, port: harness.port, session: "s1") { outbound in
+                for frame in [MirrorFrame(type: .config, keyFrame: false, captureMicros: 1, payload: Data([0, 0, 0, 1, 0x67])),
+                              MirrorFrame(type: .video, keyFrame: true, captureMicros: 2, payload: Data(count: 300_000))] {
+                    try await outbound.write(.binary(ByteBuffer(bytes: frame.encoded())))
+                }
+                try await eventually { sink.frames.withLockedValue { $0.count } == 2 }
+                try await outbound.close(.normalClosure, reason: nil)
+            }
+        }
+        #expect(sink.frames.withLockedValue { $0.map(\.type) } == [.config, .video])
+        #expect(sink.frames.withLockedValue { $0.last?.payload.count } == 300_000)
+    }
+
+    // Final review I2: once the session ends, nothing more from its stream reaches the screen.
+    @Test func routeStopsDeliveringWhenTheSessionEnds() async throws {
+        let phone = try Identity.generate(commonName: "Phone")
+        let mirror = await activeSession()
+        let sink = CollectingSink()
+        await mirror.setSink(sink)
+        try await ServerHarness.run(pairedPhone: phone, mirror: mirror) { harness in
+            try await connect(phone, port: harness.port, session: "s1") { outbound in
+                let frame = MirrorFrame(type: .video, keyFrame: true, captureMicros: 1, payload: Data([0, 0, 0, 1, 0x65]))
+                try await outbound.write(.binary(ByteBuffer(bytes: frame.encoded())))
+                try await eventually { sink.frames.withLockedValue { $0.count } == 1 }
+                await mirror.stop()
+                try? await outbound.write(.binary(ByteBuffer(bytes: frame.encoded())))
+                try await Task.sleep(for: .milliseconds(200))
+            }
+        }
+        #expect(sink.frames.withLockedValue { $0.count } == 1)
     }
 }

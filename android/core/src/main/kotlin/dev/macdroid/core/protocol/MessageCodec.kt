@@ -55,6 +55,17 @@ object MessageCodec {
             is Message.PhotosFetch -> "photos.fetch" to json.encodeToJsonElement(PhotosFetchBody.serializer(), message.body)
             is Message.PhotosFetchFailed -> "photos.fetchFailed" to json.encodeToJsonElement(PhotosFetchFailedBody.serializer(), message.body)
             Message.PhotosChanged -> "photos.changed" to JsonObject(emptyMap())
+            is Message.MirrorStart -> "mirror.start" to json.encodeToJsonElement(MirrorStartBody.serializer(), message.body)
+            is Message.MirrorState -> "mirror.state" to json.encodeToJsonElement(MirrorStateBody.serializer(), message.body)
+            is Message.MirrorStop -> "mirror.stop" to json.encodeToJsonElement(MirrorSessionBody.serializer(), message.body)
+            is Message.MirrorKeyframe -> "mirror.keyframe" to json.encodeToJsonElement(MirrorSessionBody.serializer(), message.body)
+            is Message.MirrorPing -> "mirror.ping" to json.encodeToJsonElement(MirrorPingBody.serializer(), message.body)
+            is Message.MirrorPong -> "mirror.pong" to json.encodeToJsonElement(MirrorPongBody.serializer(), message.body)
+            is Message.InputPointer -> "input.pointer" to json.encodeToJsonElement(InputPointerBody.serializer(), message.body)
+            is Message.InputScroll -> "input.scroll" to json.encodeToJsonElement(InputScrollBody.serializer(), message.body)
+            is Message.InputKey -> "input.key" to json.encodeToJsonElement(InputKeyBody.serializer(), message.body)
+            is Message.InputText -> "input.text" to json.encodeToJsonElement(InputTextBody.serializer(), message.body)
+            is Message.InputNotice -> "input.notice" to json.encodeToJsonElement(InputNoticeBody.serializer(), message.body)
             is Message.Unknown -> throw IllegalArgumentException("cannot encode unknown message type ${message.type}")
         }
         return buildJsonObject {
@@ -106,6 +117,17 @@ object MessageCodec {
                 "photos.fetch" -> Message.PhotosFetch(json.decodeFromJsonElement(PhotosFetchBody.serializer(), body))
                 "photos.fetchFailed" -> Message.PhotosFetchFailed(json.decodeFromJsonElement(PhotosFetchFailedBody.serializer(), body))
                 "photos.changed" -> Message.PhotosChanged
+                "mirror.start" -> Message.MirrorStart(json.decodeFromJsonElement(MirrorStartBody.serializer(), body))
+                "mirror.state" -> Message.MirrorState(json.decodeFromJsonElement(MirrorStateBody.serializer(), body))
+                "mirror.stop" -> Message.MirrorStop(json.decodeFromJsonElement(MirrorSessionBody.serializer(), body))
+                "mirror.keyframe" -> Message.MirrorKeyframe(json.decodeFromJsonElement(MirrorSessionBody.serializer(), body))
+                "mirror.ping" -> Message.MirrorPing(json.decodeFromJsonElement(MirrorPingBody.serializer(), body))
+                "mirror.pong" -> Message.MirrorPong(json.decodeFromJsonElement(MirrorPongBody.serializer(), body))
+                "input.pointer" -> Message.InputPointer(json.decodeFromJsonElement(InputPointerBody.serializer(), body))
+                "input.scroll" -> Message.InputScroll(json.decodeFromJsonElement(InputScrollBody.serializer(), body))
+                "input.key" -> Message.InputKey(json.decodeFromJsonElement(InputKeyBody.serializer(), body))
+                "input.text" -> Message.InputText(json.decodeFromJsonElement(InputTextBody.serializer(), body))
+                "input.notice" -> Message.InputNotice(json.decodeFromJsonElement(InputNoticeBody.serializer(), body))
                 else -> Message.Unknown(type)
             }
         } catch (e: IllegalArgumentException) { // includes SerializationException

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="control_service_description">Lets your paired Mac tap, scroll and type on this phone while you mirror it, and press Start on the screen-sharing prompt for you. MacDroid only acts when your Mac asks, and never sends what\'s on screen anywhere except to your Mac\'s mirror window.</string>
+</resources>
