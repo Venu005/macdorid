@@ -12,6 +12,7 @@ struct MirrorContentView: View {
         VStack(spacing: 0) {
             ZStack {
                 MirrorVideoView(layer: renderer.layer)
+                MirrorInputView(model: model)
                 if let status = MirrorPresentation.status(model.mirror, stalled: model.mirrorStalled) {
                     Text(status)
                         .font(.callout)
@@ -20,7 +21,21 @@ struct MirrorContentView: View {
                         .padding(12)
                         .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
                         .padding()
+                        .allowsHitTesting(false)
                 }
+                VStack {
+                    Spacer()
+                    if let notice = MirrorPresentation.controlNotice(model.mirror) ?? (model.mirror.textFieldMissing ? MirrorPresentation.textFieldNotice : nil) {
+                        Text(notice)
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.black.opacity(0.65), in: Capsule())
+                            .padding(.bottom, 10)
+                    }
+                }
+                .allowsHitTesting(false)
             }
             MirrorBar(model: model).frame(height: Self.barHeight)
         }
@@ -54,6 +69,15 @@ private struct MirrorBar: View {
             if let notice = MirrorPresentation.audioNotice(model.mirror, requested: model.mirrorAudio) {
                 Image(systemName: "speaker.slash").help(notice)
             }
+            Group {
+                bar("chevron.backward", "Back") { model.sendMirrorKey(.back) }
+                bar("circle", "Home") { model.sendMirrorKey(.home) }
+                bar("square.on.square", "Recents") { model.sendMirrorKey(.recents) }
+                bar("speaker.minus", "Volume down") { model.sendMirrorKey(.volumeDown) }
+                bar("speaker.plus", "Volume up") { model.sendMirrorKey(.volumeUp) }
+                bar("lock", "Lock phone") { model.sendMirrorKey(.power) }
+            }
+            .disabled(!model.mirror.controlAvailable)
             Spacer()
             if model.mirrorShowLatency, let ms = model.mirrorLatency {
                 Text("\(ms) ms")
@@ -71,6 +95,10 @@ private struct MirrorBar: View {
         .foregroundStyle(.white)
         .padding(.horizontal, 12)
         .background(Color(white: 0.12))
+    }
+
+    private func bar(_ symbol: String, _ help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) { Image(systemName: symbol) }.help(help)
     }
 
     private func color(_ tone: MirrorPresentation.LatencyTone) -> Color {

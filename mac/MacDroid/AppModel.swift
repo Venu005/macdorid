@@ -55,6 +55,9 @@ final class AppModel {
     @ObservationIgnored private var mirrorRenderer: MirrorRenderer!
     @ObservationIgnored private var mirrorWindow: MirrorWindowController?
     @ObservationIgnored private var mirrorLatencyTask: Task<Void, Never>?
+    @ObservationIgnored private let mirrorInput = AsyncStream.makeStream(of: Message.self)
+    @ObservationIgnored private var pendingText = ""
+    @ObservationIgnored private var textFlush: Task<Void, Never>?
     private(set) var photos: PhotosState = .empty
     /// Thumbnails already on disk, by photo id; cells read this, so arrivals redraw them.
     private(set) var photoThumbs: [String: URL] = [:]
@@ -220,6 +223,9 @@ final class AppModel {
         })
         tasks.append(Task { [weak self, mirrorSession] in
             for await state in mirrorSession.states { self?.mirrorChanged(state) }
+        })
+        tasks.append(Task { [mirrorSession, stream = mirrorInput.stream] in
+            for await message in stream { _ = await mirrorSession.sendInput(message) }
         })
         tasks.append(Task { [photosClient, hub] in await photosClient.attach(to: hub) })
         tasks.append(Task { [weak self, photosClient] in
@@ -512,6 +518,37 @@ final class AppModel {
         mirrorAudioPlayer.start(muted: !mirrorAudio)
         let options = MirrorOptions(maxSize: mirrorQuality, fps: mirrorFPS, audio: mirrorAudio)
         Task { _ = await mirrorSession.start(options) }
+    }
+
+    func sendMirrorInput(_ message: Message) {
+        flushText() // typed text before a click or key stays in order
+        mirrorInput.continuation.yield(message)
+    }
+
+    func sendMirrorKey(_ key: InputKeyName) { sendMirrorInput(.inputKey(InputKey(key: key))) }
+
+    /// Typing is sent in 30 ms batches (spec §6.5).
+    func typeOnPhone(_ text: String) {
+        pendingText += text
+        guard textFlush == nil else { return }
+        textFlush = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(30))
+            self?.flushText()
+        }
+    }
+
+    func pasteOnPhone() {
+        guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else { return }
+        typeOnPhone(String(text.prefix(InputText.maxLength)))
+    }
+
+    private func flushText() {
+        textFlush?.cancel()
+        textFlush = nil
+        guard !pendingText.isEmpty else { return }
+        let text = String(pendingText.prefix(InputText.maxLength))
+        pendingText = ""
+        mirrorInput.continuation.yield(.inputText(InputText(text: text)))
     }
 
     func stopMirroring() {
