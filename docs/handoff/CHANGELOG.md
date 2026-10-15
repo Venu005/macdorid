@@ -4,7 +4,7 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
-## 2026-10-15 — Plan 10: calls on the Mac (in progress on feat/calls)
+## 2026-10-15 — Plan 10: calls on the Mac (built on feat/calls)
 - **Task 1:** on-device probe skipped (owner). The fallbacks in the plan cover it (label-matched buttons, error notices); background answer and dialing are checked in the owner checklist. Notes in `docs/superpowers/plans/2026-10-15-macdroid-calls-followups.md`.
 - **Task 2:** `call.state` / `call.action` / `call.dial` / `call.error` in both codecs, 5 fixtures, `calls` feature on both sides, PROTOCOL.md 'Calls rules'. Verified: `swift test` 318, `:core:test`, Mac app build.
 - **Task 3:** Android core `CallTracker` (changes only, ended on removal, re-send on reconnect, actions → the notification's intents or `callGone`/`notSupported`), `CallNumbers`, `CallLabels`. Verified: `:core:test` (CallTrackerTest 14).
@@ -12,6 +12,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Task 5:** Android call notifications → `CallTracker` (kept out of notification mirroring); Answer/Decline/Hang up fire the phone app's own intents; `call.dial` via `TelecomManager.placeCall` (`CALL_PHONE`); Settings → Calls. Verified: `:core:test :app:testDebugUnitTest :app:assembleDebug`, no warnings.
 - **Task 6:** Mac call panel (non-activating, top right, sound on ring, timer, notices for 3 s), number pad on the Phone page, `tel:` links with confirmation, active call in the popover, Settings → Calls. Verified: Mac app build, no warnings.
 - **Task 7:** cross-platform test: the phone's ringing call reaches the Mac, the Mac answers and dials, and the end arrives. Verified: `scripts/cross-platform-test.sh` passed twice; all gates green.
+- **Task 8:** handoff updated (DECISIONS, STATUS, ROADMAP, README); owner checklist in the follow-ups file. Final gates: `swift test` 327 passed; Mac app build succeeded, no warnings; `:core:test :app:testDebugUnitTest :app:assembleDebug` passed, no warnings; cross-platform test passed. Not merged.
 
 ## 2026-10-15 — Calls plan (Plan 10)
 - **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-calls-10.md`, with 8 tasks:
