@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import dev.macdroid.app.platform.control.MacDroidControlService
 import dev.macdroid.core.connection.ConnectionManager
 import dev.macdroid.core.connection.ConnectionState
 import dev.macdroid.core.mirror.MirrorPhoneSession
@@ -49,6 +50,9 @@ class MirrorBridge(private val context: Context, private val connection: Connect
             }
         }
         scope.launch {
+            MacDroidControlService.running.collect { on -> main.post { session.controlChanged(on) } }
+        }
+        scope.launch {
             while (true) {
                 delay(1_000)
                 main.post { session.checkTimeout() }
@@ -66,6 +70,9 @@ class MirrorBridge(private val context: Context, private val connection: Connect
             }
             is Message.MirrorStop -> session.macStopped(message.body.sessionId)
             is Message.MirrorKeyframe -> if (message.body.sessionId == session.current) MirrorService.requestKeyFrame()
+            is Message.InputPointer, is Message.InputScroll, is Message.InputKey, is Message.InputText ->
+                // Only into a live session (Review Focus #2); nothing happens without the control service.
+                if (session.isStreaming) MacDroidControlService.instance?.handle(message)
             else -> Unit
         }
     }

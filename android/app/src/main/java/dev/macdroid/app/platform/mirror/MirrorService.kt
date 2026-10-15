@@ -15,8 +15,8 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.view.Display
-import android.view.Surface
 import dev.macdroid.app.graph
+import dev.macdroid.app.platform.control.MacDroidControlService
 import dev.macdroid.core.mirror.MirrorFrame
 import dev.macdroid.core.mirror.MirrorSize
 import dev.macdroid.core.mirror.SendPolicy
@@ -121,7 +121,7 @@ class MirrorService : Service() {
             .newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "MacDroid:mirror")
             .apply { acquire(4 * 60 * 60 * 1000L) }
         running = this
-        graph.mirrorBridge.session.streaming(w, h, rotation, audio = audioOn, control = false)
+        graph.mirrorBridge.session.streaming(w, h, rotation, audio = audioOn, control = MacDroidControlService.running.value)
     }
 
     // Encoder thread.
@@ -152,16 +152,7 @@ class MirrorService : Service() {
 
     /** The display's size as currently shown (natural size swapped when rotated), fitted to maxSize (spec §3.2). */
     private fun screenSize(maxSize: Int): Triple<Int, Int, Int> {
-        val display = displays.getDisplay(Display.DEFAULT_DISPLAY)
-        val mode = display.mode
-        val rotation = when (display.rotation) {
-            Surface.ROTATION_90 -> 90
-            Surface.ROTATION_180 -> 180
-            Surface.ROTATION_270 -> 270
-            else -> 0
-        }
-        val natural = minOf(mode.physicalWidth, mode.physicalHeight) to maxOf(mode.physicalWidth, mode.physicalHeight)
-        val (w, h) = if (rotation == 90 || rotation == 270) natural.second to natural.first else natural
+        val (w, h, rotation) = ScreenSize.current(this)
         val (fw, fh) = MirrorSize.fit(w, h, maxSize)
         return Triple(fw, fh, rotation)
     }
@@ -177,7 +168,7 @@ class MirrorService : Service() {
             finish(MirrorStopReason.Error)
             return
         }
-        graph.mirrorBridge.session.streaming(next.first, next.second, next.third, audio = audioOn, control = false)
+        graph.mirrorBridge.session.streaming(next.first, next.second, next.third, audio = audioOn, control = MacDroidControlService.running.value)
     }
 
     /** [reason] null: the session already ended elsewhere (the Mac, a lost connection); nothing to report. */

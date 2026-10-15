@@ -19,10 +19,13 @@ import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Laptop
 import androidx.compose.material.icons.rounded.LinkOff
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.PhotoLibrary
+import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.SaveAs
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -116,6 +119,33 @@ fun SettingsScreen(onForget: () -> Unit, viewModel: SettingsViewModel = viewMode
                 supportingContent = { Text(ui.photosSummary) },
                 leadingContent = { Icon(Icons.Rounded.PhotoLibrary, contentDescription = null) },
                 modifier = Modifier.clickable { photosAccess.launch(PhotosAccessText.permissions(Build.VERSION.SDK_INT)) },
+            )
+        }
+        item { SectionHeader("Remote control") }
+        item {
+            ListItem(
+                headlineContent = { Text("MacDroid control") },
+                supportingContent = { Text(if (ui.controlOn) "On" else "Off: tap to turn on in Accessibility") },
+                leadingContent = { Icon(Icons.Rounded.TouchApp, contentDescription = null) },
+                modifier = Modifier.clickable { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+            )
+        }
+        if (!BuildConfig.STORE_BUILD) {
+            item {
+                ListItem(
+                    headlineContent = { Text("Start mirroring without touching the phone") },
+                    supportingContent = { Text("MacDroid control presses Start on the screen-sharing prompt for you (phone unlocked)") },
+                    leadingContent = { Icon(Icons.Rounded.PlayCircle, contentDescription = null) },
+                    trailingContent = { Switch(checked = ui.autoStart && ui.controlOn, enabled = ui.controlOn, onCheckedChange = viewModel::setAutoStart) },
+                )
+            }
+        }
+        item {
+            ListItem(
+                headlineContent = { Text("Microphone for phone audio") },
+                supportingContent = { Text(if (ui.microphoneAllowed) "Allowed" else "Not allowed") },
+                leadingContent = { Icon(Icons.Rounded.Mic, contentDescription = null) },
+                modifier = Modifier.clickable { context.openAppSettings() },
             )
         }
         item { SectionHeader("Setup") }

@@ -15,6 +15,7 @@ android {
         versionCode = 4
         versionName = "0.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("boolean", "STORE_BUILD", "false")
     }
     buildFeatures {
         compose = true
