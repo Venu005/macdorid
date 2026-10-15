@@ -1,4 +1,4 @@
-# Status (as of 2026-10-15, after the mirroring and remote control merge)
+# Status (as of 2026-10-15, after the calls merge)
 
 ## Branches
 - `main`: Plan 1 (connection core), the UI/UX redesign, the app icons and file transfer (Plan 2, merged 2026-10-13). All gates pass on `main`. The file-transfer hands-on checklist passed except the 2 GB+ file.
@@ -6,10 +6,11 @@
 
 - `main` also has the 9 deferred-minor fixes (merged 2026-10-13 as `bd6c661`; `swift test` 217).
 - `main` also has the small wins (Plan 5: ring, links, media controls), merged 2026-10-13 as `c9d202d`; `swift test` 233.
+- `main` also has calls on the Mac (Plan 10), merged 2026-10-15 as `c9ae68f`; `swift test` 336.
 - `main` also has screen mirroring and remote control (Plans 7 and 8), merged 2026-10-15 as `75ac85b`; `swift test` 317.
 - `main` also has photos (Plan 6: browse the phone's photos and videos, Quick Look, Save to Mac, drag out), merged 2026-10-14 as `37b425c`; its 9 follow-up minors merged as `2807ce9`; `swift test` 274.
 ## In flight
-- **Calls on the Mac (Plan 10):** built on `feat/calls` (2026-10-15). All gates and the cross-platform test pass (`swift test` 327). Awaiting the final review and the owner's hands-on check (checklist in `docs/superpowers/plans/2026-10-15-macdroid-calls-followups.md`). Not merged.
+- **Calls on the Mac (Plan 10):** merged to `main` on 2026-10-15 as `c9ae68f`, after the owner tried dialing from the Mac (dialer window), phone links and the panel. All gates pass on `main` (`swift test` 336, Mac app build, Android gates, cross-platform). Not yet reported by the owner: Answer, Decline and Hang up from the Mac, and the Wi-Fi blip (checklist items 3–7, 10–12). 8 deferred minors in `docs/superpowers/plans/2026-10-15-macdroid-calls-followups.md`.
 - **Mirroring and remote control (Plans 7 and 8):** merged to `main` on 2026-10-15 as `75ac85b`, after the owner tried both on their devices ("it works well"). All gates pass on `main` (`swift test` 317, Mac app build, Android gates, cross-platform). Still open: the full owner checklists, 9 Plan 7 minors, 10 Plan 8 minors and one volume ruling, all in `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`.
 - **Photos (Plan 6):** merged to `main` 2026-10-14 (`37b425c`). The 9 deferred minors are fixed and merged too (`2807ce9`; `swift test` 274, Mac build, Android gates, cross-platform all pass); the owner checklist is in `docs/superpowers/plans/2026-10-13-macdroid-photos-followups.md`.
 - **Small wins (Plan 5):** merged to `main` 2026-10-13. Deferred minors: `docs/superpowers/plans/2026-10-13-macdroid-small-wins-followups.md`.

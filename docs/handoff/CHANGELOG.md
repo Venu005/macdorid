@@ -4,6 +4,13 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Merged calls on the Mac (Plan 10) to main
+- **What:** `feat/calls` merged into `main` locally as `c9ae68f` (`--no-ff`) at the owner's request, after they tried the dialer, phone links and the Settings fixes. Not pushed.
+- **Verified on `main`:** `swift test` 336; Mac app build (no code warnings); `:core:test :app:testDebugUnitTest :app:assembleDebug` (no warnings); cross-platform test passed.
+- **Open:**
+  - the owner hasn't yet confirmed Answer / Decline / Hang up from the Mac (checklist items 3–7, 10–12)
+  - 8 deferred minors in `docs/superpowers/plans/2026-10-15-macdroid-calls-followups.md`
+
 ## 2026-10-15 — Plan 10: calls on the Mac (built on feat/calls)
 - **Task 1:** on-device probe skipped (owner). The fallbacks in the plan cover it (label-matched buttons, error notices); background answer and dialing are checked in the owner checklist. Notes in `docs/superpowers/plans/2026-10-15-macdroid-calls-followups.md`.
 - **Task 2:** `call.state` / `call.action` / `call.dial` / `call.error` in both codecs, 5 fixtures, `calls` feature on both sides, PROTOCOL.md 'Calls rules'. Verified: `swift test` 318, `:core:test`, Mac app build.
