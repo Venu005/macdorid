@@ -134,4 +134,24 @@ import Testing
         #expect(CallPresentation.dialProblem(.invalidNumber) == "That doesn't look like a phone number")
         #expect(CallPresentation.dialProblem(.sent) == nil)
     }
+
+    // Final review I1: only a call that's gone is dropped; a refused action keeps the live call.
+    @Test func notSupportedKeepsTheCall() async {
+        let h = Harness()
+        await h.connect()
+        await h.phone("k1", .active)
+        await h.center.answer(callId: "k1")
+        await h.center.handle(.callError(CallError(reason: .notSupported, callId: "k1")))
+        #expect(await h.center.state.calls.map(\.callId) == ["k1"])
+        await h.center.clearNotice()
+        guard case .active = await h.center.state.panel else { Issue.record("live call lost"); return }
+    }
+
+    // Final review I3: a web page's tel: link must not run a phone code (call forwarding, USSD).
+    @Test func phoneCodesInLinksAreRefused() {
+        #expect(PhoneNumbers.fromTelURL(URL(string: "tel:**21*+15551234%23")!) == nil)
+        #expect(PhoneNumbers.fromTelURL(URL(string: "tel:*%2306%23")!) == nil)
+        #expect(PhoneNumbers.fromTelURL(URL(string: "tel:+15551234567")!) == "+15551234567")
+        #expect(PhoneNumbers.clean("*#06#") == "*#06#") // the number pad still allows codes
+    }
 }

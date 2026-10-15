@@ -530,9 +530,15 @@ final class AppModel {
 
     /// `tel:` links (spec §3.3): confirm, then dial on the phone.
     func openPhoneLinks(_ urls: [URL]) {
-        guard let number = urls.lazy.compactMap(PhoneNumbers.fromTelURL).first else { return }
+        guard let link = urls.first(where: { $0.scheme?.lowercased() == "tel" }) else { return }
         NSApp.activate()
         let alert = NSAlert()
+        guard let number = PhoneNumbers.fromTelURL(link) else {
+            // Unusable, or a phone code: say so rather than doing nothing (final review I3).
+            alert.messageText = CallPresentation.dialProblem(.invalidNumber) ?? ""
+            alert.runModal()
+            return
+        }
         guard calls.supported else {
             alert.messageText = CallPresentation.dialProblem(calls.connected ? .unsupported : .notConnected) ?? ""
             alert.runModal()

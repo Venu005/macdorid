@@ -45,8 +45,8 @@ object CallReader {
             }
         }
         if (n.category != Notification.CATEGORY_CALL) return null
-        // Older call notifications: an Answer button means it's ringing.
-        return if (n.actions?.any { CallLabels.kindOf(it.title?.toString()) == CallActionKind.Answer } == true) CallType.Incoming else CallType.Ongoing
+        val ongoing = (n.flags and (Notification.FLAG_ONGOING_EVENT or Notification.FLAG_FOREGROUND_SERVICE)) != 0
+        return CallLabels.legacyType(ongoing, n.actions.orEmpty().map { it.title?.toString() })
     }
 
     @Suppress("DEPRECATION")

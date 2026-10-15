@@ -103,7 +103,8 @@ public actor CallCenter {
             let action = body.callId.flatMap { asked[$0] }
             update { s in
                 s.notice = CallPresentation.errorNotice(body.reason, action: action)
-                if let id = body.callId { s.calls.removeAll { $0.callId == id } }
+                // Only a call that's gone is dropped; after a refused action the phone sends the live call again (final review I1).
+                if body.reason == .callGone, let id = body.callId { s.calls.removeAll { $0.callId == id } }
             }
         default:
             break

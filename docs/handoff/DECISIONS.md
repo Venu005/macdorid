@@ -76,3 +76,4 @@ The full per-plan rulings are in the `docs/superpowers/plans/*-followups.md` fil
 | `tel:` links ask "Call … on your phone?" before dialing; the number pad dials at once | A stray click on a link must never call anyone | Dialing links immediately |
 | The Mac keeps calls in memory only; names and numbers are never logged | Privacy: no call history was asked for | A call history page |
 | Plan 10's on-device probe was skipped (owner) | The plan's fallbacks (label-matched buttons, error notices) cover it; background answer and dialing are checked in the owner checklist | Running the probe first |
+| `tel:` links with `*` or `#` are refused (the number pad still allows them) | A web page must not be able to set up call forwarding or run a USSD code with one confirmation click (final review I3) | Dialing any cleaned link; a separate warning prompt |

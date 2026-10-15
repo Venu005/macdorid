@@ -12,12 +12,15 @@ public enum PhoneNumbers {
         return out
     }
 
-    /// The number in a `tel:` link: `tel:+1…`, `tel://…`, percent-encoded, with `;params` dropped.
+    /// The number in a `tel:` link: `tel:+1…`, `tel://…`, percent-encoded, with `;params` dropped. Links carrying `*` or `#`
+    /// are refused: a web page must not run a phone code such as call forwarding (final review I3).
     public static func fromTelURL(_ url: URL) -> String? {
         guard url.scheme?.lowercased() == "tel" else { return nil }
         var rest = String(url.absoluteString.dropFirst("tel:".count))
         if rest.hasPrefix("//") { rest.removeFirst(2) }
         rest = String(rest.prefix { $0 != ";" && $0 != "?" })
-        return clean(rest.removingPercentEncoding ?? rest)
+        let decoded = rest.removingPercentEncoding ?? rest
+        guard !decoded.contains("*"), !decoded.contains("#") else { return nil }
+        return clean(decoded)
     }
 }

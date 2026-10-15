@@ -97,8 +97,10 @@ class CallTrackerTest {
     @Test fun missingActionsAreNotSupported() {
         tracker.connected()
         tracker.posted(ringing())
+        sent.clear()
         assertNull(tracker.handle(Message.CallAction(CallActionBody("k1", CallActionKind.HangUp))))
-        assertEquals(Message.CallError(CallErrorBody(CallErrorReason.NotSupported, "k1")), sent.last())
+        // The error, then the call again: the Mac drops a call on an error (final review I1).
+        assertEquals(listOf(Message.CallError(CallErrorBody(CallErrorReason.NotSupported, "k1")), state("k1", CallPhase.Ringing)), sent)
     }
 
     // Review Focus #4
@@ -139,5 +141,37 @@ class CallTrackerTest {
         assertEquals(CallActionKind.HangUp, CallLabels.kindOf("End call"))
         assertNull(CallLabels.kindOf("Speaker"))
         assertNull(CallLabels.kindOf(null))
+    }
+
+    // Final review I1: the call was picked up on the phone just before the Mac's Answer arrived.
+    @Test fun aStaleActionResendsTheLiveCall() {
+        tracker.connected()
+        tracker.posted(ringing())
+        tracker.posted(CallNotification("k1", CallType.Ongoing, "Mom", "+15551234567", setOf(CallActionKind.HangUp)))
+        sent.clear()
+        assertNull(tracker.handle(Message.CallAction(CallActionBody("k1", CallActionKind.Answer))))
+        assertEquals(listOf(Message.CallError(CallErrorBody(CallErrorReason.NotSupported, "k1")), state("k1", CallPhase.Active)), sent)
+        sent.clear()
+        tracker.failed("k1", CallErrorReason.CallGone) // firing the intent failed, but the call is still there
+        assertEquals(listOf(Message.CallError(CallErrorBody(CallErrorReason.CallGone, "k1")), state("k1", CallPhase.Active)), sent)
+    }
+
+    // Final review I4: calls that ended while the listener was unbound.
+    @Test fun syncDropsCallsThatWentAway() {
+        tracker.connected()
+        tracker.posted(ringing("k1"))
+        tracker.posted(ringing("k2", "Dad", null))
+        sent.clear()
+        tracker.sync(setOf("k2"))
+        assertEquals(listOf(state("k1", CallPhase.Ended)), sent)
+    }
+
+    // Final review I2: a missed-call notification with only the call category is not a call.
+    @Test fun olderCallNotificationsNeedAFlagOrAButton() {
+        assertEquals(CallType.Incoming, CallLabels.legacyType(ongoing = false, labels = listOf("Answer", "Decline")))
+        assertEquals(CallType.Ongoing, CallLabels.legacyType(ongoing = true, labels = listOf("Speaker")))
+        assertEquals(CallType.Ongoing, CallLabels.legacyType(ongoing = false, labels = listOf("Hang up")))
+        assertNull(CallLabels.legacyType(ongoing = false, labels = listOf("Call back", "Message")))
+        assertNull(CallLabels.legacyType(ongoing = false, labels = emptyList()))
     }
 }

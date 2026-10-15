@@ -42,7 +42,9 @@ class CallBridge(private val context: Context, private val connection: Connectio
     fun listenerConnected(service: NotificationListenerService) {
         listener = service
         scope.launch(worker) {
-            runCatching { service.activeNotifications }.getOrNull()?.forEach { sbn -> CallReader.read(sbn)?.let(tracker::posted) }
+            val active = runCatching { service.activeNotifications }.getOrNull() ?: return@launch
+            active.forEach { sbn -> CallReader.read(sbn)?.let(tracker::posted) }
+            tracker.sync(active.map { it.key }.toSet())
         }
     }
 
@@ -63,13 +65,13 @@ class CallBridge(private val context: Context, private val connection: Connectio
         when (command) {
             is CallCommand.Fire -> {
                 val sbn = runCatching { listener?.activeNotifications }.getOrNull()?.firstOrNull { it.key == command.key }
-                    ?: return tracker.report(CallErrorReason.CallGone, command.key)
+                    ?: return tracker.failed(command.key, CallErrorReason.CallGone)
                 val intent = CallReader.intent(sbn.notification, command.action)
-                    ?: return tracker.report(CallErrorReason.NotSupported, command.key)
+                    ?: return tracker.failed(command.key, CallErrorReason.NotSupported)
                 try {
                     intent.send()
                 } catch (e: PendingIntent.CanceledException) {
-                    tracker.report(CallErrorReason.CallGone, command.key)
+                    tracker.failed(command.key, CallErrorReason.CallGone)
                 }
             }
             is CallCommand.Dial -> {

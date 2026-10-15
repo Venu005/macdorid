@@ -13,6 +13,12 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Task 6:** Mac call panel (non-activating, top right, sound on ring, timer, notices for 3 s), number pad on the Phone page, `tel:` links with confirmation, active call in the popover, Settings → Calls. Verified: Mac app build, no warnings.
 - **Task 7:** cross-platform test: the phone's ringing call reaches the Mac, the Mac answers and dials, and the end arrives. Verified: `scripts/cross-platform-test.sh` passed twice; all gates green.
 - **Task 8:** handoff updated (DECISIONS, STATUS, ROADMAP, README); owner checklist in the follow-ups file. Final gates: `swift test` 327 passed; Mac app build succeeded, no warnings; `:core:test :app:testDebugUnitTest :app:assembleDebug` passed, no warnings; cross-platform test passed. Not merged.
+- **Final review fixes** (fresh reviewer; 4 Important fixed, each with a test that failed first):
+  - **A stale action no longer loses the live call.** After a refused or failed action the phone sends the call's state again, and the Mac drops a call only for `callGone` (`aStaleActionResendsTheLiveCall`, `notSupportedKeepsTheCall`).
+  - **Missed-call notifications** with only the call category stay in notification mirroring. Older call notifications count as calls only with Answer, Hang up or the ongoing flag (`olderCallNotificationsNeedAFlagOrAButton`).
+  - **`tel:` links can't run phone codes.** Links containing `*` or `#` (call forwarding, USSD) are refused with "That doesn't look like a phone number"; the number pad still allows codes (`phoneCodesInLinksAreRefused`).
+  - **No leftover calls after the notification listener rebinds** (`CallTracker.sync`, `syncDropsCallsThatWentAway`).
+  - Verified: `swift test` 329; CallTrackerTest 17; Mac and Android builds with no warnings; cross-platform test passed.
 
 ## 2026-10-15 — Calls plan (Plan 10)
 - **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-calls-10.md`, with 8 tasks:

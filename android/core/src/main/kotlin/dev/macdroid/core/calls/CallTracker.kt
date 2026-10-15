@@ -56,7 +56,7 @@ class CallTracker(private val send: (Message) -> Boolean) {
             val call = calls[message.body.callId]
             when {
                 call == null -> { report(CallErrorReason.CallGone, message.body.callId); null }
-                message.body.action !in call.actions -> { report(CallErrorReason.NotSupported, call.key); null }
+                message.body.action !in call.actions -> { failed(call.key, CallErrorReason.NotSupported); null }
                 else -> CallCommand.Fire(call.key, message.body.action)
             }
         }
@@ -66,6 +66,22 @@ class CallTracker(private val send: (Message) -> Boolean) {
 
     fun report(reason: CallErrorReason, callId: String?) {
         send(Message.CallError(CallErrorBody(reason, callId)))
+    }
+
+    /**
+     * An action on [key] couldn't be done. The Mac drops the call on an error, so if the call is still here (it was picked
+     * up on the phone, say), send its state again (final review I1).
+     */
+    @Synchronized fun failed(key: String, reason: CallErrorReason) {
+        report(reason, key)
+        val call = calls[key] ?: return
+        lastSent.remove(key)
+        if (macReady) sendState(call)
+    }
+
+    /** The listener (re)bound: end every call whose notification is no longer active (final review I4). */
+    @Synchronized fun sync(activeKeys: Set<String>) {
+        calls.keys.filter { it !in activeKeys }.forEach(::removed)
     }
 
     private fun sendState(call: CallNotification) {
@@ -103,6 +119,19 @@ object CallNumbers {
 
 /** Older call notifications without the call-style intents: their buttons by label (spec §2.1). */
 object CallLabels {
+    /**
+     * A notification with only `CATEGORY_CALL`: ringing with an Answer button, a call when ongoing or with Hang up, else
+     * not a call (a missed-call notice, say), so it stays in notification mirroring (final review I2).
+     */
+    fun legacyType(ongoing: Boolean, labels: List<String?>): CallType? {
+        val kinds = labels.mapNotNull(::kindOf).toSet()
+        return when {
+            CallActionKind.Answer in kinds -> CallType.Incoming
+            ongoing || CallActionKind.HangUp in kinds -> CallType.Ongoing
+            else -> null
+        }
+    }
+
     fun kindOf(title: String?): CallActionKind? = when (title?.trim()?.lowercase()) {
         "answer", "accept" -> CallActionKind.Answer
         "decline", "reject", "dismiss" -> CallActionKind.Decline
