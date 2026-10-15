@@ -39,7 +39,7 @@ struct GeneralSettingsView: View {
                 LabeledContent("Save received files to") {
                     HStack {
                         Text(files.folder.lastPathComponent).foregroundStyle(.secondary)
-                        Button("Choose…") { files.chooseFolder() }
+                        Button("Choose") { files.chooseFolder() }
                         if !files.usesDefaultFolder { Button("Use Downloads") { files.useDefaultFolder() } }
                     }
                 }
@@ -58,7 +58,7 @@ struct GeneralSettingsView: View {
             Section {
                 Toggle("Show phone notifications", isOn: Binding(get: { model.showPhoneNotifications }, set: { model.setShowPhoneNotifications($0) }))
                 LabeledContent("Apps") {
-                    Button("Muted Apps…") { showingMutedApps = true }
+                    Button("Muted Apps") { showingMutedApps = true }
                 }
             } header: {
                 Text("Notifications")

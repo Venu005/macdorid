@@ -55,11 +55,11 @@ struct PairedDeviceView: View {
                         Button("Mirror") { model.startMirroring() }
                     }
                     if model.calls.supported {
-                        Button("Call…") { model.showDialer() }
+                        Button("Call") { model.showDialer() }
                     }
-                    Button("Pair a Different Phone…") { Task { await model.startRepair() } }
+                    Button("Pair a Different Phone") { Task { await model.startRepair() } }
                     Spacer()
-                    Button("Forget This Phone…", role: .destructive) { confirmForget = true }
+                    Button("Forget This Phone", role: .destructive) { confirmForget = true }
                 }
             }
         }

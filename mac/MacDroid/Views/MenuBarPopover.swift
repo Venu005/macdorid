@@ -40,7 +40,7 @@ struct MenuBarPopover: View {
             Button {
                 model.requestPairing()
             } label: {
-                Text("Pair a Phone…").frame(maxWidth: .infinity)
+                Text("Pair a Phone").frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)

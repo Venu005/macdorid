@@ -41,7 +41,7 @@ struct FilesView: View {
                 .font(.system(size: 28))
                 .foregroundStyle(enabled ? Color.accentColor : Color.secondary)
             Text(enabled ? "Drop files here to send to \(model.phoneName)" : "Phone not connected").font(.headline)
-            Button("Send Files…") { model.pickFilesToSend() }.disabled(!enabled)
+            Button("Send Files") { model.pickFilesToSend() }.disabled(!enabled)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)

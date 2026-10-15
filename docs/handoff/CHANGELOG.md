@@ -28,6 +28,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
   - a big green call button; dialing closes the window, and the call panel takes over
   - keyboard: digits, ⌘V paste (number only), Delete, Return to call, Esc to close
   - typing rules live in the tested `DialInput` (`swift test` 336)
+- **Owner feedback: no "…" on buttons.** Removed the trailing ellipsis from all button labels (Call, Pair a Different Phone, Forget This Phone, Pair a Phone, Send Files, Muted Apps, Choose). The "Settings…" menu item keeps it, as macOS menus do. Verified: Mac app build.
 
 ## 2026-10-15 — Calls plan (Plan 10)
 - **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-calls-10.md`, with 8 tasks:

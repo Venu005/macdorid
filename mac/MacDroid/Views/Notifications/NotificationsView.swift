@@ -54,7 +54,7 @@ struct NotificationsView: View {
         .navigationTitle("Notifications")
         .toolbar {
             ToolbarItemGroup {
-                Button { showingMutedApps = true } label: { Label("Muted Apps…", systemImage: "bell.slash") }
+                Button { showingMutedApps = true } label: { Label("Muted Apps", systemImage: "bell.slash") }
                     .help("Choose apps whose notifications stay on your phone")
                 Button { model.clearAllNotifications() } label: { Label("Clear All", systemImage: "xmark.circle") }
                     .help("Dismiss every notification on both devices")
