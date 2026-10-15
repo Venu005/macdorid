@@ -20,7 +20,7 @@ Skipped at the owner's request on 2026-10-15. The probe was built and installed,
 11. **Show incoming calls** off in Mac Settings: no panel or sound. Turn it back on.
 12. **Wi-Fi blip mid-call:** turn the phone's Wi-Fi off and on during a call. The Mac shows "On a call with …" again once reconnected.
 
-## Final review: deferred minors
+## Final review: deferred minors (all 8 fixed 2026-10-15 on `fix/calls-minors`)
 1. **Wrong verb in a notice:** when a call ends at the moment Decline or Hang up is pressed, the notice says "Couldn't answer" (`asked` is cleared on `ended` before `callGone` arrives).
 2. **Notice timing:** while a notice shows, a new ringing call waits (and its sound plays late), and other state updates restart the 3 s timer.
 3. **Cold start:** clicking a `tel:` link while MacDroid isn't running says "Your phone isn't connected" before the phone has had time to connect.

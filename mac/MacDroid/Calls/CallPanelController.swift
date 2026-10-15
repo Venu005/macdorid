@@ -7,9 +7,10 @@ final class CallPanelController {
     private var panel: NSPanel?
     private static let size = NSSize(width: 320, height: 104)
 
-    func show(_ content: some View) {
+    /// The view is set once: it observes the model, and replacing it mid-click could drop the click (minor 6).
+    func show(_ content: @autoclosure () -> some View) {
         let panel = panel ?? makePanel()
-        panel.contentView = NSHostingView(rootView: content)
+        if panel.contentView == nil || self.panel == nil { panel.contentView = NSHostingView(rootView: content()) }
         if let screen = NSScreen.main?.visibleFrame {
             panel.setFrameOrigin(NSPoint(x: screen.maxX - Self.size.width - 16, y: screen.maxY - Self.size.height - 16))
         }
@@ -20,7 +21,7 @@ final class CallPanelController {
     func hide() { panel?.orderOut(nil) }
 
     private func makePanel() -> NSPanel {
-        let panel = NSPanel(contentRect: NSRect(origin: .zero, size: Self.size),
+        let panel = CallPanel(contentRect: NSRect(origin: .zero, size: Self.size),
                             styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: false)
         panel.isFloatingPanel = true
         panel.level = .statusBar
@@ -32,4 +33,10 @@ final class CallPanelController {
         panel.hasShadow = true
         return panel
     }
+}
+
+/// A borderless panel can't become key by default; this one can (without activating MacDroid), so its buttons always
+/// take clicks and show their colours (minor 6).
+private final class CallPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
 }

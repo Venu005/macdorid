@@ -256,3 +256,35 @@ actor GatedHelloTransport: MessageTransport {
     func release() { released = true; waiter?.resume(); waiter = nil }
     func close() async { closed = true }
 }
+
+extension ConnectionHubTests {
+    // Calls minor 7: status changes and messages arrive in one ordered stream, so a late "disconnected" from an old
+    // session can't wipe what the new session already sent.
+    @Test func eventsKeepStatusAndMessagesInOrder() async throws {
+        let hub = ConnectionHub(macName: "Test Mac", appVersion: "0.1.0")
+        let events = Collector<HubEvent>()
+        let stream = hub.events
+        let listener = Task { for await event in stream { await events.append(event) } }
+        let first = FakeTransport()
+        let firstTask = start(hub, first)
+        try first.receive(phoneHello)
+        try first.receive(.callState(CallState(callId: "k1", state: .ringing)))
+        try await eventually { await events.items.count == 2 }
+        let second = FakeTransport()
+        let secondTask = start(hub, second)
+        try await eventually { await second.sent.count == 1 }
+        try second.receive(phoneHello)
+        try second.receive(.callState(CallState(callId: "k2", state: .active)))
+        try await eventually { await events.items.count == 5 }
+        let peer = PeerInfo(device: "Nothing Phone (3)", app: "0.1.0", features: [])
+        #expect(await events.items == [
+            .status(.connected(peer)), .message(.callState(CallState(callId: "k1", state: .ringing))),
+            .status(.disconnected),
+            .status(.connected(peer)), .message(.callState(CallState(callId: "k2", state: .active))),
+        ])
+        second.hangUp()
+        await firstTask.value
+        await secondTask.value
+        listener.cancel()
+    }
+}

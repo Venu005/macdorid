@@ -37,11 +37,12 @@ public struct CallsState: Equatable, Sendable {
     /// The newest active call, for the popover line.
     public var activeCall: CallInfo? { calls.last { $0.phase == .active } }
 
-    /// What the floating panel shows (spec §3.2): a notice first, then the newest ringing call, then the newest active one.
+    /// What the floating panel shows (spec §3.2): the newest ringing call, then a notice, then the newest active call.
     public var panel: CallPanel {
+        // A ringing call is never hidden behind a notice (minor 2).
+        if showIncoming, let ringing = calls.last(where: { $0.phase == .ringing }) { return .ringing(ringing) }
         if let notice { return .notice(notice) }
         guard showIncoming else { return .none }
-        if let ringing = calls.last(where: { $0.phase == .ringing }) { return .ringing(ringing) }
         if let active = activeCall { return .active(active) }
         return .none
     }
@@ -70,17 +71,32 @@ public actor CallCenter {
         state = initial
     }
 
-    public func attach(to hub: ConnectionHub) {
+    public func attach(to hub: ConnectionHub) async {
         guard tasks.isEmpty else { return }
         broadcast.yield(state)
-        let messages = hub.messages
-        let statuses = hub.statusUpdates
+        // One ordered stream: a late "disconnected" from an old session can't wipe the new session's calls (minor 7).
+        let events = hub.events
         tasks.append(Task { [weak self] in
-            for await message in messages { await self?.handle(message) }
+            for await event in events {
+                switch event {
+                case .status(let status): await self?.connectionChanged(status)
+                case .message(let message): await self?.handle(message)
+                }
+            }
         })
-        tasks.append(Task { [weak self] in
-            for await status in statuses { await self?.connectionChanged(status) }
-        })
+        // The event stream doesn't replay: pick up a session that was already connected (subscribed first, so nothing is missed).
+        let current = await hub.status
+        if case .connected = current { connectionChanged(current) }
+    }
+
+    /// A `tel:` link that launched MacDroid: wait a little for the phone to connect before saying it isn't (minor 3).
+    public func waitUntilSupported(timeout: Duration) async -> Bool {
+        let deadline = ContinuousClock.now + timeout
+        while !state.supported {
+            guard ContinuousClock.now < deadline else { return false }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        return true
     }
 
     func handle(_ message: Message) {
@@ -98,9 +114,9 @@ public actor CallCenter {
                     if let index { s.calls[index] = info } else { s.calls.append(info) }
                 }
             }
-            if body.state == .ended { asked[body.callId] = nil }
+            // `asked` survives `ended`: the phone's error for an action pressed as the call ended comes after it (minor 1).
         case .callError(let body):
-            let action = body.callId.flatMap { asked[$0] }
+            let action = body.callId.flatMap { asked.removeValue(forKey: $0) }
             update { s in
                 s.notice = CallPresentation.errorNotice(body.reason, action: action)
                 // Only a call that's gone is dropped; after a refused action the phone sends the live call again (final review I1).

@@ -20,7 +20,13 @@ class MacDroidNotificationListener : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification, rankingMap: RankingMap) {
-        if (graph.callBridge.posted(sbn)) return // calls go to the Mac's call panel, not its notification list (Plan 10)
+        if (graph.callBridge.posted(sbn)) {
+            // Calls go to the Mac's call panel, not its notification list (Plan 10); one that was mirrored before
+            // (a VoIP notification turned into a call under the same key) leaves the list (minor 8).
+            bridge.removed(sbn.key)
+            return
+        }
+        graph.callBridge.removed(sbn.key) // and a call that became an ordinary notification ends as a call
         val ranking = Ranking().takeIf { rankingMap.getRanking(sbn.key, it) }
         bridge.posted(sbn, ranking)
     }

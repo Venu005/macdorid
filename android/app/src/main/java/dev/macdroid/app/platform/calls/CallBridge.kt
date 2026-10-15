@@ -61,7 +61,17 @@ class CallBridge(private val context: Context, private val connection: Connectio
         scope.launch(worker) { tracker.removed(key) }
     }
 
+    /** Never lets an unexpected error kill the app's process; the Mac hears "not supported" instead (minor 5). */
     private fun execute(command: CallCommand) {
+        try {
+            run(command)
+        } catch (e: Exception) {
+            if (command is CallCommand.Fire) tracker.failed(command.key, CallErrorReason.NotSupported)
+            else tracker.report(CallErrorReason.NotSupported, null)
+        }
+    }
+
+    private fun run(command: CallCommand) {
         when (command) {
             is CallCommand.Fire -> {
                 val sbn = runCatching { listener?.activeNotifications }.getOrNull()?.firstOrNull { it.key == command.key }

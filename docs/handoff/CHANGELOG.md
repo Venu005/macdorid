@@ -4,6 +4,18 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Calls: the 8 deferred minors fixed (fix/calls-minors)
+- **Owner:** calls from the Mac work (Answer, Decline, Hang up confirmed). The 8 deferred minors from the Plan 10 final review are now fixed:
+  1. **The notice names the right action** when a call ends as Decline or Hang up is pressed (`theNoticeNamesTheActionEvenWhenTheCallEnded`).
+  2. **A ringing call shows over a notice** and its sound plays at once; the 3 s notice timer restarts only when the notice changes (`aRingingCallShowsOverANotice`).
+  3. **A phone link that launches MacDroid** waits up to 5 s for the phone to connect (`CallCenter.waitUntilSupported`, `waitsForThePhoneToConnect`).
+  4. **Vanity numbers in links** are spelled on the keypad (`tel:1-800-FLOWERS` → `18003569377`); pasting still drops words (`telLinksSpellVanityNumbers`).
+  5. **No crash from an unexpected error** in `CallBridge` or `NotificationBridge`; the Mac hears "not supported" or "failed".
+  6. **Call panel hardening:** the panel can become key without activating MacDroid, and its view is set once.
+  7. **No race on reconnect:** `ConnectionHub.events` gives status changes and messages in one ordered stream, and `CallCenter` reads it (`eventsKeepStatusAndMessagesInOrder`).
+  8. **A notification that turns into a call** leaves the Mac's notification list, and a call that turns back into a notification ends as a call.
+- **Verified:** `swift test` 341; Mac app and Android builds with no warnings; `:core:test :app:testDebugUnitTest`; cross-platform test passed twice.
+
 ## 2026-10-15 — Merged calls on the Mac (Plan 10) to main
 - **What:** `feat/calls` merged into `main` locally as `c9ae68f` (`--no-ff`) at the owner's request, after they tried the dialer, phone links and the Settings fixes. Not pushed.
 - **Verified on `main`:** `swift test` 336; Mac app build (no code warnings); `:core:test :app:testDebugUnitTest :app:assembleDebug` (no warnings); cross-platform test passed.
