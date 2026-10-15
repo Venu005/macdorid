@@ -4,6 +4,16 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Spec: automatic phone → Mac clipboard (Plan 9)
+- **What:** wrote `docs/superpowers/specs/2026-10-15-macdroid-auto-clipboard-design.md` after brainstorming with the owner. Copying text on the phone goes to the Mac by itself:
+  - The "MacDroid control" service sees System UI's "copied" preview and briefly opens the invisible `ClipboardSendActivity` to read and send.
+  - Text only; never sensitive items; no echo.
+  - Silent on success, a toast on failure.
+  - `clipboard.set` gets an optional `auto` field so the Mac skips its notification.
+  - Task 1 is an on-device probe.
+- **Constraint (owner):** the app must work with no developer options, debugging, adb grants or Shizuku.
+- **Branch:** `main` (spec only); the work goes on `feat/auto-clipboard`.
+
 ## 2026-10-15 — Merged mirroring and remote control (Plans 7 and 8) to main
 - **What:** `feat/mirroring` merged into `main` locally as `75ac85b` (`--no-ff`) at the owner's request, after they tried mirroring and control on their phone and Mac. Not pushed.
 - **Verified on `main`:** `swift test` 317; Mac app build (no code warnings); `:core:test :app:testDebugUnitTest :app:assembleDebug` (no warnings); cross-platform test passed.
