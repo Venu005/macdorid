@@ -7,6 +7,7 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 ## 2026-10-15 — Plan 10: calls on the Mac (in progress on feat/calls)
 - **Task 1:** on-device probe skipped (owner). The fallbacks in the plan cover it (label-matched buttons, error notices); background answer and dialing are checked in the owner checklist. Notes in `docs/superpowers/plans/2026-10-15-macdroid-calls-followups.md`.
 - **Task 2:** `call.state` / `call.action` / `call.dial` / `call.error` in both codecs, 5 fixtures, `calls` feature on both sides, PROTOCOL.md 'Calls rules'. Verified: `swift test` 318, `:core:test`, Mac app build.
+- **Task 3:** Android core `CallTracker` (changes only, ended on removal, re-send on reconnect, actions → the notification's intents or `callGone`/`notSupported`), `CallNumbers`, `CallLabels`. Verified: `:core:test` (CallTrackerTest 14).
 
 ## 2026-10-15 — Calls plan (Plan 10)
 - **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-calls-10.md`, with 8 tasks:

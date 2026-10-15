@@ -65,6 +65,7 @@ Mac app (`mac/MacDroid/`):
 | Area | Files | Role |
 |---|---|---|
 | protocol | `Messages.kt`, `MessageCodec.kt` | Same contract as Swift (shared fixtures) |
+| calls | `CallTracker.kt` | Calls on the Mac (Plan 10): call notifications → `call.state` (changes only, `ended` on removal, re-sent after a reconnect); `call.action` → the notification's own Answer/Decline/Hang up or `call.error`; `call.dial` numbers checked by `CallNumbers`; `CallLabels` matches older notifications' buttons |
 | control | `ControlRules.kt` | Remote control rules (Plan 8): `GestureTracker` (tap, long-press at 500 ms, drags as one continued stroke), `SegmentQueue` (merges waiting middle segments), `ScrollGesture` (120 ms swipe kept on screen), `ScrollBuffer` (adds scroll batches up while a swipe plays; never under 3 % of the screen, so never a tap), `TextEdit` (insert/backspace at the cursor, whole code points; Return submits single-line fields), `SecretShadow` (password fields are edited from what MacDroid typed), `ConsentMatcher` (only MacDroid's screen-share consent) |
 | tls | `Fingerprint.kt`, `TrustManagers.kt` (pinned/capturing), `TlsClientFactory.kt`, `TrustFailures.kt` | Pinned mTLS OkHttp, classifying "wrong Mac / rejected" errors |
 | pairing | `PairingInvite.kt`, `PairingStore.kt`, `PairingClient.kt` | QR parse, pair POST, fingerprint probe |
