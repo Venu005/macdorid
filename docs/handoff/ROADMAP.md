@@ -71,7 +71,10 @@ The owner's planned features, with status:
 - Screen mirroring (low latency): done (Plan 7, merged), with phone audio; 50–80 ms target.
 - Remote control of Android from the Mac: done (Plan 8, merged), through an accessibility service (owner's choice; Play-restricted, fine for personal use).
 - Contact sync: not specced. Android `READ_CONTACTS`; Mac Contacts framework plus the sandbox address-book entitlement.
-- Use the phone as a webcam (Wi-Fi + USB): not specced. Needs a macOS CoreMediaIO camera extension; USB means adb.
+- Use the phone as a webcam (Wi-Fi + USB): **parked 2026-10-15** (owner), before a spec. What was found:
+  - A system-wide camera on macOS 26 needs a CoreMediaIO camera extension. Installing one requires the app signed with a paid Apple Developer Team ID (the Mac app is ad-hoc signed today; the owner plans to enrol later). Legacy DAL plug-ins no longer load.
+  - The owner's Nothing Phone (3) has no built-in USB "Webcam" mode.
+  - Route without the membership: Phase 1 = phone camera → a MacDroid Camera window on the Mac, bridged into calls by OBS Virtual Camera. Phase 2 (after enrolling) = a built-in "MacDroid Camera" extension.
 - Mic support (Wi-Fi + USB): not specced. Needs a macOS audio driver/extension; USB means adb.
 
 Also noted earlier: SMS (personal build only, Play-restricted), USB transport via `adb reverse`, Wi-Fi Direct, and the parked Finder Share extension.

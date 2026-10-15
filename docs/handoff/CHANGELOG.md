@@ -4,6 +4,13 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Webcam parked
+- **What:** brainstormed "phone as a Mac webcam" and parked it before a spec.
+  - A system-wide camera needs a camera extension, which needs a paid Apple Developer Team ID (the owner plans to enrol later).
+  - The owner's phone has no USB webcam mode.
+  - The OBS bridge route is noted for later. Recorded in ROADMAP.md.
+- **Branch:** `main` (docs only).
+
 ## 2026-10-15 — Plan 9 (automatic phone → Mac clipboard) dropped
 - **What:** ran Plan 9's on-device probe with the owner. The control service saw System UI's copy preview (`clipboard_ui`, which shows `minimized_preview`, then `clipboard_preview`/`text_preview`) and could open the invisible reader from the background and read the clipboard (28–219 ms).
 - **The problem:** every read shows Android's clipboard-access message and refreshes the screen twice (the reader opening and closing).
