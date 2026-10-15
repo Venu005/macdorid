@@ -74,6 +74,10 @@ malformed frames are dropped without closing the connection. Both sides send `he
 | `input.key` | Mac → phone | `key` (`back` \| `home` \| `recents` \| `volumeUp` \| `volumeDown` \| `power` \| `backspace`) |
 | `input.text` | Mac → phone | `text` (≤ 4,096 characters) |
 | `input.notice` | phone → Mac | `reason` (`noTextField`) |
+| `call.state` | phone → Mac | `callId`, `state` (`ringing` \| `active` \| `ended`), `name` (optional), `number` (optional) |
+| `call.action` | Mac → phone | `callId`, `action` (`answer` \| `decline` \| `hangUp`) |
+| `call.dial` | Mac → phone | `number` (1–32 characters of `+0-9*#`, `+` only first) |
+| `call.error` | phone → Mac | `reason` (`callGone` \| `notSupported` \| `noPermission`), `callId` (optional) |
 
 ### Transfer rules
 - The phone always makes the HTTP request: `PUT` for phone → Mac, `GET` for Mac → phone. Bytes go over HTTPS, never the WebSocket.
@@ -84,7 +88,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 - File names from the other side are sanitised; see `fixtures/file-naming.json`.
 
 ### Features
-`hello.features` lists what each side implements: `files`, `notifications`, `clipboard`, `ring`, `links`, `media`, `photos`, `mirror` and `control`. A feature is used only when both sides list it. A missing `features` means none.
+`hello.features` lists what each side implements: `files`, `notifications`, `clipboard`, `ring`, `links`, `media`, `photos`, `mirror`, `control` and `calls`. A feature is used only when both sides list it. A missing `features` means none.
 
 ### Notification rules
 - The phone owns the mute list. `notification.mute` is a request; the phone answers with a fresh `notification.apps`.
@@ -131,3 +135,9 @@ malformed frames are dropped without closing the connection. Both sides send `he
 - Positions are 0–1 fractions of the mirrored picture (top-left origin); the phone maps them to its screen in the current orientation. Clicks outside the picture aren't sent.
 - `input.scroll` deltas are in finger direction (how far the content moves), as fractions of the picture.
 - `input.text` is inserted at the cursor of the focused text field (replacing a selection); when no editable field has focus the phone answers `input.notice{noTextField}`.
+
+### Calls rules
+- `callId` is the phone's call-notification key. The phone sends `call.state` only when a call's state, name or number changes; `ended` follows the notification's removal; after a reconnect it sends every current call again.
+- `call.action` fires the phone app's own Answer / Decline / Hang up. If the call is unknown the phone answers `call.error{callGone}`; if the action isn't available, `call.error{notSupported}`.
+- `call.dial` needs the phone's "Make and manage phone calls" permission (`call.error{noPermission}` without it). The phone ignores numbers that aren't 1–32 characters of `+0-9*#` with `+` only first.
+- Call audio stays on the phone. Names and numbers are never logged, and the Mac keeps calls in memory only.

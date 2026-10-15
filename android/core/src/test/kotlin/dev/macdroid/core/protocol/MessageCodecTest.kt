@@ -34,6 +34,7 @@ class MessageCodecTest {
         "mirror.start.json", "mirror.state.json", "mirror.state.stopped.json", "mirror.stop.json", "mirror.keyframe.json",
         "mirror.ping.json", "mirror.pong.json",
         "input.pointer.json", "input.scroll.json", "input.key.json", "input.text.json", "input.notice.json",
+        "call.state.json", "call.state.ended.json", "call.action.json", "call.dial.json", "call.error.json",
     )
 
     @Test fun fixturesRoundTrip() {
@@ -119,8 +120,8 @@ class MessageCodecTest {
         }
     }
 
-    @Test fun supportedFeaturesIncludeControl() {
-        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media", "photos", "mirror", "control"), Features.SUPPORTED)
+    @Test fun supportedFeaturesIncludeCalls() {
+        assertEquals(listOf("files", "notifications", "clipboard", "ring", "links", "media", "photos", "mirror", "control", "calls"), Features.SUPPORTED)
     }
 
     @Test fun inputFixturesDecode() {
@@ -195,5 +196,15 @@ class MessageCodecTest {
         )
         assertFalse(MessageCodec.encode(Message.TransferOffer(TransferOfferBody("t", "a", 1, "x/y"))).contains("purpose"))
         assertEquals(1_048_576, ClipboardLimits.MAX_FRAME_BYTES)
+    }
+
+    @Test fun callFixturesDecode() {
+        val id = "0|com.google.android.dialer|1|null|10123"
+        assertEquals(Message.CallState(CallStateBody(id, CallPhase.Ringing, "Mom", "+15551234567")), MessageCodec.decode(Fixtures.text("call.state.json")))
+        assertEquals(Message.CallState(CallStateBody(id, CallPhase.Ended)), MessageCodec.decode(Fixtures.text("call.state.ended.json")))
+        assertEquals(Message.CallAction(CallActionBody(id, CallActionKind.HangUp)), MessageCodec.decode(Fixtures.text("call.action.json")))
+        assertEquals(Message.CallDial(CallDialBody("+15551234567")), MessageCodec.decode(Fixtures.text("call.dial.json")))
+        assertEquals(Message.CallError(CallErrorBody(CallErrorReason.CallGone, id)), MessageCodec.decode(Fixtures.text("call.error.json")))
+        assertFalse(MessageCodec.encode(Message.CallState(CallStateBody("c", CallPhase.Ended))).contains("name"))
     }
 }

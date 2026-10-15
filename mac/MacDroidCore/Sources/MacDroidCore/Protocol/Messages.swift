@@ -4,7 +4,7 @@ public enum ProtocolInfo {
     public static let version = 1
     public static let serviceType = "_macdroid._tcp"
     /// Features this app implements, sent in `hello` (spec §2.1).
-    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos, Feature.mirror, Feature.control]
+    public static let features: [String] = [Feature.files, Feature.notifications, Feature.clipboard, Feature.ring, Feature.links, Feature.media, Feature.photos, Feature.mirror, Feature.control, Feature.calls]
 }
 
 /// Names used in `hello.features`. A feature is active only when both sides list it.
@@ -18,6 +18,7 @@ public enum Feature {
     public static let photos = "photos"
     public static let mirror = "mirror"
     public static let control = "control"
+    public static let calls = "calls"
 }
 
 public struct Hello: Codable, Equatable, Sendable {
@@ -667,6 +668,51 @@ public struct InputNotice: Codable, Equatable, Sendable {
     public init(reason: InputNoticeReason) { self.reason = reason }
 }
 
+// MARK: Calls (Plan 10)
+
+public enum CallPhase: String, Codable, Sendable { case ringing, active, ended }
+
+/// The phone's view of one call (spec §2.1). `callId` is the call notification's key.
+public struct CallState: Codable, Equatable, Sendable {
+    public var callId: String
+    public var state: CallPhase
+    public var name: String?
+    public var number: String?
+    public init(callId: String, state: CallPhase, name: String? = nil, number: String? = nil) {
+        self.callId = callId
+        self.state = state
+        self.name = name
+        self.number = number
+    }
+}
+
+public enum CallActionKind: String, Codable, Sendable { case answer, decline, hangUp }
+
+public struct CallAction: Codable, Equatable, Sendable {
+    public var callId: String
+    public var action: CallActionKind
+    public init(callId: String, action: CallActionKind) {
+        self.callId = callId
+        self.action = action
+    }
+}
+
+public struct CallDial: Codable, Equatable, Sendable {
+    public var number: String
+    public init(number: String) { self.number = number }
+}
+
+public enum CallErrorReason: String, Codable, Sendable { case callGone, notSupported, noPermission }
+
+public struct CallError: Codable, Equatable, Sendable {
+    public var reason: CallErrorReason
+    public var callId: String?
+    public init(reason: CallErrorReason, callId: String? = nil) {
+        self.reason = reason
+        self.callId = callId
+    }
+}
+
 public enum Message: Equatable, Sendable {
     case hello(Hello)
     case deviceStatus(DeviceStatus)
@@ -713,6 +759,10 @@ public enum Message: Equatable, Sendable {
     case inputKey(InputKey)
     case inputText(InputText)
     case inputNotice(InputNotice)
+    case callState(CallState)
+    case callAction(CallAction)
+    case callDial(CallDial)
+    case callError(CallError)
     /// A type this version doesn't understand. Decoded so callers can ignore it; never encoded.
     case unknown(type: String)
 }
