@@ -4,6 +4,12 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-15 — Plan 9 (automatic phone → Mac clipboard) dropped
+- **What:** ran Plan 9's on-device probe with the owner. The control service saw System UI's copy preview (`clipboard_ui`, which shows `minimized_preview`, then `clipboard_preview`/`text_preview`) and could open the invisible reader from the background and read the clipboard (28–219 ms).
+- **The problem:** every read shows Android's clipboard-access message and refreshes the screen twice (the reader opening and closing).
+- **What we tried and dropped:** a floating one-tap "Send to Mac" button; the owner didn't like it either.
+- **Outcome:** Plan 9 dropped. Phone → Mac stays manual (tile, notification button, Share). The spec and plan are kept with a "Dropped" note. No product code changed; `feat/auto-clipboard` (no commits) deleted; the normal build is reinstalled on the phone.
+
 ## 2026-10-15 — Automatic clipboard plan (Plan 9)
 - **What:** wrote `docs/superpowers/plans/2026-10-15-macdroid-auto-clipboard-9.md`, with 7 tasks:
   1. an on-device probe with the owner

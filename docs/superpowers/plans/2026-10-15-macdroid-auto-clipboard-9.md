@@ -1,5 +1,7 @@
 # Automatic Phone → Mac Clipboard Implementation Plan (Plan 9)
 
+> **Dropped 2026-10-15 (owner).** The on-device probe showed Android shows its clipboard-access message and the screen refreshes twice on every automatic read, and a one-tap floating "Send to Mac" button didn't look good either. Phone → Mac stays manual (Quick Settings tile, notification button, Share). Kept for the record; see DECISIONS.md.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Text copied on the phone lands on the Mac's clipboard by itself, with no tap, no app switch and no Share sheet.

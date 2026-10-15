@@ -1,5 +1,7 @@
 # MacDroid — Automatic Phone → Mac Clipboard (Plan 9)
 
+> **Dropped 2026-10-15 (owner).** The on-device probe showed Android shows its clipboard-access message and the screen refreshes twice on every automatic read, and a one-tap floating "Send to Mac" button didn't look good either. Phone → Mac stays manual (Quick Settings tile, notification button, Share). Kept for the record; see DECISIONS.md.
+
 Builds on:
 - clipboard sync (Plan 4): `clipboard.set`, `ClipboardHub`, `ClipboardBridge`, the invisible `ClipboardSendActivity`, the Mac's `ClipboardSync` and its echo guard
 - the "MacDroid control" accessibility service (Plan 8), which already receives System UI events
