@@ -18,7 +18,7 @@ open mac/build/Build/Products/Debug/MacDroid.app
 cd android && ./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug
 ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
-# Swift server ↔ Kotlin client end to end (pairing, battery, a notification with a reply, clipboard text both ways and an image, ring, links both ways, media state and a command, photos (page, thumbnail, save, gone), a mirroring session (session gate, H.264 fixture decoded, audio, key-frame request, stop), and 24 MiB files both ways with a mid-file disconnect; ~1 min)
+# Swift server ↔ Kotlin client end to end (pairing, battery, a notification with a reply, clipboard text both ways and an image, ring, links both ways, media state and a command, photos (page, thumbnail, save, gone), a mirroring session (session gate, H.264 fixture decoded, audio, key-frame request, remote control input and `input.notice`, stop), and 24 MiB files both ways with a mid-file disconnect; ~1 min)
 ./scripts/cross-platform-test.sh
 # The dev server alone: --receive-dir <dir> saves files from the phone there; --send-on-connect <file> sends that file when a phone connects
 #   mac/MacDroidCore/.build/debug/macdroid-devserver --host 127.0.0.1 --port 47999 --receive-dir /tmp/in --send-on-connect /tmp/out.bin
@@ -36,8 +36,12 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 
 ## Gotchas
 - **Mirroring (Plan 7):**
-  - **Starting:** Mac → Phone page or the popover → Mirror. The phone posts "Mirror to <Mac>? Tap to start" (Android blocks background activity starts until Plan 8's accessibility service).
+  - **Starting:** Mac → Phone page or the popover → Mirror. With MacDroid control on, auto-Start presses "Share screen"; without it, the phone posts "Mirror to <Mac>? Tap to start" (Android blocks background activity starts).
   - **Locking:** Android ends screen capture when the phone locks, and shows no consent over the lock screen. Mirroring keeps the phone awake; start it on an unlocked phone.
+- **Remote control (Plan 8):**
+  - **Turning it on:** phone → MacDroid → Settings → Remote control → MacDroid control → Accessibility → turn on "MacDroid control". Don't toggle it from adb on the owner's phone.
+  - **Auto-Start** (Settings → "Start mirroring without touching the phone", on by default in personal builds) presses "Share screen" by itself, but only on an unlocked phone and only while a session waits for consent.
+  - **Testing input:** `scripts/cross-platform-test.sh` covers the messages and the gate; gestures, typing and auto-Start are checked by hand (owner checklist in `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`).
   - **Probe results:** `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md` (the consent dialog is System UI's "Share your screen with MacDroid?", button `android:id/button1` "Share screen").
   - **The H.264 test fixture** is regenerated with `scripts/make-h264-fixture.sh` (needs ffmpeg with libx264).
 - **Photos access (Plan 6):** Android 14+ asks for `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO` and `READ_MEDIA_VISUAL_USER_SELECTED` together ("Allow all" or "Select photos"); Android 13 has images/video only; 10–12 use `READ_EXTERNAL_STORAGE`. To test limited access: phone Settings → Apps → MacDroid → Permissions → Photos and videos → "Allow limited access". Mac thumbnails live in `~/Library/Containers/dev.macdroid.mac/Data/Library/Application Support/PhotoThumbs/`; previews and drags in `…/Data/Library/Caches/PhotoCache/` (emptied at launch).

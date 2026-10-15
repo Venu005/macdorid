@@ -46,3 +46,19 @@ Start with the phone **unlocked** (Android ends capture on lock).
 7. **Early frames:** frames sent before the media socket opens go out late, and the config frame is sent twice.
 8. **Thread visibility:** `stream`/`policy` in `MirrorService` are read on other threads without `@Volatile`.
 9. **Readout timing:** the latency readout measures to enqueue, not display (a slight underestimate).
+
+## Owner checklist: remote control (Plan 8)
+1. Phone → Settings → Remote control → **MacDroid control** → turn on "MacDroid control" in Accessibility. MacDroid's row then reads "On".
+2. With the phone **unlocked** on the home screen, click **Mirror** on the Mac. "Share screen" is pressed by itself and the picture appears.
+3. **Click** an app icon: it opens. **Drag** up and down in a list: it scrolls smoothly. **Hold** on an icon: its long-press menu opens.
+4. **Trackpad or wheel scroll** in a list: it scrolls in the same direction as on the Mac.
+5. **Right-click** = Back. The bar's **Back, Home, Recents, Volume −/+ and Lock** all work. Lock ends mirroring (expected).
+6. **Typing:**
+   - Click a chat's text box and **type**; the text appears.
+   - **Delete** removes characters, including a whole emoji.
+   - **Return** gives a new line.
+   - **⌘V** pastes the Mac clipboard.
+   - Typing with no text box focused shows "Click a text field on the phone first".
+7. Click in the **black bars** beside the picture: nothing happens on the phone.
+8. Turn MacDroid control **off** while mirroring: the bar buttons grey out and "Turn on MacDroid control on your phone to use the mouse." appears. Turn it back on: control returns.
+9. Phone → Settings → Remote control → turn **"Start mirroring without touching the phone"** off; Mirror again: you tap Share screen yourself.
