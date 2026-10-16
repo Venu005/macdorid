@@ -656,9 +656,19 @@ public struct InputKey: Codable, Equatable, Sendable {
 }
 
 public struct InputText: Codable, Equatable, Sendable {
+    /// In UTF-16 code units, as the phone counts them (PROTOCOL.md).
     public static let maxLength = 4096
     public var text: String
     public init(text: String) { self.text = text }
+
+    /// At most `maxLength` UTF-16 units, never ending on half of a surrogate pair (Plan 8 minor #1).
+    public static func capped(_ text: String) -> String {
+        let units = Array(text.utf16)
+        guard units.count > maxLength else { return text }
+        var end = maxLength
+        if UTF16.isLeadSurrogate(units[end - 1]) { end -= 1 }
+        return String(decoding: units[..<end], as: UTF16.self)
+    }
 }
 
 public enum InputNoticeReason: String, Codable, Sendable { case noTextField }

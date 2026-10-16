@@ -646,14 +646,14 @@ final class AppModel {
 
     func pasteOnPhone() {
         guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else { return }
-        typeOnPhone(String(text.prefix(InputText.maxLength)))
+        typeOnPhone(InputText.capped(text))
     }
 
     private func flushText() {
         textFlush?.cancel()
         textFlush = nil
         guard !pendingText.isEmpty else { return }
-        let text = String(pendingText.prefix(InputText.maxLength))
+        let text = InputText.capped(pendingText)
         pendingText = ""
         mirrorInput.continuation.yield(.inputText(InputText(text: text)))
     }

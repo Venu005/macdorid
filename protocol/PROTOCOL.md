@@ -72,7 +72,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 | `input.pointer` | Mac → phone | `action` (`down` \| `move` \| `up` \| `cancel`), `x`, `y` (0–1 of the picture), `t` (Mac ms) |
 | `input.scroll` | Mac → phone | `x`, `y`, `dx`, `dy` (fractions of the picture, finger direction) |
 | `input.key` | Mac → phone | `key` (`back` \| `home` \| `recents` \| `volumeUp` \| `volumeDown` \| `power` \| `backspace`) |
-| `input.text` | Mac → phone | `text` (≤ 4,096 characters) |
+| `input.text` | Mac → phone | `text` (≤ 4,096 UTF-16 code units; senders never split a surrogate pair) |
 | `input.notice` | phone → Mac | `reason` (`noTextField`) |
 | `call.state` | phone → Mac | `callId`, `state` (`ringing` \| `active` \| `ended`), `name` (optional), `number` (optional) |
 | `call.action` | Mac → phone | `callId`, `action` (`answer` \| `decline` \| `hangUp`) |

@@ -157,3 +157,12 @@ import Testing
         #expect(MirrorKeys.action(keyCode: 12, characters: "q", command: true, fullScreen: false) == nil)
     }
 }
+
+@Suite struct InputTextCapTests {
+    @Test func capsInUtf16UnitsWithoutSplittingAPair() {
+        let text = String(repeating: "a", count: 4095) + "😀"
+        #expect(InputText.capped(text).utf16.count == 4095)
+        #expect(InputText.capped(String(repeating: "a", count: 5000)).utf16.count == 4096)
+        #expect(InputText.capped("hi") == "hi")
+    }
+}

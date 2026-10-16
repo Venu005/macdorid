@@ -215,8 +215,7 @@ class CrossPlatformTest {
         assertEquals(1, received.count { it is Message.InputScroll })
         // No text field focused on this "phone": say so.
         assertTrue(manager.send(Message.InputNotice(InputNoticeBody(InputNoticeReason.NoTextField))))
-        delay(300)
-        delay(500)
+        delay(800)
         manager.send(Message.MirrorState(MirrorStateBody(start.sessionId, MirrorPhaseName.Stopped, reason = MirrorStopReason.User)))
         socket.close(1000, null)
         delay(300)

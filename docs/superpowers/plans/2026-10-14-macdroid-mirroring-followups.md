@@ -70,13 +70,13 @@ Start with the phone **unlocked** (Android ends capture on lock).
 ## Plan 8 final review: open items
 - **Ruled by the owner 2026-10-16 (fixed in Plan 11): yes, volume goes to the Mac player while audio streams.** Was: Mac volume buttons during audio mirroring.** With phone audio on, the phone's speaker is muted; Mac Volume + raises the phone's media volume, so the phone speaker plays too, and the restore at the end overwrites it. This is what the spec says (volume keys → phone volume). Owner to decide: map volume to the Mac player while audio streams?
 - **Deferred minors:**
-  1. The 4,096 cap counts Characters on the Mac and UTF-16 units on the phone; emoji-heavy pastes over the cap can split a surrogate pair. Cap in UTF-16 units on the Mac, back off a trailing high surrogate, and say so in PROTOCOL.md.
-  2. Backspace removes one code point, not one grapheme (ZWJ emoji and flags take several presses).
+  1. **Fixed (Plan 11).** The 4,096 cap counts Characters on the Mac and UTF-16 units on the phone; emoji-heavy pastes over the cap can split a surrogate pair. Cap in UTF-16 units on the Mac, back off a trailing high surrogate, and say so in PROTOCOL.md.
+  2. **Fixed (Plan 11).** Backspace removes one code point, not one grapheme (ZWJ emoji and flags take several presses).
   3. **Kept (Plan 11):** the owner's typing checklist passed on the device. Each keystroke rewrites the whole field (breaks undo/IME composition; may race the node cache when typing fast). Check on the device.
-  4. `GesturePlayer` doesn't pump again after `dispatchGesture` returns false; queued segments wait for the next input.
+  4. **Fixed (Plan 11).** `GesturePlayer` doesn't pump again after `dispatchGesture` returns false; queued segments wait for the next input.
   5. **Fixed (Plan 11).** The dot cursor shows even when control is off and over the black bars.
   6. **Fixed (Plan 11).** `MirrorInputNSView.down` can stay true if control turns off mid-drag.
   7. **Fixed (Plan 11).** Unsent keys (Tab) go to `super.keyDown` and can move focus off the picture; dead keys and non-Latin input methods don't work (not an `NSTextInputClient`).
   8. **Fixed (Plan 11).** Esc is always Back, so it can't leave full screen on the mirror window.
   9. **Fixed (Plan 11).** Scroll deltas are normalised to the view, not the aspect-fit picture.
-  10. `CrossPlatformTest` has `delay(300)` straight before `delay(500)`.
+  10. **Fixed (Plan 11).** `CrossPlatformTest` has `delay(300)` straight before `delay(500)`.
