@@ -168,6 +168,21 @@ import Testing
         #expect(await manager.snapshot.active.first?.phase == .active)
     }
 
+    // Plan 11: when the part becomes unreachable the record is forgotten, and the part goes with it.
+    @Test func forgetRemovesThePartFile() async throws {
+        let f = try TransferFixture()
+        do {
+            let first = f.manager()
+            await first.handle(makeOffer("t1", name: "a.bin", size: 10))
+            try await eventually { await decided(first) }
+        }
+        let part = f.file("a.bin.macdroid-part")
+        try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: part.path(percentEncoded: false)) // can't be opened
+        let manager = f.manager() // relaunch: the part is opened again on the next HEAD, and that fails
+        #expect(await manager.uploadOffset(id: "t1") == nil)
+        #expect(!f.exists("a.bin.macdroid-part"))
+    }
+
     // Review Focus #1
     @Test func reofferOfFinishedIdReplaysResult() async throws {
         let f = try TransferFixture()

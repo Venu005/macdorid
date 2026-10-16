@@ -16,6 +16,7 @@ struct FilesView: View {
             if let error = model.transientError { BannerView(kind: .error, message: error) }
             List {
                 Section { dropZone }
+                    .onAppear { model.recheckReceivedFiles() }
                 if !snapshot.active.isEmpty {
                     Section("In progress") {
                         ForEach(snapshot.active) { TransferRow(record: $0, rate: snapshot.rates[$0.id], model: model) }

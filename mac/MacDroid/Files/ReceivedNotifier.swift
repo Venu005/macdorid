@@ -41,6 +41,14 @@ final class ReceivedNotifier {
         let open = response.actionIdentifier == openAction
         await MainActor.run {
             let url = URL(fileURLWithPath: path)
+            guard FileManager.default.fileExists(atPath: path) else {
+                // Moved or deleted since it arrived: say so rather than doing nothing (Plan 11).
+                let alert = NSAlert()
+                alert.messageText = "The file was moved or deleted"
+                alert.informativeText = url.lastPathComponent
+                alert.runModal()
+                return
+            }
             if open { NSWorkspace.shared.open(url) } else { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         }
     }

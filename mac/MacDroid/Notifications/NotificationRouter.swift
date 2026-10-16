@@ -6,7 +6,6 @@ import UserNotifications
 @MainActor
 final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
     private var categories: [String: UNNotificationCategory] = [:]
-    private var authorized: Bool?
     /// Responses to mirrored phone notifications, already read out of the system response.
     var onPhoneResponse: ((PhoneNotificationResponse) -> Void)?
 
@@ -42,10 +41,12 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
 
     /// Asks for permission the first time anything needs to notify.
     func ensureAuthorized() async -> Bool {
-        if let authorized { return authorized }
-        let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])) ?? false
-        authorized = granted
-        return granted
+        // Read every time: the user can change it in System Settings while MacDroid runs (Plan 11: it was cached).
+        switch await UNUserNotificationCenter.current().notificationSettings().authorizationStatus {
+        case .authorized, .provisional, .ephemeral: return true
+        case .denied: return false
+        default: return (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])) ?? false
+        }
     }
 
     /// The user turned MacDroid's notifications off in System Settings.

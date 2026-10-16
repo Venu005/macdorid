@@ -24,15 +24,19 @@ extension MacDroidServer {
     private static func receiveUpload(_ request: Request, context: MacDroidRequestContext, transfers: TransferManager) async throws -> Response {
         let id = try context.parameters.require("id")
         var start: Int64 = 0
+        var total: Int64?
         if let header = request.headers[.contentRange] {
             guard let range = ByteRanges.parseContentRange(header) else { throw HTTPError(.badRequest) }
             start = range.start
+            total = range.total
         }
         let upload: TransferManager.Upload
         do {
-            upload = try await transfers.beginUpload(id: id, start: start)
+            upload = try await transfers.beginUpload(id: id, start: start, total: total)
         } catch TransferManager.RouteError.offsetMismatch(let current) {
             return Response(status: .conflict, headers: [uploadOffsetField: String(current)])
+        } catch TransferManager.RouteError.rangeNotSatisfiable {
+            throw HTTPError(.rangeNotSatisfiable)
         } catch {
             throw HTTPError(.notFound)
         }
@@ -95,15 +99,17 @@ extension MacDroidServer {
             await transfers.sourceFailed(id: id)
             throw HTTPError(.gone)
         }
+        // If the phone goes away before the body starts, the closure below never runs: the lease still lets go (Plan 11).
+        let lease = AccessLease {
+            reader.close()
+            file.stop()
+        }
         var headers: HTTPFields = [:]
         if start > 0, start < download.size {
             headers[.contentRange] = "bytes \(start)-\(download.size - 1)/\(download.size)"
         }
         let body = ResponseBody(contentLength: Int(download.size - start)) { writer in
-            defer {
-                reader.close()
-                file.stop()
-            }
+            defer { lease.end() }
             while let chunk = try reader.next() {
                 try await writer.write(ByteBuffer(bytes: chunk))
                 guard await transfers.progress(id: id, bytesDone: reader.position) else { throw CancellationError() }
@@ -113,4 +119,22 @@ extension MacDroidServer {
         }
         return Response(status: start > 0 ? .partialContent : .ok, headers: headers, body: body)
     }
+}
+
+/// Runs `release` exactly once: when `end()` is called, or when the lease is dropped without it.
+final class AccessLease: @unchecked Sendable {
+    private let lock = NSLock()
+    private var release: (() -> Void)?
+
+    init(_ release: @escaping () -> Void) { self.release = release }
+
+    func end() {
+        let pending = lock.withLock { () -> (() -> Void)? in
+            defer { release = nil }
+            return release
+        }
+        pending?()
+    }
+
+    deinit { end() }
 }

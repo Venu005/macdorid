@@ -22,16 +22,16 @@ Owner-verified on 2026-10-13: everything except the 2 GB+ file.
 - Stale "Save**Fixed (Plan 11).**  … from your Mac?" notifications can create an empty orphan document after the transfer is gone.
 - Home's Send button**Fixed (Plan 11).**  silently does nothing while disconnected; it should say "Connect to your Mac first".
 - Android checks whether**Fixed (Plan 11).**  a file exists on the main thread when you tap a row.
-- The Mac checks file existence for every history row on every update; it should cache the result per id.
-- The Mac notification's Open/Show doesn't check the file, and notification permission is cached for the session.
+- The Mac checks file existence**Fixed (Plan 11).**  for every history row on every update; it should cache the result per id.
+- The Mac notification's Open/Show**Fixed (Plan 11).**  doesn't check the file, and notification permission is cached for the session.
 - The SAF copy fallback**Fixed (Plan 11).**  creates the target with its real MIME type, so a provider may append an extension.
 
 ## Deferred minors (from the Plan 2a final review)
-- `TransferManager.forget()` leaves an orphaned `.macdroid-part` file.
-- A re-offer during the Mac's checksum verification can recreate an empty part file.
-- GET's security-scoped access can leak if the phone disconnects before the response starts.
+- `TransferManager.forget()`**Fixed (Plan 11).**  leaves an orphaned `.macdroid-part` file.
+- A re-offer during**Fixed (Plan 11).**  the Mac's checksum verification can recreate an empty part file.
+- GET's security-scoped**Fixed (Plan 11).**  access can leak if the phone disconnects before the response starts.
 - Android: a progress callback**Fixed (Plan 11).**  can re-add a speed for a finished transfer (cosmetic).
-- PUT doesn't check `Content-Range` end/total against the offered size (hardening).
+- PUT doesn't check**Fixed (Plan 11).**  `Content-Range` end/total against the offered size (hardening).
 - **Already fixed (no such comments left; Plan 11 check).** Stale "later plans add … transfers" comments in `Messages.swift` and `Messages.kt`.
 
 ## Later

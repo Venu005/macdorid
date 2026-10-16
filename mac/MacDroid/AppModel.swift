@@ -494,10 +494,24 @@ final class AppModel {
     func cancelTransfer(_ id: String) { Task { await transferManager.cancel(id: id) } }
     func retryTransfer(_ id: String) { Task { await transferManager.retry(id: id) } }
 
-    /// A received file can be deleted or moved after it arrived; rows and actions check before using it.
+    /// Bumped to re-check received files (the Files page appearing); rows read it, so they redraw.
+    private(set) var receivedFileChecks = 0
+    /// Per-record answers, so a busy history doesn't stat every file on every update (Plan 11).
+    @ObservationIgnored private var receivedFileCache: [String: (url: URL, check: Int, exists: Bool)] = [:]
+
+    /// A received file can be deleted or moved after it arrived; rows check (cached per record) and actions check again.
     func receivedFileExists(_ record: TransferRecord) -> Bool {
         guard record.direction == .fromPhone, let url = record.savedURL else { return true }
-        return FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
+        let check = receivedFileChecks
+        if let cached = receivedFileCache[record.id], cached.url == url, cached.check == check { return cached.exists }
+        let exists = FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
+        receivedFileCache[record.id] = (url, check, exists)
+        return exists
+    }
+
+    func recheckReceivedFiles() {
+        receivedFileCache.removeAll()
+        receivedFileChecks += 1
     }
 
     func revealReceived(_ record: TransferRecord) {

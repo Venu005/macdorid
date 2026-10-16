@@ -14,6 +14,18 @@ Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits
 - **Task 7 (small wins on Android):** links that the Mac's parser accepts (`|`, `{`, `^`, IDN hosts) are no longer dropped on the phone. `LinkExtractor.isAllowed` checks the scheme and authority itself instead of using `java.net.URI` (`linksSwiftAcceptsAreAllowed`, RED→GREEN). Swiping away the ring notification stops the ringing (delete intent). App names are cached, so media callbacks don't query PackageManager on the main thread each time. The art cache key includes the art's size and the duration, and small placeholders aren't cached. Link notifications use their own id range instead of `url.hashCode()`. The unused `RingSession.timedOut` is removed (the Ringer's timer does the 30 s stop). Verified: `:core:test :app:testDebugUnitTest :app:assembleDebug`, no warnings.
 - **Task 8 (small wins on the Mac, plus protocol):** `media.state` gains an optional `speed` (playback rate). The phone sends it, and sends a new state when it changes. The Mac projects the seek bar at that speed, so it no longer drifts at 1.5× (fixture `media.state.json`, PROTOCOL.md, both codecs; tests `mediaStateCarriesTheSpeed`, `projectedPositionAdvancesAtSpeed`, `sendsTheSpeedAndResendsWhenItChanges`). A released seek stays put until the phone catches up, or for 3 s (`MediaPresentation.PendingSeek`, `aReleasedSeekHoldsUntilThePhoneCatchesUp`). The `MediaArt` folder keeps the 8 most recently seen images (`IconCache.prune`, `pruneKeepsTheNewest`). Links opened on the Mac from the phone are limited to 3 in any 10 s (`LinkThrottle`, `linkThrottleAllowsThreeIn10Seconds`). Verified: `swift test` 357; `:core:test :app:testDebugUnitTest :app:assembleDebug`; Mac app build, no code warnings; cross-platform test passed.
 - **Task 9 (file transfer on Android):** a cancel that lands while a part is being created no longer leaves the part behind. The engine keeps the part as soon as it exists and deletes it on cancellation, and "Ask where to save" prompts stay cancellable (`cancelDuringCreatePartDeletesThePart`, RED→GREEN). A late progress callback can't bring back a finished transfer's speed. Platform fixes:
+- **Task 10 (file transfer on the Mac):**
+  - **Core fixes:**
+    - A forgotten incoming record (its part became unreadable) deletes its `.macdroid-part` (`forgetRemovesThePartFile`).
+    - A re-offer that arrives while the file is being verified is ignored, so a HEAD can't recreate an empty part.
+    - A PUT whose `Content-Range` total differs from the offered size gets 416 (`putRejectsARangeBeyondTheOfferedSize`).
+    - A GET's security-scoped access is released even when the phone disconnects before the response body starts (`AccessLease`; `leaseReleasesOnceWhenDroppedUnused`, `leaseReleasesOnceWhenEndedThenDropped`).
+  - **App fixes:**
+    - History rows cache whether the received file still exists, re-checked when the Files page appears.
+    - The "Received" notification's Open/Show says "The file was moved or deleted" when it's gone.
+    - Notification permission is read each time instead of being cached for the session.
+
+  Verified: tests RED→GREEN, `swift test` 361; Mac app build, no code warnings; cross-platform test passed.
   - A MediaStore item still pending after `finish` is a failure, not Done.
   - A stale "Save … from your Mac?" notification says "That transfer is no longer waiting" instead of creating an empty document.
   - Home's Send says "Connect to your Mac first" while disconnected (it was silent).
