@@ -120,3 +120,11 @@ Mac app (`mac/MacDroid/`):
 
 ## Reconnect discovery (Plan 11)
 `MacLocator` is collected once per paired Mac for as long as `ConnectionManager` runs (restarted 30 s after it ends). Each emission is a fresh sighting (first seen, or found again after being lost), possibly at the same address, and it wakes the retry; a different address is also saved. Nudges and sightings from before a session are drained when the Mac's hello arrives. Android backup and device transfer exclude all app data, since pairing is tied to the Keystore key.
+
+## Plan 11 additions
+- **`media.state.speed`** (optional, playback rate): the Mac projects the seek bar at that rate; a released seek is held until the phone catches up (`MediaPresentation.PendingSeek`).
+- **Mirror volume routing:** `MirrorVolume.route(audioOnMac:)` sends the window's Volume −/+ to the Mac player (16 steps, `mirror.volume`) while the phone's sound plays on the Mac, otherwise to the phone as `input.key`.
+- **Mirror keyboard:** `MirrorInputNSView` is an `NSTextInputClient` (dead keys and IMEs compose on the Mac); `MirrorKeys` adds `.leaveFullScreen` and `.swallow`. `input.text` is capped at 4,096 UTF-16 units on both sides.
+- **Links from the phone** pass `LinkThrottle` (3 per 10 s) in `PhoneExtras`; Now Playing art is pruned to 8 (`IconCache.prune`).
+- **File routes:** a PUT's `Content-Range` total must equal the offered size (416 otherwise); a GET holds its security-scoped file in an `AccessLease` that releases even if the body never runs.
+
