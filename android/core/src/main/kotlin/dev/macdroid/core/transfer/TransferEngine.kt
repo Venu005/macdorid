@@ -21,6 +21,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -149,6 +150,7 @@ class TransferEngine(
     }
 
     private fun progress(id: String, bytes: Long) {
+        if (record(id) == null) return // a late callback after the transfer finished must not bring its speed back
         val rate = rates.getOrPut(id) { TransferRate() }.apply { record(bytes, System.nanoTime()) }.bytesPerSecond
         _snapshot.update { s ->
             s.copy(
@@ -301,13 +303,19 @@ class TransferEngine(
         val target = if (offer.purpose == TransferPurpose.Clipboard) clipboardTarget!!.invoke() else saveTarget()
         val free = withContext(Dispatchers.IO) { runCatching { target.freeBytes() }.getOrNull() }
         if (free != null && free < offer.size) return reject(offer, name, TransferRejectReason.NoSpace)
+        var created: PartFile? = null
         val part = try {
-            withContext(Dispatchers.IO) { target.createPart(name, offer.mime, id) } // MediaStore/SAF work, or a user prompt
+            // MediaStore/SAF work, or a user prompt. The part is kept as soon as it exists: if the cancel lands just as a
+            // (non-interruptible) insert finishes, withContext throws on resume and the part must still be deleted.
+            withContext(Dispatchers.IO) { target.createPart(name, offer.mime, id).also { created = it } }
         } catch (e: IOException) {
             null
+        } catch (e: CancellationException) {
+            created?.let { orphan -> withContext(NonCancellable + Dispatchers.IO) { runCatching { orphan.delete() } } }
+            throw e
         } ?: return reject(offer, name, TransferRejectReason.Declined)
         if (record(id)?.phase != Phase.Offered) { // cancelled while the part was being created
-            withContext(Dispatchers.IO) { runCatching { part.delete() } }
+            withContext(NonCancellable + Dispatchers.IO) { runCatching { part.delete() } }
             return
         }
         update(id) { it.copy(phase = Phase.Active, part = part.handle) }

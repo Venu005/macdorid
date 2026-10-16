@@ -25,6 +25,9 @@ class SavePrompter(private val context: Context) {
         }
     }
 
+    /** A transfer is still waiting for this answer (a stale "Save … from your Mac?" notification may outlive it). */
+    fun isWaiting(transferId: String): Boolean = pending.containsKey(transferId)
+
     fun answer(transferId: String, uri: Uri?) {
         pending[transferId]?.complete(uri)
     }

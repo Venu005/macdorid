@@ -54,7 +54,7 @@ fun FilesScreen(viewModel: FilesViewModel = viewModel()) {
             item { SectionTitle("In progress") }
             items(ui.snapshot.active, key = { it.id }) { record ->
                 TransferRow(
-                    record, ui.snapshot.rates[record.id], { viewModel.cancel(record.id) }, { viewModel.retry(record.id) }, { context.openReceived(record) },
+                    record, ui.snapshot.rates[record.id], { viewModel.cancel(record.id) }, { viewModel.retry(record.id) }, { context.openReceived(record, record.id !in ui.deleted) },
                     onChooseLocation = { context.startActivity(SaveAsActivity.intent(context, record.id, record.name, record.mime)) },
                 )
             }
@@ -66,7 +66,7 @@ fun FilesScreen(viewModel: FilesViewModel = viewModel()) {
             }
         }
         items(ui.snapshot.history, key = { "h-" + it.id }) { record ->
-            TransferRow(record, null, { viewModel.cancel(record.id) }, { viewModel.retry(record.id) }, { context.openReceived(record) }, savedFileExists = record.id !in ui.deleted)
+            TransferRow(record, null, { viewModel.cancel(record.id) }, { viewModel.retry(record.id) }, { context.openReceived(record, record.id !in ui.deleted) }, savedFileExists = record.id !in ui.deleted)
         }
     }
 }

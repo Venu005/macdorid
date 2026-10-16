@@ -50,7 +50,9 @@ class TreePart(context: Context, private val tree: Uri, private val doc: Uri, pr
         val taken = childNames()
         val finalName = FileNaming.unique(name) { it in taken }
         runCatching { DocumentsContract.renameDocument(resolver, doc, finalName) }.getOrNull()?.let { return it.toString() }
-        val target = DocumentsContract.createDocument(resolver, folder, mime, finalName) ?: throw IOException("can't create $finalName")
+        // The name already carries its extension: a real MIME type would let the provider add a second one (Plan 11).
+        val copyMime = if (finalName.substringAfterLast('.', "").isNotEmpty()) "application/octet-stream" else mime
+        val target = DocumentsContract.createDocument(resolver, folder, copyMime, finalName) ?: throw IOException("can't create $finalName")
         (resolver.openInputStream(doc) ?: throw IOException("can't read $doc")).use { input ->
             (resolver.openOutputStream(target) ?: throw IOException("can't write $target")).use { input.copyTo(it, 1 shl 20) }
         }
