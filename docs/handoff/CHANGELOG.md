@@ -4,6 +4,11 @@ Newest first. Every change to the repo adds an entry here (see "Keep the handoff
 
 Format: `## YYYY-MM-DD — title`, then what changed, why, the branch or commits, and how it was verified.
 
+## 2026-10-16 — Merged the backlog clean-up (Plan 11) to main
+- **What:** `fix/backlog` merged into `main` locally as `d11b73f` (`--no-ff`) at the owner's request. Not pushed. New builds installed on the owner's phone (wireless adb, `:app:installDebug`) and the Mac (Debug build relaunched).
+- **Verified on `main`:** `swift test` 366; Mac app build (no code warnings); `:core:test :app:testDebugUnitTest :app:assembleDebug` (no warnings); cross-platform test passed.
+- **Open:** the owner's 7-step check (plan Task 13) and 8 deferred minors from the final review (listed in the Plan 11 entry below and in STATUS).
+
 ## 2026-10-16 — Plan 11: backlog clean-up (fix/backlog)
 - **Task 1 (rulings):** owner rulings recorded in DECISIONS.md: free and unsigned for now (with the buy-once model if ever sold), contacts sync dropped, and Volume −/+ go to the Mac player while phone audio plays there. Every owner checklist is ticked as passed (2026-10-16), including the 2 GB+ file; items kept without a code change are marked "Kept (Plan 11)" with the reason in their follow-up lists. Plan: `docs/superpowers/plans/2026-10-16-macdroid-backlog-11.md`. Verified: docs only.
 - **Task 2 (mirroring audio):** Volume −/+ in the mirror window change the Mac player's level (16 steps, kept as `mirror.volume`) while the phone's sound plays on the Mac, and they work even with remote control off; otherwise they still go to the phone (`MirrorVolume`, tests `volumeGoesToTheMacWhileItPlaysTheSound`, `volumeStepsByOneSixteenthAndClamps`). The player restarts itself when the output device changes (AirPods), and buffer completions from before a stop/restart no longer push its counter negative (an epoch). Verified: `swift test --filter MirrorVolumeTests` RED→GREEN; Mac app build, no code warnings.
