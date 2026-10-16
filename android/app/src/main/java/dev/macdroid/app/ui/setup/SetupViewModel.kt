@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dev.macdroid.app.graph
 import dev.macdroid.app.platform.Permissions
@@ -19,7 +20,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
 
-class SetupViewModel(application: Application) : AndroidViewModel(application) {
+class SetupViewModel(application: Application, private val saved: SavedStateHandle) : AndroidViewModel(application) {
     private data class Local(
         val setupDone: Boolean,
         val hasLocalNetwork: Boolean,
@@ -32,8 +33,9 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
 
     private val graph = application.graph
     private val local = MutableStateFlow(readLocal())
-    private val welcomeDone = MutableStateFlow(false)
-    private val batteryDone = MutableStateFlow(false)
+    // Kept in the saved state, so the process being killed mid-setup resumes at the same step (Plan 11).
+    private val welcomeDone = saved.getMutableStateFlow(WELCOME_DONE, false)
+    private val batteryDone = saved.getMutableStateFlow(BATTERY_DONE, false)
     private var sawUnpaired = graph.pairingStore.paired.value == null
 
     /** Pairing state, holding "paired" back for a moment after a fresh pairing so the success screen is seen. */
@@ -58,7 +60,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
-        SetupUiState.from(inputs(local.value, false, false, graph.pairingStore.paired.value != null), graph.uiPrefs.keepConnected),
+        SetupUiState.from(inputs(local.value, welcomeDone.value, batteryDone.value, graph.pairingStore.paired.value != null), graph.uiPrefs.keepConnected),
     )
 
     /** Re-read permissions and preferences (call on resume and after a permission prompt). */
@@ -133,5 +135,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
 
     private companion object {
         const val SUCCESS_PAUSE_MS = 1_000L
+        const val WELCOME_DONE = "welcomeDone"
+        const val BATTERY_DONE = "batteryDone"
     }
 }

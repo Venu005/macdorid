@@ -126,6 +126,7 @@ struct MenuBarPopover: View {
         HStack {
             Button { model.showWindow(.general) } label: { Image(systemName: "gearshape") }
                 .help("Settings")
+                .keyboardShortcut(",")
             Spacer()
             Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }
                 .help("Quit MacDroid")

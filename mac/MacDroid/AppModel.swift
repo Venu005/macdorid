@@ -317,6 +317,9 @@ final class AppModel {
         await beginPairing()
     }
 
+    /// The pairing view went away (window closed, phone paired): shut the window without changing what the view shows.
+    func closePairingWindow() async { await pairing.closeWindow() }
+
     func cancelPairing() async {
         isRepairing = false
         pairingExpired = false
