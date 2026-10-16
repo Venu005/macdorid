@@ -9,6 +9,7 @@ import dev.macdroid.core.protocol.HelloBody
 import dev.macdroid.core.protocol.Message
 import java.net.ServerSocket
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -157,6 +158,45 @@ class ConnectionManagerTest {
         }
     }
 
+    // Plan 11 (Plan 1 Ruling 8): the Mac woke from sleep at the same address; NSD sees it again, and that alone retries now.
+    @Test fun sameAddressReappearanceWakesTheRetry(): Unit = runBlocking {
+        MockMac().use { mac ->
+            mac.server.enqueue(MockResponse.Builder().code(500).build())
+            mac.enqueueSession()
+            mac.start()
+            val sightings = MutableSharedFlow<MacAddress>(extraBufferCapacity = 1)
+            val manager = manager(mac, InMemoryPairingStore(mac.pairedMac()), MacLocator { sightings }, backoff = Backoff(30_000, 30_000))
+            manager.start()
+            try {
+                manager.awaitState { it is ConnectionState.Waiting }
+                sightings.emit(MacAddress(mac.server.hostName, mac.server.port))
+                manager.awaitState(timeoutMs = 2_000) { it is ConnectionState.Connected }
+            } finally {
+                manager.stop()
+            }
+        }
+    }
+
+    // Plan 11: a nudge left over from before a session must not cause an instant retry after that session drops.
+    @Test fun staleNudgeIsDrainedOnHello(): Unit = runBlocking {
+        MockMac().use { mac ->
+            mac.enqueueSession(closeAfterHello = true)
+            mac.enqueueSession()
+            mac.start()
+            val manager = manager(mac, InMemoryPairingStore(mac.pairedMac()), backoff = Backoff(10_000, 10_000))
+            manager.nudge()
+            manager.start()
+            try {
+                manager.awaitState { it is ConnectionState.Connected }
+                manager.awaitState { it is ConnectionState.Waiting }
+                kotlinx.coroutines.delay(1_500)
+                assertEquals(1, mac.server.requestCount)
+            } finally {
+                manager.stop()
+            }
+        }
+    }
+
     @Test fun nudgeRetriesImmediately(): Unit = runBlocking {
         MockMac().use { mac ->
             mac.server.enqueue(MockResponse.Builder().code(500).build())
@@ -206,7 +246,15 @@ class ConnectionManagerTest {
                     throw IllegalStateException("disk full")
                 }
             }
-            val locator = MacLocator { flowOf(MacAddress(mac.server.hostName, mac.server.port)) }
+            // The Mac keeps being seen (lost and found again), so each sighting tries to save the new address.
+            val locator = MacLocator {
+                flow {
+                    while (true) {
+                        emit(MacAddress(mac.server.hostName, mac.server.port))
+                        kotlinx.coroutines.delay(100)
+                    }
+                }
+            }
             val manager = manager(mac, store, locator, backoff = Backoff(50, 100))
             manager.start()
             try {

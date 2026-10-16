@@ -6,7 +6,11 @@ import kotlinx.coroutines.flow.emptyFlow
 
 data class MacAddress(val host: String, val port: Int)
 
-/** Finds the paired Mac on the network. Cold flow: collecting starts discovery, cancelling stops it. */
+/**
+ * Finds the paired Mac on the network. Cold flow: collecting starts discovery, cancelling stops it. It is collected
+ * once for as long as the phone wants the Mac, and each emission is a fresh sighting (first seen, or found again after
+ * being lost), possibly at the same address: the connection manager retries on every sighting.
+ */
 fun interface MacLocator {
     fun appearances(fingerprint: String): Flow<MacAddress>
 

@@ -8,7 +8,7 @@ import javax.net.ssl.X509TrustManager
 class PinnedTrustManager(private val expectedFingerprint: String) : X509TrustManager {
     override fun checkServerTrusted(chain: Array<out X509Certificate>, authType: String) {
         val leaf = chain.firstOrNull() ?: throw CertificateException("empty certificate chain")
-        if (Fingerprint.of(leaf) != expectedFingerprint) throw CertificateException("certificate fingerprint mismatch")
+        if (!Fingerprint.of(leaf).equals(expectedFingerprint, ignoreCase = true)) throw CertificateException("certificate fingerprint mismatch")
     }
 
     override fun checkClientTrusted(chain: Array<out X509Certificate>, authType: String) =
