@@ -5,7 +5,15 @@ import SwiftUI
 /// Catches mouse, scroll and keys over the mirrored picture and turns them into `input.*` (spec §6.5).
 final class MirrorInputNSView: NSView {
     var picture: CGSize = .zero
-    var enabled = false
+    var enabled = false {
+        didSet {
+            // Control turned off mid-drag: lift the finger rather than leave it down (Plan 8 minor #6).
+            if !enabled, down {
+                down = false
+                send(.inputPointer(InputPointer(action: .cancel, x: 0, y: 0, t: Int64(ProcessInfo.processInfo.systemUptime * 1000))))
+            }
+        }
+    }
     var send: (Message) -> Void = { _ in }
     var key: (InputKeyName) -> Void = { _ in }
     var type: (String) -> Void = { _ in }
@@ -24,8 +32,10 @@ final class MirrorInputNSView: NSView {
         window?.makeFirstResponder(self)
     }
 
+    /// The dot shows only where a click reaches the phone (Plan 8 minor #5).
     override func resetCursorRects() {
-        addCursorRect(bounds, cursor: Self.dot)
+        guard enabled else { return }
+        addCursorRect(InputMapper.pictureRect(in: bounds.size, picture: picture), cursor: Self.dot)
     }
 
     override func mouseDown(with event: NSEvent) { pointer(.down, event) }
@@ -36,7 +46,7 @@ final class MirrorInputNSView: NSView {
     override func scrollWheel(with event: NSEvent) {
         guard enabled, let at = fraction(event) else { return }
         let delta = InputMapper.scroll(deltaX: event.scrollingDeltaX, deltaY: event.scrollingDeltaY,
-                                       precise: event.hasPreciseScrollingDeltas, in: bounds.size)
+                                       precise: event.hasPreciseScrollingDeltas, in: bounds.size, picture: picture)
         if let pending = scroll {
             scroll = (pending.x, pending.y, pending.dx + delta.dx, pending.dy + delta.dy)
         } else {
@@ -124,8 +134,8 @@ struct MirrorInputView: NSViewRepresentable {
         if case .streaming(let width, let height, _) = model.mirror.phase {
             view.picture = CGSize(width: width, height: height)
         }
-        view.enabled = model.mirror.controlAvailable
         view.send = { [model] in model.sendMirrorInput($0) }
+        view.enabled = model.mirror.controlAvailable
         view.key = { [model] in model.sendMirrorKey($0) }
         view.type = { [model] in model.typeOnPhone($0) }
         view.paste = { [model] in model.pasteOnPhone() }

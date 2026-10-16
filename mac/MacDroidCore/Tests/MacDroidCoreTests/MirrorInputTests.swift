@@ -108,3 +108,36 @@ import Testing
         #expect(MirrorPresentation.controlNotice(state) == nil)
     }
 }
+
+@Suite struct MirrorWindowFitTests {
+    @Test func landscapeKeepsTheLongEdge() {
+        // A portrait picture 400×889 (plus the bar) turns 20:9 landscape: the long edge, 889, becomes the width.
+        let s = MirrorWindowFit.content(current: CGSize(width: 400, height: 889 + 44), aspect: CGSize(width: 20, height: 9), barHeight: 44)
+        #expect(s.width == 889)
+        #expect(s.height == (889.0 * 9 / 20).rounded() + 44)
+    }
+
+    @Test func backToPortraitKeepsTheLongEdgeAsTheHeight() {
+        let s = MirrorWindowFit.content(current: CGSize(width: 889, height: 400 + 44), aspect: CGSize(width: 9, height: 20), barHeight: 44)
+        #expect(s.width == 889.0 * 9 / 20)
+        #expect(s.height == CGFloat(889 + 44))
+    }
+
+    @Test func portraitToPortraitKeepsTheWidth() {
+        let s = MirrorWindowFit.content(current: CGSize(width: 400, height: 933), aspect: CGSize(width: 9, height: 20), barHeight: 44)
+        #expect(s.width == 400)
+        #expect(s.height == (400.0 * 20 / 9).rounded() + 44)
+    }
+
+    @Test func scrollIsAFractionOfThePictureNotTheView() {
+        // View 400×400, picture 200×400 drawn 200 wide and 400 tall: 20 points is 0.1 of its width.
+        let d = InputMapper.scroll(deltaX: 20, deltaY: 40, precise: true, in: CGSize(width: 400, height: 400), picture: CGSize(width: 200, height: 400))
+        #expect(d.dx == 0.1)
+        #expect(d.dy == 0.1)
+    }
+
+    @Test func pictureRectIsCentredAspectFit() {
+        let r = InputMapper.pictureRect(in: CGSize(width: 400, height: 400), picture: CGSize(width: 200, height: 400))
+        #expect(r == CGRect(x: 100, y: 0, width: 200, height: 400))
+    }
+}

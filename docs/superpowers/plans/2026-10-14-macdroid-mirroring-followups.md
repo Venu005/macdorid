@@ -42,7 +42,7 @@ Start with the phone **unlocked** (Android ends capture on lock).
 1. **Fixed (Plan 11).** **Output-device change:** `AVAudioEngine` stops when the output device changes (e.g. AirPods connect) and isn't restarted; observe `AVAudioEngineConfigurationChange`.
 2. **Fixed (Plan 11).** **Audio counter:** `MirrorAudioPlayer.bufferedFrames` can go negative after `stop()`; completions from before the reset still arrive.
 3. **Teardown order:** the VirtualDisplay briefly targets a released encoder surface in `ScreenEncoder.resize`/`release`; detach the surface first.
-4. **Landscape window size:** rotating to landscape keeps the window's width, so it gets short; keep the long edge instead.
+4. **Fixed (Plan 11).** **Landscape window size:** rotating to landscape keeps the window's width, so it gets short; keep the long edge instead.
 5. **Second start:** `MirrorService.finished` is never reset if an instance gets a second start; guard `onStartCommand`.
 6. **Kept (Plan 11):** Hummingbird has one WebSocket config per server; only the trusted paired phone can upgrade, and control messages are still capped at 1 MiB after decoding. **Frame limit:** the 4 MiB WebSocket frame limit also applies to `/v1/ws` frames (control messages are still capped at 1 MiB).
 7. **Early frames:** frames sent before the media socket opens go out late, and the config frame is sent twice.
@@ -74,9 +74,9 @@ Start with the phone **unlocked** (Android ends capture on lock).
   2. Backspace removes one code point, not one grapheme (ZWJ emoji and flags take several presses).
   3. **Kept (Plan 11):** the owner's typing checklist passed on the device. Each keystroke rewrites the whole field (breaks undo/IME composition; may race the node cache when typing fast). Check on the device.
   4. `GesturePlayer` doesn't pump again after `dispatchGesture` returns false; queued segments wait for the next input.
-  5. The dot cursor shows even when control is off and over the black bars.
-  6. `MirrorInputNSView.down` can stay true if control turns off mid-drag.
+  5. **Fixed (Plan 11).** The dot cursor shows even when control is off and over the black bars.
+  6. **Fixed (Plan 11).** `MirrorInputNSView.down` can stay true if control turns off mid-drag.
   7. Unsent keys (Tab) go to `super.keyDown` and can move focus off the picture; dead keys and non-Latin input methods don't work (not an `NSTextInputClient`).
   8. Esc is always Back, so it can't leave full screen on the mirror window.
-  9. Scroll deltas are normalised to the view, not the aspect-fit picture.
+  9. **Fixed (Plan 11).** Scroll deltas are normalised to the view, not the aspect-fit picture.
   10. `CrossPlatformTest` has `delay(300)` straight before `delay(500)`.

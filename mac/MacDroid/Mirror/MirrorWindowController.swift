@@ -36,13 +36,26 @@ final class MirrorWindowController: NSObject, NSWindowDelegate {
         NSApp.activate()
     }
 
-    /// The phone's picture size (e.g. after rotation): keep the width, fit the height to the new shape.
+    /// The phone's picture size (e.g. after rotation): turning keeps the long edge, then the window stays on screen.
     func setAspect(width: Int, height: Int) {
         guard width > 0, height > 0 else { return }
         aspect = CGSize(width: width, height: height)
         guard let window else { return }
         let content = window.contentRect(forFrameRect: window.frame).size
-        window.setContentSize(fitted(content))
+        let next = MirrorWindowFit.content(current: content, aspect: aspect, barHeight: MirrorContentView.barHeight)
+        var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: next))
+        frame.origin = NSPoint(x: window.frame.minX, y: window.frame.maxY - frame.height) // keep the top-left corner
+        if let visible = window.screen?.visibleFrame {
+            if frame.width > visible.width || frame.height > visible.height {
+                let scale = min(visible.width / frame.width, visible.height / frame.height)
+                let shrunk = NSSize(width: (next.width * scale).rounded(), height: 0)
+                frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: fitted(shrunk)))
+                frame.origin = NSPoint(x: window.frame.minX, y: window.frame.maxY - frame.height)
+            }
+            frame.origin.x = min(max(frame.minX, visible.minX), visible.maxX - frame.width)
+            frame.origin.y = min(max(frame.minY, visible.minY), visible.maxY - frame.height)
+        }
+        window.setFrame(frame, display: true, animate: false)
     }
 
     func setKeepOnTop(_ on: Bool) { window?.level = on ? .floating : .normal }
