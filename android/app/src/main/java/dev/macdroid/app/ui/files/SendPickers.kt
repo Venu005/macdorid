@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import dev.macdroid.app.platform.ReceivedFiles
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,10 +26,13 @@ fun rememberSendPickers(onPicked: (List<Uri>) -> Unit): SendPickers {
     }
 }
 
-/** Opens a received file in whatever app handles its type, or says it's gone if the user deleted it. */
-fun Context.openReceived(record: TransferRecord) {
+/**
+ * Opens a received file in whatever app handles its type, or says it's gone if the user deleted it. [exists] comes from
+ * the view model's off-main-thread check, so a tap does no storage I/O on the main thread (Plan 11).
+ */
+fun Context.openReceived(record: TransferRecord, exists: Boolean) {
     val saved = record.savedUri ?: return
-    if (!ReceivedFiles.exists(this, saved)) {
+    if (!exists) {
         Toast.makeText(this, "“${record.name}” was deleted from this phone", Toast.LENGTH_LONG).show()
         return
     }

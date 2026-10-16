@@ -98,7 +98,7 @@ class MacDroidControlService : AccessibilityService() {
             }
             is Message.InputKey -> key(message.body.key)
             is Message.InputText -> {
-                val typed = message.body.text.take(MAX_TEXT)
+                val typed = TextEdit.cap(message.body.text, MAX_TEXT)
                 if (!submit(typed)) edit { text, start, end -> TextEdit.insert(text, start, end, typed) }
             }
             else -> Unit

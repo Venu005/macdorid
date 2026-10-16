@@ -105,6 +105,21 @@ import Testing
         }
     }
 
+    // Plan 11: the range must describe the file that was offered.
+    @Test func putRejectsARangeBeyondTheOfferedSize() async throws {
+        let phone = try Identity.generate(commonName: "Phone")
+        let f = try TransferFixture()
+        let manager = f.manager()
+        await manager.handle(makeOffer("t1", size: 10))
+        try await eventually { await decided(manager) }
+        try await ServerHarness.run(pairedPhone: phone, transfers: manager) { harness in
+            let client = try harness.client(phone)
+            let status = try await client.put("/v1/files/t1", headers: [.contentRange: "bytes 0-9/20"], body: ByteBuffer(string: "0123456789")).status
+            #expect(status == .rangeNotSatisfiable)
+            try await client.shutdown()
+        }
+    }
+
     @Test func malformedRangeHeadersAreBadRequests() async throws {
         let phone = try Identity.generate(commonName: "Phone")
         let f = try TransferFixture()
@@ -117,5 +132,30 @@ import Testing
             #expect(try await client.get("/v1/files/t1", headers: [.range: "bytes=1-2"]).status == .badRequest)
             try await client.shutdown()
         }
+    }
+}
+
+@Suite struct AccessLeaseTests {
+    final class Counter: @unchecked Sendable {
+        var stops = 0
+    }
+
+    // Plan 11: a response body that never runs (the phone went away first) still releases the file.
+    @Test func leaseReleasesOnceWhenDroppedUnused() {
+        let counter = Counter()
+        do {
+            _ = AccessLease { counter.stops += 1 }
+        }
+        #expect(counter.stops == 1)
+    }
+
+    @Test func leaseReleasesOnceWhenEndedThenDropped() {
+        let counter = Counter()
+        do {
+            let lease = AccessLease { counter.stops += 1 }
+            lease.end()
+            lease.end()
+        }
+        #expect(counter.stops == 1)
     }
 }

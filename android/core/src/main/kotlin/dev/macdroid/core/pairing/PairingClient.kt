@@ -32,6 +32,9 @@ sealed interface PairResult {
 }
 
 class PairingClient(private val identity: ClientIdentity, private val base: OkHttpClient = OkHttpClient()) {
+    private companion object {
+        const val MAX_REPLY_BYTES = 64L * 1024
+    }
 
     suspend fun pair(invite: PairingInvite, deviceName: String, model: String): PairResult = withContext(Dispatchers.IO) {
         val trust = RecordingTrustManager(PinnedTrustManager(invite.fingerprint))
@@ -45,7 +48,10 @@ class PairingClient(private val identity: ClientIdentity, private val base: OkHt
                 responded = true
                 when {
                     response.isSuccessful -> {
-                        val reply = MessageCodec.json.decodeFromString(PairResponse.serializer(), response.body.string())
+                        // Bounded: the reply is a name, never megabytes (Plan 11).
+                        val source = response.body.source()
+                        if (source.request(MAX_REPLY_BYTES + 1)) return@use PairResult.Failed("reply too large")
+                        val reply = MessageCodec.json.decodeFromString(PairResponse.serializer(), source.readUtf8())
                         PairResult.Success(PairedMac(invite.fingerprint, reply.macName, invite.host, invite.port))
                     }
                     response.code == 403 -> PairResult.CodeRejected

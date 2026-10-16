@@ -58,7 +58,9 @@ class MediaStorePart(private val resolver: ContentResolver, private val uri: Uri
     override fun openAppend(): OutputStream = resolver.openOutputStream(uri, "wa") ?: throw IOException("can't write $uri")
 
     override fun finish(): String {
-        resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+        // 0 rows: the item is still pending (or gone), so it isn't really saved; don't report Done (Plan 11).
+        val rows = resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+        if (rows == 0) throw IOException("couldn't publish $uri")
         return uri.toString()
     }
 

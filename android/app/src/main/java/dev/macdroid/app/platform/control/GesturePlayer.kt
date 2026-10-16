@@ -63,8 +63,11 @@ class GesturePlayer(private val service: AccessibilityService) {
             }
         }, main)
         if (!started) {
+            // Refused (e.g. the service is rebinding): drop this segment and carry on with the queue on the next loop,
+            // so queued input doesn't wait for the next event (Plan 8 minor #4).
             playing = false
             stroke = null
+            main.post { pump() }
         }
     }
 }

@@ -273,6 +273,8 @@ public actor TransferManager {
         let id = offer.transferId
         if let record = active.first(where: { $0.id == id }) {
             guard record.direction == .fromPhone, record.folder != nil else { return } // undecided: the question is still open
+            // Being verified: the result follows; accepting again would let a HEAD recreate an empty part (Plan 11).
+            guard record.phase != .verifying else { return }
             // A re-offer after a reconnect: accept again; the phone resumes from what's on disk (HEAD).
             update(id) { $0.phase = .active }
             await sendOrDrop(.transferAccept(TransferID(transferId: id)))
@@ -437,8 +439,10 @@ public actor TransferManager {
     }
 
     /// PUT: starts a new upload session at `start`, which must equal the bytes already on disk.
-    func beginUpload(id: String, start: Int64) async throws -> Upload {
+    func beginUpload(id: String, start: Int64, total: Int64? = nil) async throws -> Upload {
         guard let writer = incomingWriter(id) else { throw RouteError.notFound }
+        // A Content-Range must describe the offered file (Plan 11).
+        if let total, total != active.first(where: { $0.id == id })?.size { throw RouteError.rangeNotSatisfiable }
         let session: Int
         do {
             session = try await writer.beginSession()
@@ -543,9 +547,12 @@ public actor TransferManager {
         await pump()
     }
 
-    /// Drops a record without an outcome, so a re-offer of its id starts over.
+    /// Drops a record without an outcome, so a re-offer of its id starts over. Its part file goes too (Plan 11).
     private func forget(_ id: String) {
         writers[id] = nil
+        if let record = active.first(where: { $0.id == id }), record.direction == .fromPhone, let part = record.partURL {
+            try? FileManager.default.removeItem(at: part)
+        }
         active.removeAll { $0.id == id }
         persist()
         publish(force: true)

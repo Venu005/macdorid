@@ -12,12 +12,14 @@ import dev.macdroid.app.R
 /** A link from the Mac becomes a tap-to-open notification: Android forbids opening it from the background (spec §3.2). */
 object LinkNotifications {
     private const val CHANNEL_ID = "links"
+    /** Link notifications get their own id range, clear of the app's fixed ids (< 1000), instead of `url.hashCode()`. */
+    private val nextId = java.util.concurrent.atomic.AtomicInteger(0)
 
     fun show(context: Context, url: String) {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel(CHANNEL_ID, "Links", NotificationManager.IMPORTANCE_HIGH))
         val uri = Uri.parse(url)
-        val id = url.hashCode()
+        val id = 20_000 + nextId.getAndIncrement() % 10_000
         val open = PendingIntent.getActivity(
             context, id, Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE,
         )

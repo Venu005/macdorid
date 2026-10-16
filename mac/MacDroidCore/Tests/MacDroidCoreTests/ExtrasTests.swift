@@ -117,6 +117,16 @@ import Testing
         #expect(h.art.url(for: "0123456789abcdef") != nil)
     }
 
+    // Final review I1: the phone sends each cover once per connection, so art seen this session must stay on disk.
+    @Test func artFromThisSessionIsNeverPruned() async throws {
+        let h = try Harness()
+        await h.connect()
+        let jpeg = Data([1, 2, 3]).base64EncodedString()
+        let hashes = (0..<12).map { String(format: "%016x", $0) }
+        for hash in hashes { await h.extras.handle(.mediaArt(MediaArt(hash: hash, jpeg: jpeg))) }
+        #expect(hashes.allSatisfy { h.art.url(for: $0) != nil })
+    }
+
     // Review Focus #5
     @Test func badArtHashIsIgnored() async throws {
         let h = try Harness()
@@ -152,5 +162,56 @@ import Testing
     @Test func subtitles() {
         #expect(MediaPresentation.subtitle(MediaState(active: true, appName: "Spotify", artist: "Artist")) == "Artist · Spotify")
         #expect(MediaPresentation.subtitle(MediaState(active: true, appName: "YouTube", artist: "")) == "YouTube")
+    }
+}
+
+@Suite struct ExtrasPlan11Tests {
+    @Test func mediaStateCarriesTheSpeed() throws {
+        let message = try MessageCodec.decode(Fixtures.text("media.state.json"))
+        guard case .mediaState(let state) = message else { Issue.record("not media.state"); return }
+        #expect(state.speed == 1.5)
+    }
+
+    @Test func projectedPositionAdvancesAtSpeed() {
+        let t0 = Date(timeIntervalSince1970: 1_000)
+        let state = MediaState(active: true, durationMs: 100_000, positionMs: 10_000, playing: true, speed: 1.5)
+        #expect(MediaPresentation.position(state, receivedAt: t0, now: t0.addingTimeInterval(2)) == 13_000)
+        let odd = MediaState(active: true, durationMs: 100_000, positionMs: 10_000, playing: true, speed: 0)
+        #expect(MediaPresentation.position(odd, receivedAt: t0, now: t0.addingTimeInterval(2)) == 12_000)
+    }
+
+    @Test func aReleasedSeekHoldsUntilThePhoneCatchesUp() {
+        let t0 = Date(timeIntervalSince1970: 1_000)
+        let seek = MediaPresentation.PendingSeek(targetMs: 90_000, at: t0)
+        // The phone hasn't moved yet: show the target, keep waiting.
+        #expect(MediaPresentation.shown(projected: 10_000, pending: seek, now: t0.addingTimeInterval(1)) == 90_000)
+        #expect(MediaPresentation.pendingStillHolds(seek, projected: 10_000, now: t0.addingTimeInterval(1)))
+        // The phone got there (within 2 s): let go.
+        #expect(!MediaPresentation.pendingStillHolds(seek, projected: 91_000, now: t0.addingTimeInterval(1)))
+        // The phone never moved: give up after 3 s.
+        #expect(!MediaPresentation.pendingStillHolds(seek, projected: 10_000, now: t0.addingTimeInterval(3)))
+        #expect(MediaPresentation.shown(projected: 10_000, pending: nil, now: t0) == 10_000)
+    }
+
+    @Test func linkThrottleAllowsThreeIn10Seconds() {
+        var throttle = LinkThrottle()
+        let t0 = Date(timeIntervalSince1970: 1_000)
+        let answers = [0, 1, 2, 9, 10].map { throttle.allows(at: t0.addingTimeInterval(TimeInterval($0))) }
+        #expect(answers == [true, true, true, false, true])
+    }
+
+    @Test func pruneKeepsTheNewest() throws {
+        let cache = IconCache(directory: try makeTemporaryDirectory())
+        let png = Data([1, 2, 3]).base64EncodedString()
+        let hashes = (0..<10).map { String(format: "%016x", $0) }
+        for (i, hash) in hashes.enumerated() {
+            cache.save(hash: hash, pngBase64: png)
+            try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: Double(1_000 + i))],
+                                                  ofItemAtPath: cache.url(for: hash)!.path(percentEncoded: false))
+        }
+        cache.prune(keeping: 8)
+        #expect(cache.url(for: hashes[0]) == nil)
+        #expect(cache.url(for: hashes[1]) == nil)
+        #expect(hashes[2...].allSatisfy { cache.url(for: $0) != nil })
     }
 }

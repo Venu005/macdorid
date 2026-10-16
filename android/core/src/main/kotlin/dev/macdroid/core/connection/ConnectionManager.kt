@@ -17,7 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -25,7 +26,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
@@ -72,6 +72,8 @@ class ConnectionManager(
     val incoming: SharedFlow<Message> = _incoming.asSharedFlow()
 
     private val nudges = Channel<Unit>(Channel.CONFLATED)
+    /** The Mac seen on the network (first sighting, or found again after it was lost), possibly at the same address. */
+    private val sightings = Channel<MacAddress>(Channel.CONFLATED)
     @Volatile private var socket: WebSocket? = null
     private var job: Job? = null
     /** Identifies the live loop; a loop whose generation is stale must not touch shared state. */
@@ -112,14 +114,30 @@ class ConnectionManager(
         synchronized(this) { if (gen == generation) store.save(mac) }
     }
 
-    private suspend fun runLoop(gen: Int) {
-        while (currentCoroutineContext().isActive) {
+    private suspend fun runLoop(gen: Int) = coroutineScope {
+        // One long-lived discovery per paired Mac, not one per wait (Plan 1 Ruling 8): a Mac that wakes at the same
+        // address is then seen as found-again, which is the signal to retry now.
+        var watched: String? = null
+        var watcher: Job? = null
+        while (isActive) {
             val mac = store.paired.value
             if (mac == null) {
+                watcher?.cancel()
+                watched = null
                 setState(gen, ConnectionState.NotPaired)
                 store.paired.first { it != null }
                 backoff.reset()
                 continue
+            }
+            if (mac.fingerprint != watched) {
+                watcher?.cancel()
+                watched = mac.fingerprint
+                watcher = launch {
+                    while (isActive) { // discovery can fail or end (Wi-Fi off): start it again after a pause
+                        locator.appearances(mac.fingerprint).catch { }.collect { sightings.send(it) }
+                        delay(LOCATOR_RESTART_MS)
+                    }
+                }
             }
             if (state.value !is ConnectionState.TrustFailure) setState(gen, ConnectionState.Connecting)
             val outcome = try {
@@ -137,7 +155,7 @@ class ConnectionManager(
             val delayMs = backoff.next()
             if (state.value !is ConnectionState.TrustFailure) setState(gen, ConnectionState.Waiting(delayMs, System.nanoTime() + delayMs * 1_000_000))
             val wake = try {
-                waitForRetry(mac, delayMs)
+                waitForRetry(delayMs)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -146,7 +164,7 @@ class ConnectionManager(
             when (wake) {
                 is Wake.Found -> {
                     try {
-                        saveIfCurrent(gen, mac.copy(host = wake.address.host, port = wake.address.port))
+                        if (wake.address != MacAddress(mac.host, mac.port)) saveIfCurrent(gen, mac.copy(host = wake.address.host, port = wake.address.port))
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
@@ -160,21 +178,23 @@ class ConnectionManager(
         }
     }
 
+    private companion object {
+        const val LOCATOR_RESTART_MS = 30_000L
+    }
+
     private sealed interface Wake {
         data object Nudged : Wake
         data class Found(val address: MacAddress) : Wake
     }
 
-    /** Sleeps up to [delayMs], waking early on a nudge or when the Mac shows up at a new address. */
-    private suspend fun waitForRetry(mac: PairedMac, delayMs: Long): Wake? {
-        val current = MacAddress(mac.host, mac.port)
-        return withTimeoutOrNull(delayMs) {
+    /** Sleeps up to [delayMs], waking early on a nudge or when the Mac is seen on the network (at any address). */
+    private suspend fun waitForRetry(delayMs: Long): Wake? =
+        withTimeoutOrNull(delayMs) {
             merge<Wake>(
                 nudges.receiveAsFlow().map { Wake.Nudged },
-                locator.appearances(mac.fingerprint).catch { }.filter { it != current }.map { Wake.Found(it) },
+                sightings.receiveAsFlow().map { Wake.Found(it) },
             ).first()
         }
-    }
 
     private sealed interface Outcome {
         data class Closed(val wasOpen: Boolean) : Outcome
@@ -209,9 +229,11 @@ class ConnectionManager(
                 when (event) {
                     is SocketEvent.Open -> {
                         open = true
+                        // Our hello goes first, so nothing a caller sends can overtake it (Plan 1 Task 11 minor).
+                        if (synchronized(this) { gen != generation }) return Outcome.Failed
+                        event.socket.send(MessageCodec.encode(Message.Hello(hello())))
                         val owned = synchronized(this) { if (gen == generation) { socket = event.socket; true } else false }
                         if (!owned) return Outcome.Failed
-                        event.socket.send(MessageCodec.encode(Message.Hello(hello())))
                     }
                     is SocketEvent.Text -> handleText(event.text, mac, gen)
                     SocketEvent.Closed -> return Outcome.Closed(open)
@@ -236,6 +258,9 @@ class ConnectionManager(
             return
         }
         if (message is Message.Hello) {
+            // Nudges and sightings from before this session are stale; they mustn't cause an instant retry later.
+            while (nudges.tryReceive().isSuccess) continue
+            while (sightings.tryReceive().isSuccess) continue
             setState(gen, ConnectionState.Connected(message.body.device, message.body.features.toSet()))
             if (message.body.device != mac.name) saveIfCurrent(gen, mac.copy(name = message.body.device))
         }

@@ -30,7 +30,8 @@ data class PairingInvite(
         }
 
         /** Accepts codes typed with spaces, dashes or lowercase. */
-        fun normalizeCode(raw: String): String = raw.filter { it.isLetterOrDigit() }.uppercase()
+        /** Upper-cased, keeping only the base32 alphabet (A–Z, 2–7) the Mac's codes use. */
+        fun normalizeCode(raw: String): String = raw.uppercase().filter { it in 'A'..'Z' || it in '2'..'7' }
 
         // The String-charset overload works on every Android version (the Charset one needs API 33).
         private fun decode(value: String): String = URLDecoder.decode(value, "UTF-8")

@@ -54,7 +54,7 @@ class Ringer(private val context: Context, private val scope: CoroutineScope, pr
     }
 
     fun start() {
-        if (!session.start(System.currentTimeMillis())) return
+        if (!session.start()) return
         savedVolume = runCatching { audio.getStreamVolume(AudioManager.STREAM_ALARM) }.getOrNull()
         runCatching { audio.setStreamVolume(AudioManager.STREAM_ALARM, audio.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0) }
         val tone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM) ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
@@ -143,6 +143,7 @@ class Ringer(private val context: Context, private val scope: CoroutineScope, pr
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOngoing(true)
             .addAction(0, "Stop", stop)
+            .setDeleteIntent(stop) // Android 14+ lets the user swipe it away: that stops the ring too (Plan 11)
             .setContentIntent(stop)
             .build()
     }

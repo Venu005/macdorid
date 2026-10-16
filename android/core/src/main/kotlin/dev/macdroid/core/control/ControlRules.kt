@@ -1,5 +1,7 @@
 package dev.macdroid.core.control
 
+import java.text.BreakIterator
+
 /** One piece of a stroke for `dispatchGesture` (spec §3.5). [first] starts a stroke; [last] lifts the finger. */
 data class GestureSegment(
     val fromX: Float,
@@ -156,8 +158,17 @@ object TextEdit {
         val (start, end) = range(current, selStart, selEnd)
         if (start != end) return (current.substring(0, start) + current.substring(end)) to start
         if (start == 0) return current to 0
-        val before = current.offsetByCodePoints(start, -1) // a whole emoji, not half of it (Review Focus #5)
+        // One whole character as the reader sees it: a flag or a ZWJ family is one press (Plan 8 minor #2).
+        val characters = BreakIterator.getCharacterInstance().apply { setText(current) }
+        val before = characters.preceding(start).takeIf { it != BreakIterator.DONE } ?: current.offsetByCodePoints(start, -1)
         return (current.substring(0, before) + current.substring(start)) to before
+    }
+
+    /** At most [max] UTF-16 units, never ending on half of a surrogate pair (Plan 8 minor #1). */
+    fun cap(text: String, max: Int): String {
+        if (text.length <= max) return text
+        val end = if (Character.isHighSurrogate(text[max - 1])) max - 1 else max
+        return text.substring(0, end)
     }
 
     /** Return alone in a single-line field means "submit" (search, send), not a newline (final review I5). */

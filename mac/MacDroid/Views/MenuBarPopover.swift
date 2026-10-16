@@ -29,6 +29,7 @@ struct MenuBarPopover: View {
         }
         .padding(12)
         .frame(width: 300)
+        .onAppear { model.recheckReceivedFiles() } // its rows' "file is gone" state is fresh each time it opens
         .overlay { if drop.isTargeted { dropOverlay } }
         .onDrop(of: [.fileURL], delegate: PopoverDropDelegate(model: model, preview: $drop))
     }
@@ -126,6 +127,7 @@ struct MenuBarPopover: View {
         HStack {
             Button { model.showWindow(.general) } label: { Image(systemName: "gearshape") }
                 .help("Settings")
+                .keyboardShortcut(",")
             Spacer()
             Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }
                 .help("Quit MacDroid")

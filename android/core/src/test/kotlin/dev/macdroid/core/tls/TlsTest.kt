@@ -27,6 +27,12 @@ class TlsTest {
         assertThrows(CertificateException::class.java) { PinnedTrustManager(Fingerprint.of(cert)).checkServerTrusted(emptyArray(), "ECDHE_ECDSA") }
     }
 
+    // Plan 11: a pin typed or stored in upper case still matches.
+    @Test fun fingerprintPinIsCaseInsensitive() {
+        val cert = HeldCertificate.Builder().ecdsa256().build().certificate
+        PinnedTrustManager(Fingerprint.of(cert).uppercase()).checkServerTrusted(arrayOf(cert), "ECDHE_ECDSA")
+    }
+
     @Test fun capturingTrustManagerRecordsFingerprint() {
         val cert = HeldCertificate.Builder().ecdsa256().build().certificate
         val capture = CapturingTrustManager()

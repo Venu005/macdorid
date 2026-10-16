@@ -9,6 +9,9 @@ import java.nio.file.Files
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -34,6 +37,22 @@ class GateTarget(private val folder: File) : SaveTarget {
     }
 }
 
+/** A save target whose part creation can't be interrupted once started (a MediaStore insert), like the real ones. */
+class UninterruptibleTarget(private val folder: File) : SaveTarget {
+    val started = CompletableDeferred<Unit>()
+    val release = CompletableDeferred<Unit>()
+    val created = CompletableDeferred<Unit>()
+
+    override fun freeBytes(): Long? = null
+
+    override suspend fun createPart(name: String, mime: String, transferId: String): PartFile? =
+        withContext(NonCancellable) {
+            started.complete(Unit)
+            release.await()
+            FolderSaveTarget(folder).createPart(name, mime, transferId).also { created.complete(Unit) }
+        }
+}
+
 class TransferEngineDecisionTest {
     private val dir: File = Files.createTempDirectory("decide").toFile()
     private val gate = GateTarget(File(dir, "Download/MacDroid"))
@@ -55,6 +74,26 @@ class TransferEngineDecisionTest {
         gate.answer.complete(true)
         eventually { h.sentOf<Message.TransferAccept>().size == 1 }
         eventually { h.active().singleOrNull()?.part != null }
+    }
+
+    // Plan 11: a cancel that lands while the part is being created must not leave the part behind.
+    @Test fun cancelDuringCreatePartDeletesThePart() {
+        val folder = File(dir, "slow")
+        val slow = UninterruptibleTarget(folder)
+        val h2 = EngineHarness(dir = Files.createTempDirectory("decide2").toFile(), target = slow)
+        try {
+            h2.start()
+            h2.mac.served["t2"] = testBytes(10)
+            h2.deliver(Message.TransferOffer(TransferOfferBody("t2", "IMG.jpg", 10, "image/jpeg")))
+            runBlocking { slow.started.await() }
+            h2.deliver(Message.TransferCancel(TransferIdBody("t2")))
+            eventually { h2.active().isEmpty() }
+            slow.release.complete(Unit)
+            runBlocking { slow.created.await() }
+            eventually { folder.listFiles().orEmpty().isEmpty() }
+        } finally {
+            h2.close()
+        }
     }
 
     @Test fun peerCancelWhileDecidingCancelsTheQuestion() {

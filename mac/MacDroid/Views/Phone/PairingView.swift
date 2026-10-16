@@ -23,6 +23,9 @@ struct PairingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Re-runs once the server has a port, so a window opened during startup still gets a code.
         .task(id: model.listeningPort) { await model.ensurePairingCode() }
+        // No code on screen means no reason to let unpaired phones in: close the window; reappearing opens a new one (Plan 11).
+        .onAppear { model.pairingViewAppeared() }
+        .onDisappear { model.pairingViewDisappeared() }
     }
 
     @ViewBuilder

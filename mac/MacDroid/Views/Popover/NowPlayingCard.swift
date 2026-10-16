@@ -8,6 +8,7 @@ struct NowPlayingCard: View {
     /// shared model alone left the play/pause button stale in the menu-bar popover.
     let extras: PhoneExtrasState
     @State private var scrubbing: Double?
+    @State private var pendingSeek: MediaPresentation.PendingSeek?
 
     var body: some View {
         let media = extras.media
@@ -22,7 +23,8 @@ struct NowPlayingCard: View {
             }
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let duration = Double(media.durationMs ?? 0)
-                let position = Double(MediaPresentation.position(media, receivedAt: extras.mediaReceivedAt ?? context.date, now: context.date))
+                let projected = MediaPresentation.position(media, receivedAt: extras.mediaReceivedAt ?? context.date, now: context.date)
+                let position = Double(MediaPresentation.shown(projected: projected, pending: pendingSeek, now: context.date))
                 VStack(spacing: 2) {
                     Slider(
                         value: Binding(get: { scrubbing ?? position }, set: { scrubbing = $0 }),
@@ -30,6 +32,7 @@ struct NowPlayingCard: View {
                         onEditingChanged: { editing in
                             guard !editing, let target = scrubbing else { return }
                             model.mediaCommand(.seek, positionMs: Int64(target))
+                            pendingSeek = MediaPresentation.PendingSeek(targetMs: Int64(target), at: .now)
                             scrubbing = nil
                         }
                     )

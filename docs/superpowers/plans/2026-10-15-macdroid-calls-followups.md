@@ -7,6 +7,8 @@ Skipped at the owner's request on 2026-10-15. The probe was built and installed,
 - **`placeCall` refused in the background:** to be checked in the owner checklist; the spec §2.2 fallback gets added if needed.
 
 ## Owner checklist (Plan 10)
+
+**Passed (owner, 2026-10-16):** every item below.
 1. **Phone:** Settings → Calls → **"Make calls from your Mac"** → allow. The row reads "Allowed".
 2. **Incoming:** have someone call. Within about a second the Mac shows the panel at the top right ("Incoming call", the name, and the number if known) with one sound. The app you're typing in keeps focus.
 3. **Answer from the Mac:** the call connects on the phone. The panel shows "On a call with …" and a running timer, and the popover shows the same line.

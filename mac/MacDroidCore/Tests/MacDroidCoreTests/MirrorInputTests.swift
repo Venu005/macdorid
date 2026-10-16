@@ -50,7 +50,7 @@ import Testing
         #expect(MirrorKeys.action(keyCode: 53, characters: "\u{1B}", command: false) == .key(.back))
         #expect(MirrorKeys.action(keyCode: 9, characters: "v", command: true) == .paste)
         #expect(MirrorKeys.action(keyCode: 0, characters: "a", command: true) == nil) // other shortcuts stay on the Mac
-        #expect(MirrorKeys.action(keyCode: 123, characters: "\u{F702}", command: false) == nil) // arrows: not sent
+        #expect(MirrorKeys.action(keyCode: 123, characters: "\u{F702}", command: false) == .swallow) // arrows: not sent, and focus stays on the picture
     }
 
     func session(features: [String] = ProtocolInfo.features) async -> (MirrorSession, Collector<Message>) {
@@ -106,5 +106,63 @@ import Testing
         #expect(MirrorPresentation.controlNotice(state) == "Turn on MacDroid control on your phone to use the mouse.")
         state.control = true
         #expect(MirrorPresentation.controlNotice(state) == nil)
+    }
+}
+
+@Suite struct MirrorWindowFitTests {
+    @Test func landscapeKeepsTheLongEdge() {
+        // A portrait picture 400×889 (plus the bar) turns 20:9 landscape: the long edge, 889, becomes the width.
+        let s = MirrorWindowFit.content(current: CGSize(width: 400, height: 889 + 44), aspect: CGSize(width: 20, height: 9), barHeight: 44)
+        #expect(s.width == 889)
+        #expect(s.height == (889.0 * 9 / 20).rounded() + 44)
+    }
+
+    @Test func backToPortraitKeepsTheLongEdgeAsTheHeight() {
+        let s = MirrorWindowFit.content(current: CGSize(width: 889, height: 400 + 44), aspect: CGSize(width: 9, height: 20), barHeight: 44)
+        #expect(s.width == 889.0 * 9 / 20)
+        #expect(s.height == CGFloat(889 + 44))
+    }
+
+    @Test func portraitToPortraitKeepsTheWidth() {
+        let s = MirrorWindowFit.content(current: CGSize(width: 400, height: 933), aspect: CGSize(width: 9, height: 20), barHeight: 44)
+        #expect(s.width == 400)
+        #expect(s.height == (400.0 * 20 / 9).rounded() + 44)
+    }
+
+    @Test func scrollIsAFractionOfThePictureNotTheView() {
+        // View 400×400, picture 200×400 drawn 200 wide and 400 tall: 20 points is 0.1 of its width.
+        let d = InputMapper.scroll(deltaX: 20, deltaY: 40, precise: true, in: CGSize(width: 400, height: 400), picture: CGSize(width: 200, height: 400))
+        #expect(d.dx == 0.1)
+        #expect(d.dy == 0.1)
+    }
+
+    @Test func pictureRectIsCentredAspectFit() {
+        let r = InputMapper.pictureRect(in: CGSize(width: 400, height: 400), picture: CGSize(width: 200, height: 400))
+        #expect(r == CGRect(x: 100, y: 0, width: 200, height: 400))
+    }
+}
+
+@Suite struct MirrorKeysTests {
+    @Test func escLeavesFullScreenFirst() {
+        #expect(MirrorKeys.action(keyCode: 53, characters: "\u{1B}", command: false, fullScreen: true) == .leaveFullScreen)
+        #expect(MirrorKeys.action(keyCode: 53, characters: "\u{1B}", command: false, fullScreen: false) == .key(.back))
+    }
+
+    @Test func tabAndArrowsStayOnThePicture() {
+        #expect(MirrorKeys.action(keyCode: 48, characters: "\t", command: false, fullScreen: false) == .swallow)
+        #expect(MirrorKeys.action(keyCode: 123, characters: "\u{F702}", command: false, fullScreen: false) == .swallow)
+    }
+
+    @Test func otherCommandShortcutsStillReachTheMenu() {
+        #expect(MirrorKeys.action(keyCode: 12, characters: "q", command: true, fullScreen: false) == nil)
+    }
+}
+
+@Suite struct InputTextCapTests {
+    @Test func capsInUtf16UnitsWithoutSplittingAPair() {
+        let text = String(repeating: "a", count: 4095) + "😀"
+        #expect(InputText.capped(text).utf16.count == 4095)
+        #expect(InputText.capped(String(repeating: "a", count: 5000)).utf16.count == 4096)
+        #expect(InputText.capped("hi") == "hi")
     }
 }

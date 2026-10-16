@@ -3,6 +3,7 @@ package dev.macdroid.app.ui.files
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import dev.macdroid.app.graph
@@ -14,6 +15,11 @@ class SaveAsActivity : ComponentActivity() {
         val id = intent.getStringExtra(EXTRA_ID) ?: return finish()
         val name = intent.getStringExtra(EXTRA_NAME) ?: "file"
         val mime = intent.getStringExtra(EXTRA_MIME) ?: "application/octet-stream"
+        if (savedInstanceState == null && !graph.savePrompter.isWaiting(id)) {
+            // A stale notification: creating a document now would leave an empty file nobody fills (Plan 11).
+            Toast.makeText(this, "That transfer is no longer waiting", Toast.LENGTH_LONG).show()
+            return finish()
+        }
         val launcher = registerForActivityResult(ActivityResultContracts.CreateDocument(mime)) { uri ->
             if (uri != null) {
                 runCatching {

@@ -1,5 +1,6 @@
 package dev.macdroid.app.ui.main
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,7 +78,7 @@ fun HomeScreen(onPairAgain: () -> Unit, viewModel: HomeViewModel = viewModel(), 
                     )
                 }
                 recent.forEach { record ->
-                    TransferRow(record, null, { filesViewModel.cancel(record.id) }, { filesViewModel.retry(record.id) }, { context.openReceived(record) }, savedFileExists = record.id !in files.deleted)
+                    TransferRow(record, null, { filesViewModel.cancel(record.id) }, { filesViewModel.retry(record.id) }, { context.openReceived(record, record.id !in files.deleted) }, savedFileExists = record.id !in files.deleted)
                 }
             }
         }
@@ -85,7 +86,10 @@ fun HomeScreen(onPairAgain: () -> Unit, viewModel: HomeViewModel = viewModel(), 
     }
     Box(Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
         ExtendedFloatingActionButton(
-            onClick = { if (files.connected) sendMenu = true },
+            onClick = {
+                if (files.connected) sendMenu = true
+                else Toast.makeText(context, "Connect to your Mac first", Toast.LENGTH_SHORT).show() // was silent (Plan 11)
+            },
             icon = { Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = null) },
             text = { Text("Send") },
             expanded = true,

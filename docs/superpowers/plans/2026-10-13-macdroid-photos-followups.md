@@ -4,6 +4,8 @@ Branch `feat/photos`. Built 2026-10-14; all gates and the cross-platform test pa
 
 ## Owner hands-on checklist
 
+**Passed (owner, 2026-10-16):** every item below.
+
 1. Install both builds. On the phone, open MacDroid. Existing users see no new setup step. Go to Settings → Photos → choose "Allow all". The row reads "All photos".
 2. On the Mac, open Photos in the sidebar:
    - The albums show with covers and counts, "All Photos" first.

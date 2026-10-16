@@ -317,6 +317,21 @@ final class AppModel {
         await beginPairing()
     }
 
+    @ObservationIgnored private var visiblePairingViews = 0
+
+    func pairingViewAppeared() { visiblePairingViews += 1 }
+
+    /// The last pairing view went away (window closed, page left): shut the pairing window without changing what the
+    /// view shows. Checked once this update is over, so a view that is replaced (disappears and reappears at once)
+    /// keeps its code (final review).
+    func pairingViewDisappeared() {
+        visiblePairingViews = max(0, visiblePairingViews - 1)
+        Task { [weak self] in
+            guard let self, visiblePairingViews == 0 else { return }
+            await pairing.closeWindow()
+        }
+    }
+
     func cancelPairing() async {
         isRepairing = false
         pairingExpired = false
@@ -494,10 +509,22 @@ final class AppModel {
     func cancelTransfer(_ id: String) { Task { await transferManager.cancel(id: id) } }
     func retryTransfer(_ id: String) { Task { await transferManager.retry(id: id) } }
 
-    /// A received file can be deleted or moved after it arrived; rows and actions check before using it.
+    /// Bumped whenever a received file's answer may have changed; rows read it, so they redraw.
+    private(set) var receivedFileGeneration = 0
+    /// Cached per record for rows, so a busy history doesn't stat every file on every update (Plan 11).
+    @ObservationIgnored private var receivedFiles = ReceivedFileChecks()
+
+    /// A received file can be deleted or moved after it arrived. Rows use the cached answer; actions look again.
     func receivedFileExists(_ record: TransferRecord) -> Bool {
         guard record.direction == .fromPhone, let url = record.savedURL else { return true }
-        return FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
+        _ = receivedFileGeneration
+        return receivedFiles.rowSaysExists(id: record.id, url: url)
+    }
+
+    /// The Files page or the popover appeared: look at every received file again.
+    func recheckReceivedFiles() {
+        receivedFiles.clear()
+        receivedFileGeneration += 1
     }
 
     func revealReceived(_ record: TransferRecord) {
@@ -512,7 +539,10 @@ final class AppModel {
 
     private func usableReceivedFile(_ record: TransferRecord) -> URL? {
         guard let url = record.savedURL else { return nil }
-        guard receivedFileExists(record) else {
+        // Always looked at again, never the rows' cached answer (final review I2); the rows then follow.
+        let exists = receivedFiles.existsNow(id: record.id, url: url)
+        receivedFileGeneration += 1
+        guard exists else {
             transientError = "“\(record.name)” is no longer on this Mac — it was deleted or moved."
             return nil
         }
@@ -602,6 +632,7 @@ final class AppModel {
         mirrorWindow?.show(content: MirrorContentView(model: self, renderer: mirrorRenderer), title: phoneName)
         mirrorWindow?.setKeepOnTop(mirrorKeepOnTop)
         mirrorRenderer.reset()
+        mirrorAudioPlayer.volume = mirrorVolumeLevel
         mirrorAudioPlayer.start(muted: !mirrorAudio)
         let options = MirrorOptions(maxSize: mirrorQuality, fps: mirrorFPS, audio: mirrorAudio)
         Task { _ = await mirrorSession.start(options) }
@@ -613,6 +644,25 @@ final class AppModel {
     }
 
     func sendMirrorKey(_ key: InputKeyName) { sendMirrorInput(.inputKey(InputKey(key: key))) }
+
+    /// The phone's sound is playing on this Mac right now.
+    var mirrorAudioOnMac: Bool { mirrorAudio && mirror.audio == true }
+
+    /// The Mac player's level, kept across sessions.
+    var mirrorVolumeLevel = UserDefaults.standard.object(forKey: "mirror.volume") as? Float ?? 1 {
+        didSet {
+            UserDefaults.standard.set(mirrorVolumeLevel, forKey: "mirror.volume")
+            mirrorAudioPlayer.volume = mirrorVolumeLevel
+        }
+    }
+
+    /// Volume −/+ in the mirror window: the Mac player while it plays the phone's sound, otherwise the phone (owner ruling 2026-10-16).
+    func mirrorVolume(up: Bool) {
+        switch MirrorVolume.route(audioOnMac: mirrorAudioOnMac) {
+        case .mac: mirrorVolumeLevel = MirrorVolume.step(mirrorVolumeLevel, up: up)
+        case .phone: sendMirrorKey(up ? .volumeUp : .volumeDown)
+        }
+    }
 
     /// Typing is sent in 30 ms batches (spec §6.5).
     func typeOnPhone(_ text: String) {
@@ -626,14 +676,14 @@ final class AppModel {
 
     func pasteOnPhone() {
         guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else { return }
-        typeOnPhone(String(text.prefix(InputText.maxLength)))
+        typeOnPhone(InputText.capped(text))
     }
 
     private func flushText() {
         textFlush?.cancel()
         textFlush = nil
         guard !pendingText.isEmpty else { return }
-        let text = String(pendingText.prefix(InputText.maxLength))
+        let text = InputText.capped(pendingText)
         pendingText = ""
         mirrorInput.continuation.yield(.inputText(InputText(text: text)))
     }
@@ -862,11 +912,19 @@ final class AppModel {
 
     private func serverStarted(port: Int) {
         listeningPort = port
+        advertiser.onError = { [weak self] reason in
+            Task { @MainActor in self?.bonjourFailed(reason) }
+        }
         do {
             try advertiser.start(name: macName, port: UInt16(port), txt: ["v": "1", "fp": Fingerprint.short(fingerprint)])
         } catch {
-            warnings.append("Your phone may not find this Mac automatically (Bonjour: \(error.localizedDescription)). Pairing by QR code still works.")
+            bonjourFailed(error.localizedDescription)
         }
+    }
+
+    private func bonjourFailed(_ reason: String) {
+        let warning = "Your phone may not find this Mac automatically (Bonjour: \(reason)). Pairing by QR code still works."
+        if !warnings.contains(warning) { warnings.append(warning) }
     }
 
     private func handle(_ event: PairingEvent) async {

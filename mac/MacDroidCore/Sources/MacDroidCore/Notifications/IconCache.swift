@@ -20,7 +20,11 @@ public struct IconCache: Sendable {
         guard Self.isValid(hash: hash),
               let data = Data(base64Encoded: pngBase64), !data.isEmpty, data.count <= Self.maxBytes else { return false }
         let url = file(hash)
-        if FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) { return true }
+        if FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
+            // Seen again: counts as recent for `prune`.
+            try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: url.path(percentEncoded: false))
+            return true
+        }
         do {
             try data.write(to: url, options: .atomic)
             return true
@@ -33,6 +37,14 @@ public struct IconCache: Sendable {
         guard Self.isValid(hash: hash) else { return nil }
         let url = file(hash)
         return FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) ? url : nil
+    }
+
+    /// Deletes all but the `keeping` most recently saved images.
+    public func prune(keeping: Int) {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey]) else { return }
+        let dated = files.map { ($0, (try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast) }
+        for (url, _) in dated.sorted(by: { $0.1 > $1.1 }).dropFirst(keeping) { try? fm.removeItem(at: url) }
     }
 
     private func file(_ hash: String) -> URL { directory.appending(path: hash + ".png") }

@@ -40,6 +40,22 @@ class PairingTest {
         assertEquals("MZXW6YTBOI2D", PairingInvite.normalizeCode(" mzxw 6ytb-oi2d "))
     }
 
+    // Plan 11: only base32 characters (A–Z, 2–7) can be part of a code.
+    @Test fun normalizeCodeKeepsOnlyBase32() {
+        assertEquals("ABC", PairingInvite.normalizeCode("ab-1 8c"))
+        assertEquals("AB27", PairingInvite.normalizeCode("ab2 7é"))
+    }
+
+    // Plan 11: a huge reply is a failure, not an out-of-memory crash.
+    @Test fun pairingResponseBodyIsBounded() = runBlocking {
+        MockMac().use { mac ->
+            mac.enqueueJson(200, """{"macName":"${"x".repeat(2 * 1024 * 1024)}"}""")
+            mac.start()
+            val result = PairingClient(mac.phoneIdentity).pair(invite(mac), "My Phone", "Nothing Phone (3)")
+            assertTrue(result.toString(), result is PairResult.Failed)
+        }
+    }
+
     private fun invite(mac: MockMac, code: String = "CODE") =
         PairingInvite(mac.server.hostName, mac.server.port, mac.fingerprint, code, "Test Mac")
 

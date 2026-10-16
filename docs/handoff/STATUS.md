@@ -10,6 +10,7 @@
 - `main` also has screen mirroring and remote control (Plans 7 and 8), merged 2026-10-15 as `75ac85b`; `swift test` 317.
 - `main` also has photos (Plan 6: browse the phone's photos and videos, Quick Look, Save to Mac, drag out), merged 2026-10-14 as `37b425c`; its 9 follow-up minors merged as `2807ce9`; `swift test` 274.
 ## In flight
+- **Backlog clean-up (Plan 11):** built on `fix/backlog` (from `main` at `b866474`), not merged. All gates pass (`swift test` 363, Mac app build, `:core:test :app:testDebugUnitTest :app:assembleDebug` with no warnings, cross-platform). Waiting on the final whole-branch review and the owner's 7-step check (plan Task 13). Every owner checklist has passed (2026-10-16), including the 2 GB+ file both ways.
 - **Calls on the Mac (Plan 10):** merged to `main` on 2026-10-15 as `c9ae68f`, after the owner tried dialing from the Mac (dialer window), phone links and the panel. All gates pass on `main` (`swift test` 336, Mac app build, Android gates, cross-platform). The owner confirmed Answer, Decline and Hang up from the Mac. The 8 deferred minors are fixed and merged (`73fb277`; `swift test` 341).
 - **Mirroring and remote control (Plans 7 and 8):** merged to `main` on 2026-10-15 as `75ac85b`, after the owner tried both on their devices ("it works well"). All gates pass on `main` (`swift test` 317, Mac app build, Android gates, cross-platform). Still open: the full owner checklists, 9 Plan 7 minors, 10 Plan 8 minors and one volume ruling, all in `docs/superpowers/plans/2026-10-14-macdroid-mirroring-followups.md`.
 - **Photos (Plan 6):** merged to `main` 2026-10-14 (`37b425c`). The 9 deferred minors are fixed and merged too (`2807ce9`; `swift test` 274, Mac build, Android gates, cross-platform all pass); the owner checklist is in `docs/superpowers/plans/2026-10-13-macdroid-photos-followups.md`.
@@ -35,13 +36,12 @@
   - Cross-platform file transfer both ways (24 MiB each), with resume after a dropped connection.
 
 ## Pending or unverified
-- **File transfer with a 2 GB+ file** (owner, later). The rest of the checklist passed.
 - **Login-item launch.** With a phone paired, MacDroid should start quietly with no window. Not verified. If macOS restores the window at login, disable window restoration.
 - Real login items need a properly signed build. Dev builds are ad-hoc signed (expect a keychain prompt after each rebuild).
 
 ## Known limitations (by design for now)
 - One paired phone per Mac.
-- IPv4 only for NSD rediscovery. After Mac sleep/wake the phone may take up to about 30 s to reconnect.
+- IPv4 only for NSD rediscovery. After Mac sleep/wake the phone reconnects as soon as NSD sees the Mac again (Plan 11; was up to about 30 s).
 - The Mac has no "reconnecting" state; it shows "Not connected — waiting for your phone".
 - No placeholder pages or tabs are left on either side. Files, Notifications and Clipboard are live (Plan 3, in progress on `feat/notifications-clipboard`).
 

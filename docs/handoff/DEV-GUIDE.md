@@ -86,3 +86,6 @@ ANDROID_SERIAL=<serial> ./gradlew :app:installDebug
 - Swift Testing (`@Test`, `#expect`) on the Mac and JUnit4 on Android; TDD for logic.
 - Pure presentation and state logic lives in testable types; views stay thin.
 - Commit messages are conventional style (`feat(mac): …`, `fix(android): …`).
+
+## Gradle wrapper checksum
+`android/gradle/wrapper/gradle-wrapper.properties` pins `distributionSha256Sum` (Plan 11). When you bump Gradle, also replace the sum with the one Gradle publishes at `https://services.gradle.org/distributions/gradle-<version>-bin.zip.sha256`, or the wrapper refuses the download.

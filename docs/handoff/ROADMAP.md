@@ -61,7 +61,8 @@ Brainstorming started 2026-10-13, then the owner parked it. Resume at the first 
 4. **Screen mirroring (low latency) and remote control (Plans 7 and 8).** Spec written 2026-10-14 (`docs/superpowers/specs/2026-10-14-macdroid-mirroring-control-design.md`, self-reviewed): mirroring with phone audio in its own Mac window over a dedicated mutual-TLS media WebSocket; control through an Android accessibility service (no debugging), including auto-Start of the capture prompt. Plan 7 (mirroring) built on `feat/mirroring` 2026-10-14; Plan 8 (control, 7 tasks: `docs/superpowers/plans/2026-10-14-macdroid-remote-control-8.md`) built on the same branch 2026-10-15. **Merged to `main` 2026-10-15** (`75ac85b`). On Android 17 mirroring needs an unlocked phone (capture ends on lock).
 5. ~~**Automatic phone → Mac clipboard (Plan 9).**~~ Dropped 2026-10-15 after the on-device probe (see DECISIONS.md); phone → Mac stays manual.
 6. **Calls on the Mac (Plan 10).** Spec approved 2026-10-15 (`docs/superpowers/specs/2026-10-15-macdroid-calls-design.md`); plan written (`docs/superpowers/plans/2026-10-15-macdroid-calls-10.md`, 8 tasks); **merged to `main` 2026-10-15** (`c9ae68f`).
-7. The rest of the owner's list, below.
+7. **Backlog clean-up (Plan 11).** Built 2026-10-16 on `fix/backlog` (final review and owner check pending): every open deferred minor plus cheap hardening (plan: `docs/superpowers/plans/2026-10-16-macdroid-backlog-11.md`). All owner checklists passed (2026-10-16), including the 2 GB file.
+8. The rest of the owner's list, below.
 
 ## Owner's feature list (2026-10-13)
 The owner's planned features, with status:
@@ -71,7 +72,7 @@ The owner's planned features, with status:
 - Photo browsing and transfer: done (Plan 6, merged 2026-10-14).
 - Screen mirroring (low latency): done (Plan 7, merged), with phone audio; 50–80 ms target.
 - Remote control of Android from the Mac: done (Plan 8, merged), through an accessibility service (owner's choice; Play-restricted, fine for personal use).
-- Contact sync: not specced. Android `READ_CONTACTS`; Mac Contacts framework plus the sandbox address-book entitlement.
+- Contact sync: **dropped 2026-10-16** (owner: not needed). Was: not specced. Android `READ_CONTACTS`; Mac Contacts framework plus the sandbox address-book entitlement.
 - Use the phone as a webcam (Wi-Fi + USB): **parked 2026-10-15** (owner), before a spec. What was found:
   - A system-wide camera on macOS 26 needs a CoreMediaIO camera extension. Installing one requires the app signed with a paid Apple Developer Team ID (the Mac app is ad-hoc signed today; the owner plans to enrol later). Legacy DAL plug-ins no longer load.
   - The owner's Nothing Phone (3) has no built-in USB "Webcam" mode.
@@ -81,6 +82,7 @@ The owner's planned features, with status:
 Also noted earlier: SMS (personal build only, Play-restricted), USB transport via `adb reverse`, Wi-Fi Direct, and the parked Finder Share extension.
 
 ## Before publishing
+- **Stance (2026-10-16):** free and unsigned for now; no Apple Developer account. If it is ever sold: Android free, a one-time Pro unlock on the Mac only, offline signed license keys (see DECISIONS.md). Check the "MacDroid" name for trademark clashes first.
 - Play declaration for photo/video access (`READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO`) as core functionality (Plan 6).
 - **Signing:** proper signing with a Team ID, and the data-protection keychain.
 - **Android hardening:** Gradle wrapper checksum; backup exclusions for pairing prefs; restart on `MY_PACKAGE_REPLACED`.

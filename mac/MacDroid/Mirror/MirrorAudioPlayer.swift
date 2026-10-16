@@ -10,28 +10,63 @@ final class MirrorAudioPlayer: @unchecked Sendable {
     private var jitter = AudioJitter() // queue
     private var bufferedFrames = 0 // queue
     private var muted = false // queue
+    private var active = false // queue
+    /// Bumped on every start, stop and restart, so completions from an older schedule can't touch `bufferedFrames`.
+    private var epoch = 0 // queue
+    private var configObserver: NSObjectProtocol?
 
     init() {
         engine.attach(node)
         engine.connect(node, to: engine.mainMixerNode, format: format)
+        // The output device changed (AirPods connected, display audio unplugged): the engine has stopped; rebuild and restart.
+        configObserver = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil) { [weak self] _ in
+            guard let self else { return }
+            queue.async { self.restartAfterConfigurationChange() }
+        }
+    }
+
+    deinit {
+        if let configObserver { NotificationCenter.default.removeObserver(configObserver) }
+    }
+
+    /// 0…1, applied to the main mixer.
+    var volume: Float = 1 {
+        didSet {
+            let level = volume
+            queue.async { [self] in engine.mainMixerNode.outputVolume = level }
+        }
     }
 
     func start(muted: Bool) {
         queue.async { [self] in
             self.muted = muted
-            jitter = AudioJitter()
-            bufferedFrames = 0
+            active = true
+            reset()
             if !muted { try? engine.start() }
         }
     }
 
     func stop() {
         queue.async { [self] in
+            active = false
             node.stop()
             engine.stop()
-            jitter = AudioJitter()
-            bufferedFrames = 0
+            reset()
         }
+    }
+
+    private func reset() {
+        epoch += 1
+        jitter = AudioJitter()
+        bufferedFrames = 0
+    }
+
+    private func restartAfterConfigurationChange() {
+        guard active, !muted else { return }
+        node.stop()
+        engine.connect(node, to: engine.mainMixerNode, format: format)
+        reset()
+        try? engine.start()
     }
 
     func play(_ pcm: Data) {
@@ -53,9 +88,10 @@ final class MirrorAudioPlayer: @unchecked Sendable {
                 }
             }
             bufferedFrames += frames
+            let scheduledIn = epoch
             node.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { [weak self] _ in
                 guard let self else { return }
-                queue.async { self.bufferedFrames -= frames }
+                queue.async { if self.epoch == scheduledIn { self.bufferedFrames -= frames } }
             }
             if startPlayback { node.play() }
         }

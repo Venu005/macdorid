@@ -50,7 +50,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 | `device.ring` | Mac → phone | `action` (`start` \| `stop`) |
 | `device.ringState` | phone → Mac | `ringing` |
 | `link.open` | both | `url` — http/https with a host, ≤ 8,192 bytes; anything else is ignored |
-| `media.state` | phone → Mac | `active`; when true: `package`, `appName`, `title`, `artist`, `durationMs`, `positionMs`, `positionAt` (phone epoch ms), `playing`, `canPrevious`, `canNext`, `canSeek`, `artHash` |
+| `media.state` | phone → Mac | `active`; when true: `package`, `appName`, `title`, `artist`, `durationMs`, `positionMs`, `positionAt` (phone epoch ms), `playing`, `canPrevious`, `canNext`, `canSeek`, `speed` (playback rate, 1 = normal; optional), `artHash` |
 | `media.art` | phone → Mac | `hash` (16 lowercase hex), `jpeg` (base64, ≤ 300 px) — once per hash per connection, before it's referenced |
 | `media.command` | Mac → phone | `command` (`play` \| `pause` \| `next` \| `previous` \| `seek`), `positionMs` (seek only) |
 | `clipboard.set` | both | `itemId` (UUID), `kind` (`text`), `text` — the encoded frame must be ≤ 1 MiB |
@@ -72,7 +72,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 | `input.pointer` | Mac → phone | `action` (`down` \| `move` \| `up` \| `cancel`), `x`, `y` (0–1 of the picture), `t` (Mac ms) |
 | `input.scroll` | Mac → phone | `x`, `y`, `dx`, `dy` (fractions of the picture, finger direction) |
 | `input.key` | Mac → phone | `key` (`back` \| `home` \| `recents` \| `volumeUp` \| `volumeDown` \| `power` \| `backspace`) |
-| `input.text` | Mac → phone | `text` (≤ 4,096 characters) |
+| `input.text` | Mac → phone | `text` (≤ 4,096 UTF-16 code units; senders never split a surrogate pair) |
 | `input.notice` | phone → Mac | `reason` (`noTextField`) |
 | `call.state` | phone → Mac | `callId`, `state` (`ringing` \| `active` \| `ended`), `name` (optional), `number` (optional) |
 | `call.action` | Mac → phone | `callId`, `action` (`answer` \| `decline` \| `hangUp`) |
@@ -105,7 +105,7 @@ malformed frames are dropped without closing the connection. Both sides send `he
 
 ### Small wins rules
 - **Ring:** the phone sends `device.ringState` on every start and stop, including automatic stops (30 s, a volume key, a disconnect).
-- **Media updates:** `media.state` is sent only when the track, playing state, controls or artwork change, or the position jumps by more than 2 s; plus once after every `hello`. The receiver projects the position while playing.
+- **Media updates:** `media.state` is sent only when the track, playing state, controls or artwork change, or the position jumps by more than 2 s; plus once after every `hello`. The receiver projects the position while playing, at `speed` (1 when absent); a change of `speed` is sent too.
 - **Links:** a `link.open` that isn't http/https with a host, or is over 8,192 bytes, is ignored.
 
 ### Photos rules

@@ -48,4 +48,15 @@ import X509
         #expect(loaded.fingerprint == identity.fingerprint)
         #expect(loaded.privateKey.rawRepresentation == identity.privateKey.rawRepresentation)
     }
+
+    // Plan 11: saving over an existing identity updates it in place (no delete-then-add window).
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["CI"] == nil, "touches the login keychain"))
+    func keychainOverwriteKeepsTheItem() throws {
+        let store = KeychainIdentityStore(service: "dev.macdroid.tests.\(UUID().uuidString)")
+        defer { store.delete() }
+        try store.save(try Identity.generate(commonName: "First"))
+        let second = try Identity.generate(commonName: "Second")
+        try store.save(second)
+        #expect(try store.load()?.fingerprint == second.fingerprint)
+    }
 }

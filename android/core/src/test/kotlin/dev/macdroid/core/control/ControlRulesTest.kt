@@ -77,6 +77,17 @@ class ControlRulesTest {
     }
 
     // Review Focus #5
+    @Test fun textCapNeverSplitsASurrogatePair() {
+        assertEquals(4095, TextEdit.cap("a".repeat(4095) + "😀", 4096).length)
+        assertEquals(4096, TextEdit.cap("a".repeat(5000), 4096).length)
+        assertEquals("hi", TextEdit.cap("hi", 4096))
+    }
+
+    @Test fun backspaceRemovesAWholeFlagAndAZwjFamily() {
+        assertEquals("a" to 1, TextEdit.backspace("a🇮🇳", 5, 5))
+        assertEquals("a" to 1, TextEdit.backspace("a👨‍👩‍👧", 9, 9))
+    }
+
     @Test fun backspaceRemovesAWholeEmoji() {
         val text = "hi 🙂"
         assertEquals("hi " to 3, TextEdit.backspace(text, text.length, text.length))
