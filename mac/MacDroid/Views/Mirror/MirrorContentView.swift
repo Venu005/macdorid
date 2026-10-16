@@ -73,11 +73,14 @@ private struct MirrorBar: View {
                 bar("chevron.backward", "Back") { model.sendMirrorKey(.back) }
                 bar("circle", "Home") { model.sendMirrorKey(.home) }
                 bar("square.on.square", "Recents") { model.sendMirrorKey(.recents) }
-                bar("speaker.minus", "Volume down") { model.sendMirrorKey(.volumeDown) }
-                bar("speaker.plus", "Volume up") { model.sendMirrorKey(.volumeUp) }
                 bar("lock", "Lock phone") { model.sendMirrorKey(.power) }
             }
             .disabled(!model.mirror.controlAvailable)
+            Group {
+                bar("speaker.minus", model.mirrorAudioOnMac ? "Mac volume down" : "Phone volume down") { model.mirrorVolume(up: false) }
+                bar("speaker.plus", model.mirrorAudioOnMac ? "Mac volume up" : "Phone volume up") { model.mirrorVolume(up: true) }
+            }
+            .disabled(!model.mirrorAudioOnMac && !model.mirror.controlAvailable)
             Spacer()
             if model.mirrorShowLatency, let ms = model.mirrorLatency {
                 Text("\(ms) ms")

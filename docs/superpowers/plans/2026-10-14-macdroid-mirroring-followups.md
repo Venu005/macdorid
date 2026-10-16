@@ -39,8 +39,8 @@ Start with the phone **unlocked** (Android ends capture on lock).
 13. During a session the phone's speaker is silent and its sound plays on the Mac; afterwards the phone's volume is back.
 
 ## Deferred minors (Plan 7 final review)
-1. **Output-device change:** `AVAudioEngine` stops when the output device changes (e.g. AirPods connect) and isn't restarted; observe `AVAudioEngineConfigurationChange`.
-2. **Audio counter:** `MirrorAudioPlayer.bufferedFrames` can go negative after `stop()`; completions from before the reset still arrive.
+1. **Fixed (Plan 11).** **Output-device change:** `AVAudioEngine` stops when the output device changes (e.g. AirPods connect) and isn't restarted; observe `AVAudioEngineConfigurationChange`.
+2. **Fixed (Plan 11).** **Audio counter:** `MirrorAudioPlayer.bufferedFrames` can go negative after `stop()`; completions from before the reset still arrive.
 3. **Teardown order:** the VirtualDisplay briefly targets a released encoder surface in `ScreenEncoder.resize`/`release`; detach the surface first.
 4. **Landscape window size:** rotating to landscape keeps the window's width, so it gets short; keep the long edge instead.
 5. **Second start:** `MirrorService.finished` is never reset if an instance gets a second start; guard `onStartCommand`.

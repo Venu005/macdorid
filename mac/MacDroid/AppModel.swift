@@ -602,6 +602,7 @@ final class AppModel {
         mirrorWindow?.show(content: MirrorContentView(model: self, renderer: mirrorRenderer), title: phoneName)
         mirrorWindow?.setKeepOnTop(mirrorKeepOnTop)
         mirrorRenderer.reset()
+        mirrorAudioPlayer.volume = mirrorVolumeLevel
         mirrorAudioPlayer.start(muted: !mirrorAudio)
         let options = MirrorOptions(maxSize: mirrorQuality, fps: mirrorFPS, audio: mirrorAudio)
         Task { _ = await mirrorSession.start(options) }
@@ -613,6 +614,25 @@ final class AppModel {
     }
 
     func sendMirrorKey(_ key: InputKeyName) { sendMirrorInput(.inputKey(InputKey(key: key))) }
+
+    /// The phone's sound is playing on this Mac right now.
+    var mirrorAudioOnMac: Bool { mirrorAudio && mirror.audio == true }
+
+    /// The Mac player's level, kept across sessions.
+    var mirrorVolumeLevel = UserDefaults.standard.object(forKey: "mirror.volume") as? Float ?? 1 {
+        didSet {
+            UserDefaults.standard.set(mirrorVolumeLevel, forKey: "mirror.volume")
+            mirrorAudioPlayer.volume = mirrorVolumeLevel
+        }
+    }
+
+    /// Volume −/+ in the mirror window: the Mac player while it plays the phone's sound, otherwise the phone (owner ruling 2026-10-16).
+    func mirrorVolume(up: Bool) {
+        switch MirrorVolume.route(audioOnMac: mirrorAudioOnMac) {
+        case .mac: mirrorVolumeLevel = MirrorVolume.step(mirrorVolumeLevel, up: up)
+        case .phone: sendMirrorKey(up ? .volumeUp : .volumeDown)
+        }
+    }
 
     /// Typing is sent in 30 ms batches (spec §6.5).
     func typeOnPhone(_ text: String) {

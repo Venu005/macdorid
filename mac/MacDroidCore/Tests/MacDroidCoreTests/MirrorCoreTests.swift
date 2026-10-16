@@ -179,3 +179,17 @@ extension Data {
         #expect(MirrorPresentation.latencyTone(150) == .poor)
     }
 }
+
+@Suite struct MirrorVolumeTests {
+    @Test func volumeGoesToTheMacWhileItPlaysTheSound() {
+        #expect(MirrorVolume.route(audioOnMac: true) == .mac)
+        #expect(MirrorVolume.route(audioOnMac: false) == .phone)
+    }
+
+    @Test func volumeStepsByOneSixteenthAndClamps() {
+        #expect(MirrorVolume.step(1, up: true) == 1)
+        #expect(MirrorVolume.step(0, up: false) == 0)
+        #expect(MirrorVolume.step(0.5, up: true) == 0.5625)
+        #expect(MirrorVolume.step(0.5, up: false) == 0.4375)
+    }
+}
