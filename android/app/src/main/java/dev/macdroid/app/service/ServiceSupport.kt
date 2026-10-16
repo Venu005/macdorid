@@ -112,7 +112,8 @@ object BatteryMonitor {
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED &&
+        val restart = intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED
+        if (restart &&
             context.graph.uiPrefs.keepConnected &&
             context.graph.pairingStore.paired.value != null &&
             Permissions.hasLocalNetwork(context)

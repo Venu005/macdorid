@@ -117,3 +117,6 @@ Mac app (`mac/MacDroid/`):
 ## Feature exchange (Plan 3)
 - Both sides list their features in `hello` (`ProtocolInfo.features`, `Features.SUPPORTED`). Android exposes them as `ConnectionState.Connected(macName, features)` and `ConnectionState.macSupports(feature)`; the Mac as `PeerInfo.supports(feature)`.
 - `ConnectionHub.messages` carries every feature message (everything except `hello`, `device.status` and unknown types).
+
+## Reconnect discovery (Plan 11)
+`MacLocator` is collected once per paired Mac for as long as `ConnectionManager` runs (restarted 30 s after it ends). Each emission is a fresh sighting (first seen, or found again after being lost), possibly at the same address, and it wakes the retry; a different address is also saved. Nudges and sightings from before a session are drained when the Mac's hello arrives. Android backup and device transfer exclude all app data, since pairing is tied to the Keystore key.
