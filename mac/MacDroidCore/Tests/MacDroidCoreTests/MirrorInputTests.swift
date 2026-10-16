@@ -50,7 +50,7 @@ import Testing
         #expect(MirrorKeys.action(keyCode: 53, characters: "\u{1B}", command: false) == .key(.back))
         #expect(MirrorKeys.action(keyCode: 9, characters: "v", command: true) == .paste)
         #expect(MirrorKeys.action(keyCode: 0, characters: "a", command: true) == nil) // other shortcuts stay on the Mac
-        #expect(MirrorKeys.action(keyCode: 123, characters: "\u{F702}", command: false) == nil) // arrows: not sent
+        #expect(MirrorKeys.action(keyCode: 123, characters: "\u{F702}", command: false) == .swallow) // arrows: not sent, and focus stays on the picture
     }
 
     func session(features: [String] = ProtocolInfo.features) async -> (MirrorSession, Collector<Message>) {
@@ -139,5 +139,21 @@ import Testing
     @Test func pictureRectIsCentredAspectFit() {
         let r = InputMapper.pictureRect(in: CGSize(width: 400, height: 400), picture: CGSize(width: 200, height: 400))
         #expect(r == CGRect(x: 100, y: 0, width: 200, height: 400))
+    }
+}
+
+@Suite struct MirrorKeysTests {
+    @Test func escLeavesFullScreenFirst() {
+        #expect(MirrorKeys.action(keyCode: 53, characters: "\u{1B}", command: false, fullScreen: true) == .leaveFullScreen)
+        #expect(MirrorKeys.action(keyCode: 53, characters: "\u{1B}", command: false, fullScreen: false) == .key(.back))
+    }
+
+    @Test func tabAndArrowsStayOnThePicture() {
+        #expect(MirrorKeys.action(keyCode: 48, characters: "\t", command: false, fullScreen: false) == .swallow)
+        #expect(MirrorKeys.action(keyCode: 123, characters: "\u{F702}", command: false, fullScreen: false) == .swallow)
+    }
+
+    @Test func otherCommandShortcutsStillReachTheMenu() {
+        #expect(MirrorKeys.action(keyCode: 12, characters: "q", command: true, fullScreen: false) == nil)
     }
 }

@@ -76,7 +76,7 @@ Start with the phone **unlocked** (Android ends capture on lock).
   4. `GesturePlayer` doesn't pump again after `dispatchGesture` returns false; queued segments wait for the next input.
   5. **Fixed (Plan 11).** The dot cursor shows even when control is off and over the black bars.
   6. **Fixed (Plan 11).** `MirrorInputNSView.down` can stay true if control turns off mid-drag.
-  7. Unsent keys (Tab) go to `super.keyDown` and can move focus off the picture; dead keys and non-Latin input methods don't work (not an `NSTextInputClient`).
-  8. Esc is always Back, so it can't leave full screen on the mirror window.
+  7. **Fixed (Plan 11).** Unsent keys (Tab) go to `super.keyDown` and can move focus off the picture; dead keys and non-Latin input methods don't work (not an `NSTextInputClient`).
+  8. **Fixed (Plan 11).** Esc is always Back, so it can't leave full screen on the mirror window.
   9. **Fixed (Plan 11).** Scroll deltas are normalised to the view, not the aspect-fit picture.
   10. `CrossPlatformTest` has `delay(300)` straight before `delay(500)`.

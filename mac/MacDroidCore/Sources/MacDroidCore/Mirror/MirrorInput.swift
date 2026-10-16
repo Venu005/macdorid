@@ -50,21 +50,26 @@ public enum MirrorKeyAction: Equatable, Sendable {
     case text(String)
     case key(InputKeyName)
     case paste
+    /// Esc in full screen leaves full screen before it means Back (Plan 8 minor #8).
+    case leaveFullScreen
+    /// Keys with no phone meaning (Tab, arrows, function keys) are eaten so focus never leaves the picture (Plan 8 minor #7).
+    case swallow
 }
 
 /// Mac keys → phone input (spec §6.5). Other ⌘ shortcuts and arrow/function keys stay on the Mac.
 public enum MirrorKeys {
-    public static func action(keyCode: UInt16, characters: String?, command: Bool) -> MirrorKeyAction? {
+    public static func action(keyCode: UInt16, characters: String?, command: Bool, fullScreen: Bool = false) -> MirrorKeyAction? {
         if command { return keyCode == 9 ? .paste : nil } // ⌘V
         switch keyCode {
         case 36, 76: return .text("\n") // Return, Enter
         case 51: return .key(.backspace) // Delete
-        case 53: return .key(.back) // Esc
+        case 53: return fullScreen ? .leaveFullScreen : .key(.back) // Esc
+        case 48: return .swallow // Tab
         default: break
         }
-        guard let characters, !characters.isEmpty,
-              characters.unicodeScalars.allSatisfy({ !(0xF700...0xF8FF).contains($0.value) && $0.value >= 0x20 && $0.value != 0x7F })
-        else { return nil }
+        guard let characters, !characters.isEmpty else { return nil }
+        if characters.unicodeScalars.contains(where: { (0xF700...0xF8FF).contains($0.value) }) { return .swallow }
+        guard characters.unicodeScalars.allSatisfy({ $0.value >= 0x20 && $0.value != 0x7F }) else { return nil }
         return .text(characters)
     }
 }
