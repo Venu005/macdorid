@@ -896,11 +896,19 @@ final class AppModel {
 
     private func serverStarted(port: Int) {
         listeningPort = port
+        advertiser.onError = { [weak self] reason in
+            Task { @MainActor in self?.bonjourFailed(reason) }
+        }
         do {
             try advertiser.start(name: macName, port: UInt16(port), txt: ["v": "1", "fp": Fingerprint.short(fingerprint)])
         } catch {
-            warnings.append("Your phone may not find this Mac automatically (Bonjour: \(error.localizedDescription)). Pairing by QR code still works.")
+            bonjourFailed(error.localizedDescription)
         }
+    }
+
+    private func bonjourFailed(_ reason: String) {
+        let warning = "Your phone may not find this Mac automatically (Bonjour: \(reason)). Pairing by QR code still works."
+        if !warnings.contains(warning) { warnings.append(warning) }
     }
 
     private func handle(_ event: PairingEvent) async {

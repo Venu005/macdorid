@@ -45,6 +45,13 @@ import Testing
         #expect(bytes == [19] + Array("fp=8a3ba983c4388481".utf8) + [3] + Array("v=1".utf8))
     }
 
+    // Plan 11: a long name is cut on a character boundary, never inside one.
+    @Test func txtEntryCutsOnACharacterBoundary() {
+        let entry = BonjourAdvertiser.encodeTXT(["n": String(repeating: "a", count: 252) + "é"])
+        #expect(entry.first == 254)
+        #expect(String(bytes: entry.dropFirst(), encoding: .utf8) == "n=" + String(repeating: "a", count: 252))
+    }
+
     @Test func advertiserRegistersAndStops() throws {
         let advertiser = BonjourAdvertiser()
         try advertiser.start(name: "MacDroid Test", port: 47_998, txt: ["v": "1"])

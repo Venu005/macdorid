@@ -79,8 +79,12 @@ public final class KeychainIdentityStore: IdentityStore {
         return result as? Data
     }
 
+    /// Updates in place, adding only when missing: never a delete-then-add window in which a crash loses the item
+    /// and the next launch silently mints a new identity, breaking pairing (Plan 11).
     private func write(account: String, data: Data) throws {
-        SecItemDelete(baseQuery(account: account) as CFDictionary)
+        let update = SecItemUpdate(baseQuery(account: account) as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        if update == errSecSuccess { return }
+        guard update == errSecItemNotFound else { throw KeychainError.unexpectedStatus(update) }
         var query = baseQuery(account: account)
         query[kSecValueData as String] = data
         query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
