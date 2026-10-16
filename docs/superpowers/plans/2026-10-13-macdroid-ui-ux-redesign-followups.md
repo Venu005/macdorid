@@ -19,6 +19,8 @@ Carried forward from the redesign execution ledger. Pick up in Plans 2–4 or be
 - Persist SetupViewModel's welcome/battery progress across process death.
 
 ## Deferred minors
+
+**Plan 11 (2026-10-16)** fixes: the pairing window closes when the pairing view goes away, ⌘, on the popover's Settings row, setup progress survives process death. **Kept:** the AppModel pairing state-machine extraction (refactor, no defect) and the remaining cosmetic items.
 - Task 1: minor (deferred): countdown traps on NaN/inf; phoneStatus missing battery-not-charging / charging-no-battery tests; connected title uses peer.device not paired.name
 - Task 2: minor (deferred): watchExpiry tasks not stored/cancelled; pairing window stays open when PairingView disappears; popover Settings row lacks .keyboardShortcut(","); approval message styled red; login toggle stale after approval; Dock toggle may flash; no "dimmed" icon state; AppModel pairing state machine untested (in app target)
 - Task 2: minor (deferred): narrow race — handler sees nil currentWindow then beginPairing sets invite B before handler clears (compare closed code instead); "New code" during in-flight open is silently dropped; real login-item launch untested (human checklist)

@@ -2,7 +2,7 @@
 
 ## Owner's hands-on checklist (spec §6)
 Owner-verified on 2026-10-13: everything except the 2 GB+ file.
-- [ ] A 2 GB or larger video, phone → Mac and Mac → phone. *(owner will check later)*
+- [x] A 2 GB or larger video, phone → Mac and Mac → phone. *(passed 2026-10-16)*
 - [x] Toggle Wi-Fi mid-transfer: the row shows "Paused — waiting for connection", then resumes and finishes.
 - [x] Drop several files on the Mac popover: the overlay shows the count and size, and all arrive on the phone.
 - [x] Android share sheet → "Send to Mac" from Photos and from Files: the toast appears, with no UI otherwise.
@@ -32,7 +32,7 @@ Owner-verified on 2026-10-13: everything except the 2 GB+ file.
 - GET's security-scoped access can leak if the phone disconnects before the response starts.
 - Android: a progress callback can re-add a speed for a finished transfer (cosmetic).
 - PUT doesn't check `Content-Range` end/total against the offered size (hardening).
-- Stale "later plans add … transfers" comments in `Messages.swift` and `Messages.kt`.
+- **Already fixed (no such comments left; Plan 11 check).** Stale "later plans add … transfers" comments in `Messages.swift` and `Messages.kt`.
 
 ## Later
 - The Finder Share extension (its own small round).

@@ -27,6 +27,8 @@ Carried forward from the Plan 1 execution ledger (per-task and final reviews). P
 - Mac: Bonjour registration callback (name conflicts), keychain write via SecItemUpdate, launch-at-login toggle revert on failure.
 
 ## Deferred minors (all triaged "can wait" by the final review)
+
+**Plan 11 (2026-10-16)** fixes the chosen subset: NSD long-lived discovery (Ruling 8), keychain `SecItemUpdate`, Bonjour callback and TXT cut, nudge drain and hello-before-publish, case-insensitive pins, bounded pairing body, base32-only codes, Gradle checksum, backup exclusions, `MY_PACKAGE_REPLACED`. Already fixed earlier: the persistent `warnings` field, launch-at-login revert, Forget confirmation. **Kept:** no wrong-code attempt cap (the code is 128-bit random, valid 120 s); test-gap-only and comment-only items.
 - Task 1: minor (deferred): decode doesn't validate `v`/`id`; Hello.features required (undocumented); FakeClock/eventually unused until T3/T5
 - Task 2: minor (deferred): keychain write is delete-then-add (partial save → loadOrCreate silently mints new identity, breaking pairing) — consider SecItemUpdate; delete() ignores status; cert validity/CA/signature untested; Tracing product line lacks comment
 - Task 3: minor (deferred): openWindow replacing open window emits no .windowClosed; forget() doesn't close open window; events continuation never finished; no wrong-code attempt cap; UserDefaults store removes pairing if encoding fails; test gaps (wrong-then-right code, forget event, expiry event, base32 short inputs, corrupt defaults)

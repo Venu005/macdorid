@@ -17,6 +17,8 @@ Also seen: up to ~110 fps captured while video played; ~1–3 fps on a still scr
 
 ## Plan 7 owner checklist
 
+**Passed (owner, 2026-10-16):** every item below.
+
 Start with the phone **unlocked** (Android ends capture on lock).
 
 1. Install both builds. On the Mac: Settings → Mirroring shows Quality, Frame rate, Phone audio, Show latency.
@@ -42,12 +44,14 @@ Start with the phone **unlocked** (Android ends capture on lock).
 3. **Teardown order:** the VirtualDisplay briefly targets a released encoder surface in `ScreenEncoder.resize`/`release`; detach the surface first.
 4. **Landscape window size:** rotating to landscape keeps the window's width, so it gets short; keep the long edge instead.
 5. **Second start:** `MirrorService.finished` is never reset if an instance gets a second start; guard `onStartCommand`.
-6. **Frame limit:** the 4 MiB WebSocket frame limit also applies to `/v1/ws` frames (control messages are still capped at 1 MiB).
+6. **Kept (Plan 11):** Hummingbird has one WebSocket config per server; only the trusted paired phone can upgrade, and control messages are still capped at 1 MiB after decoding. **Frame limit:** the 4 MiB WebSocket frame limit also applies to `/v1/ws` frames (control messages are still capped at 1 MiB).
 7. **Early frames:** frames sent before the media socket opens go out late, and the config frame is sent twice.
 8. **Thread visibility:** `stream`/`policy` in `MirrorService` are read on other threads without `@Volatile`.
-9. **Readout timing:** the latency readout measures to enqueue, not display (a slight underestimate).
+9. **Kept (Plan 11):** an under-estimate of a few ms on a debug number. **Readout timing:** the latency readout measures to enqueue, not display (a slight underestimate).
 
 ## Owner checklist: remote control (Plan 8)
+
+**Passed (owner, 2026-10-16):** every item below.
 1. Phone → Settings → Remote control → **MacDroid control** → turn on "MacDroid control" in Accessibility. MacDroid's row then reads "On".
 2. With the phone **unlocked** on the home screen, click **Mirror** on the Mac. "Share screen" is pressed by itself and the picture appears.
 3. **Click** an app icon: it opens. **Drag** up and down in a list: it scrolls smoothly. **Hold** on an icon: its long-press menu opens.
@@ -64,11 +68,11 @@ Start with the phone **unlocked** (Android ends capture on lock).
 9. Phone → Settings → Remote control → turn **"Start mirroring without touching the phone"** off; Mirror again: you tap Share screen yourself.
 
 ## Plan 8 final review: open items
-- **Ruling (not fixed): Mac volume buttons during audio mirroring.** With phone audio on, the phone's speaker is muted; Mac Volume + raises the phone's media volume, so the phone speaker plays too, and the restore at the end overwrites it. This is what the spec says (volume keys → phone volume). Owner to decide: map volume to the Mac player while audio streams?
+- **Ruled by the owner 2026-10-16 (fixed in Plan 11): yes, volume goes to the Mac player while audio streams.** Was: Mac volume buttons during audio mirroring.** With phone audio on, the phone's speaker is muted; Mac Volume + raises the phone's media volume, so the phone speaker plays too, and the restore at the end overwrites it. This is what the spec says (volume keys → phone volume). Owner to decide: map volume to the Mac player while audio streams?
 - **Deferred minors:**
   1. The 4,096 cap counts Characters on the Mac and UTF-16 units on the phone; emoji-heavy pastes over the cap can split a surrogate pair. Cap in UTF-16 units on the Mac, back off a trailing high surrogate, and say so in PROTOCOL.md.
   2. Backspace removes one code point, not one grapheme (ZWJ emoji and flags take several presses).
-  3. Each keystroke rewrites the whole field (breaks undo/IME composition; may race the node cache when typing fast). Check on the device.
+  3. **Kept (Plan 11):** the owner's typing checklist passed on the device. Each keystroke rewrites the whole field (breaks undo/IME composition; may race the node cache when typing fast). Check on the device.
   4. `GesturePlayer` doesn't pump again after `dispatchGesture` returns false; queued segments wait for the next input.
   5. The dot cursor shows even when control is off and over the black bars.
   6. `MirrorInputNSView.down` can stay true if control turns off mid-drag.
