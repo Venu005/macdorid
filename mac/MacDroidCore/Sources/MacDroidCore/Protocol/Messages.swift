@@ -193,16 +193,18 @@ public struct MediaState: Codable, Equatable, Sendable {
     public var canPrevious: Bool?
     public var canNext: Bool?
     public var canSeek: Bool?
+    /// Playback rate (1 = normal); absent from older phones.
+    public var speed: Double?
     public var artHash: String?
 
     enum CodingKeys: String, CodingKey {
-        case active, packageName = "package", appName, title, artist, durationMs, positionMs, positionAt, playing, canPrevious, canNext, canSeek, artHash
+        case active, packageName = "package", appName, title, artist, durationMs, positionMs, positionAt, playing, canPrevious, canNext, canSeek, speed, artHash
     }
 
     public init(
         active: Bool, packageName: String? = nil, appName: String? = nil, title: String? = nil, artist: String? = nil,
         durationMs: Int64? = nil, positionMs: Int64? = nil, positionAt: Int64? = nil, playing: Bool? = nil,
-        canPrevious: Bool? = nil, canNext: Bool? = nil, canSeek: Bool? = nil, artHash: String? = nil
+        canPrevious: Bool? = nil, canNext: Bool? = nil, canSeek: Bool? = nil, speed: Double? = nil, artHash: String? = nil
     ) {
         self.active = active
         self.packageName = packageName
@@ -216,6 +218,7 @@ public struct MediaState: Codable, Equatable, Sendable {
         self.canPrevious = canPrevious
         self.canNext = canNext
         self.canSeek = canSeek
+        self.speed = speed
         self.artHash = artHash
     }
 

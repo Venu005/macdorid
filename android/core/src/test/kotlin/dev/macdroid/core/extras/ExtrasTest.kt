@@ -92,6 +92,16 @@ class MediaTrackerTest {
         assertEquals("b", sentOf<Message.MediaState>().last().body.packageName)
     }
 
+    @Test fun sendsTheSpeedAndResendsWhenItChanges() {
+        tracker.connected()
+        tracker.update(listOf(song()))
+        assertEquals(1.0, sentOf<Message.MediaState>().last().body.speed)
+        val before = sentOf<Message.MediaState>().size
+        tracker.update(listOf(song().copy(speed = 1.5)))
+        assertEquals(before + 1, sentOf<Message.MediaState>().size)
+        assertEquals(1.5, sentOf<Message.MediaState>().last().body.speed)
+    }
+
     @Test fun recentlyPausedIsShownStaleIsNot() {
         tracker.connected()
         tracker.update(listOf(song(playing = false, lastActiveAt = now - 60_000)))

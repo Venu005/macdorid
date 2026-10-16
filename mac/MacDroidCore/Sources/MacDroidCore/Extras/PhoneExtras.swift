@@ -44,6 +44,9 @@ public actor PhoneExtras {
     private let now: @Sendable () -> Date
     private let send: @Sendable (Message) async throws -> Void
     private var tasks: [Task<Void, Never>] = []
+    private var linkThrottle = LinkThrottle()
+    /// Now Playing art kept on disk (Plan 11: the folder was never pruned).
+    static let artKept = 8
 
     public init(art: IconCache, now: @escaping @Sendable () -> Date = { Date() }, send: @escaping @Sendable (Message) async throws -> Void) {
         self.art = art
@@ -74,9 +77,11 @@ public actor PhoneExtras {
                 $0.mediaReceivedAt = at
             }
         case .mediaArt(let body):
-            art.save(hash: body.hash, pngBase64: body.jpeg) // validated like app icons; the image format doesn't matter
+            if art.save(hash: body.hash, pngBase64: body.jpeg) { // validated like app icons; the image format doesn't matter
+                art.prune(keeping: Self.artKept)
+            }
         case .linkOpen(let body):
-            if let url = LinkRules.allowedURL(body.url) { eventBroadcast.yield(.openLink(url)) }
+            if let url = LinkRules.allowedURL(body.url), linkThrottle.allows(at: now()) { eventBroadcast.yield(.openLink(url)) }
         default:
             break
         }

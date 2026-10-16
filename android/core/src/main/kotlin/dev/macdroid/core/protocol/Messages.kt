@@ -97,6 +97,8 @@ data class MediaStateBody(
     val canPrevious: Boolean? = null,
     val canNext: Boolean? = null,
     val canSeek: Boolean? = null,
+    /** Playback rate (1 = normal), so the Mac's seek bar keeps pace at 1.5×. */
+    val speed: Double? = null,
     val artHash: String? = null,
 )
 

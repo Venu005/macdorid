@@ -17,14 +17,14 @@ Install the new builds. Media controls need the notification access you already 
 - Rulings: I-1 and I-4 have no unit tests (Android platform code), so they're verified by the build; the reviewer couldn't judge whether a remote `VolumeProvider` catches volume keys on Nothing OS while the alarm plays, which is on the checklist.
 
 ## Deferred minors (final review)
-- Playback speed isn't modelled: at 1.5x the Mac's seek bar drifts between updates (the protocol has no `speed`).
+- Playback speed**Fixed (Plan 11).**  isn't modelled: at 1.5x the Mac's seek bar drifts between updates (the protocol has no `speed`).
 - Kotlin `java.net.URI`**Fixed (Plan 11).**  rejects some links Swift accepts (`|`, `{`, `^`, IDN hosts), so the Mac may say "sent" while the phone drops the link. Use `android.net.Uri`.
 - Swiping away**Fixed (Plan 11).**  the ring notification (Android 14+) leaves no Stop button; add a delete intent with `ACTION_STOP_RING`.
-- The seek bar snaps back after release until the phone's new state arrives.
-- Any app on the phone can open http(s) pages on the Mac via the exported "Open on Mac" (no throttle).
+- The seek bar snaps**Fixed (Plan 11).**  back after release until the phone's new state arrives.
+- Any app on the phone**Fixed (Plan 11).**  can open http(s) pages on the Mac via the exported "Open on Mac" (no throttle).
 - The art cache key**Fixed (Plan 11).**  `pkg|title|artist` can keep a low-res placeholder, or share art between untitled items.
 - `appName(pkg)`**Fixed (Plan 11).**  runs a PackageManager lookup on the main thread on every media callback; cache it.
-- The Mac's `MediaArt` folder is never pruned.
+- The Mac's `MediaArt`**Fixed (Plan 11).**  folder is never pruned.
 - `url.hashCode()`**Fixed (Plan 11).**  notification ids could, rarely, collide with fixed ids.
 - `RingSession.timedOut`**Fixed (Plan 11).**  is unused (the app uses `delay`).
 - **Kept (Plan 11):** virtually every media session supports both; `canPlay` would be a protocol change for no visible gain. Play/pause is always enabled (the protocol has no `canPlay`).

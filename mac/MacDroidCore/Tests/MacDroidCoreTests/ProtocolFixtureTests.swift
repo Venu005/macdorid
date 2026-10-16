@@ -155,7 +155,7 @@ import Testing
         #expect(try MessageCodec.decode(Fixtures.text("media.state.json")) == .mediaState(MediaState(
             active: true, packageName: "com.spotify.music", appName: "Spotify", title: "Song", artist: "Artist",
             durationMs: 215_000, positionMs: 61_000, positionAt: 1_791_892_800_000, playing: true,
-            canPrevious: true, canNext: true, canSeek: true, artHash: "0123456789abcdef"
+            canPrevious: true, canNext: true, canSeek: true, speed: 1.5, artHash: "0123456789abcdef"
         )))
         #expect(try MessageCodec.decode(Fixtures.text("media.state.idle.json")) == .mediaState(.idle))
         #expect(try MessageCodec.decode(Fixtures.text("media.art.json")) == .mediaArt(MediaArt(hash: "0123456789abcdef", jpeg: "/9j/4AAQSkZJRg==")))

@@ -146,6 +146,7 @@ class MediaWatcher(private val context: Context, private val connection: Connect
             canSeek = (state.actions and PlaybackState.ACTION_SEEK_TO) != 0L,
             art = null,
             lastActiveAt = lastActive[pkg] ?: 0L,
+            speed = state.playbackSpeed.toDouble().takeIf { it > 0 } ?: 1.0,
         )
         // The art's size is in the key, so a low-res placeholder isn't kept once real art arrives, and untitled items
         // only share art when it really is the same picture (Plan 11).

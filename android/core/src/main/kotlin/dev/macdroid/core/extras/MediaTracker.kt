@@ -22,6 +22,7 @@ data class MediaSnapshot(
     val canSeek: Boolean,
     val art: MediaArtwork?,
     val lastActiveAt: Long,
+    val speed: Double = 1.0,
 )
 
 /** A command for the app to apply to [packageName]'s media controller. */
@@ -98,15 +99,17 @@ class MediaTracker(private val send: (Message) -> Boolean, private val clock: ()
         if (!new.active) return false
         if (old.packageName != new.packageName || old.title != new.title || old.artist != new.artist ||
             old.durationMs != new.durationMs || old.playing != new.playing || old.artHash != new.artHash ||
-            old.canPrevious != new.canPrevious || old.canNext != new.canNext || old.canSeek != new.canSeek
+            old.canPrevious != new.canPrevious || old.canNext != new.canNext || old.canSeek != new.canSeek ||
+            old.speed != new.speed
         ) return true
-        val projected = (old.positionMs ?: 0) + if (old.playing == true) (new.positionAt ?: 0) - (old.positionAt ?: 0) else 0
+        val elapsed = if (old.playing == true) (new.positionAt ?: 0) - (old.positionAt ?: 0) else 0
+        val projected = (old.positionMs ?: 0) + (elapsed * (old.speed ?: 1.0)).toLong()
         return kotlin.math.abs((new.positionMs ?: 0) - projected) > JUMP_MS
     }
 
     private fun MediaSnapshot.toBody() = MediaStateBody(
         active = true, packageName = packageName, appName = appName, title = title, artist = artist,
         durationMs = durationMs, positionMs = positionMs, positionAt = positionAt, playing = playing,
-        canPrevious = canPrevious, canNext = canNext, canSeek = canSeek, artHash = art?.hash.orEmpty(),
+        canPrevious = canPrevious, canNext = canNext, canSeek = canSeek, speed = speed, artHash = art?.hash.orEmpty(),
     )
 }
