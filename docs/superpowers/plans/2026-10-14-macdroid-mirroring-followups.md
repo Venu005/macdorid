@@ -41,12 +41,12 @@ Start with the phone **unlocked** (Android ends capture on lock).
 ## Deferred minors (Plan 7 final review)
 1. **Fixed (Plan 11).** **Output-device change:** `AVAudioEngine` stops when the output device changes (e.g. AirPods connect) and isn't restarted; observe `AVAudioEngineConfigurationChange`.
 2. **Fixed (Plan 11).** **Audio counter:** `MirrorAudioPlayer.bufferedFrames` can go negative after `stop()`; completions from before the reset still arrive.
-3. **Teardown order:** the VirtualDisplay briefly targets a released encoder surface in `ScreenEncoder.resize`/`release`; detach the surface first.
+3. **Fixed (Plan 11).** **Teardown order:** the VirtualDisplay briefly targets a released encoder surface in `ScreenEncoder.resize`/`release`; detach the surface first.
 4. **Fixed (Plan 11).** **Landscape window size:** rotating to landscape keeps the window's width, so it gets short; keep the long edge instead.
-5. **Second start:** `MirrorService.finished` is never reset if an instance gets a second start; guard `onStartCommand`.
+5. **Fixed (Plan 11).** **Second start:** `MirrorService.finished` is never reset if an instance gets a second start; guard `onStartCommand`.
 6. **Kept (Plan 11):** Hummingbird has one WebSocket config per server; only the trusted paired phone can upgrade, and control messages are still capped at 1 MiB after decoding. **Frame limit:** the 4 MiB WebSocket frame limit also applies to `/v1/ws` frames (control messages are still capped at 1 MiB).
-7. **Early frames:** frames sent before the media socket opens go out late, and the config frame is sent twice.
-8. **Thread visibility:** `stream`/`policy` in `MirrorService` are read on other threads without `@Volatile`.
+7. **Fixed (Plan 11).** **Early frames:** frames sent before the media socket opens go out late, and the config frame is sent twice.
+8. **Fixed (Plan 11).** **Thread visibility:** `stream`/`policy` in `MirrorService` are read on other threads without `@Volatile`.
 9. **Kept (Plan 11):** an under-estimate of a few ms on a debug number. **Readout timing:** the latency readout measures to enqueue, not display (a slight underestimate).
 
 ## Owner checklist: remote control (Plan 8)
