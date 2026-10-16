@@ -147,11 +147,15 @@ class MediaWatcher(private val context: Context, private val connection: Connect
             art = null,
             lastActiveAt = lastActive[pkg] ?: 0L,
         )
-        return Triple(snapshot, bitmap, "$pkg|$title|$artist")
+        // The art's size is in the key, so a low-res placeholder isn't kept once real art arrives, and untitled items
+        // only share art when it really is the same picture (Plan 11).
+        val artKey = "$pkg|$title|$artist|${snapshot.durationMs}|${bitmap?.width}x${bitmap?.height}"
+        return Triple(snapshot, bitmap, artKey)
     }
 
-    private fun artwork(key: String, bitmap: Bitmap?): MediaArtwork? = synchronized(artCache) {
-        artCache.getOrPut(key) { bitmap?.let(::encode) }
+    private fun artwork(key: String, bitmap: Bitmap?): MediaArtwork? {
+        if (bitmap != null && maxOf(bitmap.width, bitmap.height) < MIN_CACHED_ART_PX) return encode(bitmap) // placeholder: don't keep
+        return synchronized(artCache) { artCache.getOrPut(key) { bitmap?.let(::encode) } }
     }
 
     private fun encode(bitmap: Bitmap): MediaArtwork? = runCatching {
@@ -186,14 +190,20 @@ class MediaWatcher(private val context: Context, private val connection: Connect
         }
     }
 
-    private fun appName(pkg: String): String = runCatching {
-        val pm = context.packageManager
-        pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
-    }.getOrDefault(pkg)
+    /** Cached: this runs on the main thread for every media callback (Plan 11). */
+    private val appNames = HashMap<String, String>()
+
+    private fun appName(pkg: String): String = appNames.getOrPut(pkg) {
+        runCatching {
+            val pm = context.packageManager
+            pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+        }.getOrDefault(pkg)
+    }
 
     private companion object {
         const val ART_PX = 300
         const val ART_CACHE_SIZE = 8
+        const val MIN_CACHED_ART_PX = 128
         const val TICK_MS = 60_000L
     }
 }

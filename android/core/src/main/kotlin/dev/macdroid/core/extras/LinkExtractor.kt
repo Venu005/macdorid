@@ -1,7 +1,5 @@
 package dev.macdroid.core.extras
 
-import java.net.URI
-
 /** Which links travel between the devices (spec §2). Mirrors Swift `LinkRules` exactly. */
 object LinkExtractor {
     const val MAX_BYTES = 8_192
@@ -23,8 +21,15 @@ object LinkExtractor {
 
     fun isAllowed(url: String): Boolean {
         if (url.toByteArray(Charsets.UTF_8).size > MAX_BYTES) return false
-        val uri = runCatching { URI(url) }.getOrNull() ?: return false
-        val scheme = uri.scheme?.lowercase()
-        return (scheme == "http" || scheme == "https") && !uri.host.isNullOrEmpty()
+        // Not java.net.URI: it rejects `|`, `{`, `^` and IDN hosts that the Mac accepts, so links were dropped (Plan 11).
+        val colon = url.indexOf(':')
+        if (colon < 0) return false
+        val scheme = url.substring(0, colon).lowercase()
+        if (scheme != "http" && scheme != "https") return false
+        if (!url.startsWith("//", colon + 1)) return false
+        val rest = url.substring(colon + 3)
+        val authority = rest.substring(0, rest.indexOfAny(charArrayOf('/', '?', '#')).let { if (it < 0) rest.length else it })
+        val host = authority.substringAfterLast('@').substringBefore(':')
+        return host.isNotEmpty() && authority.none { it.isWhitespace() || it.isISOControl() }
     }
 }

@@ -33,6 +33,16 @@ class LinkExtractorTest {
         assertFalse(LinkExtractor.isAllowed("https://x.com/" + "a".repeat(8_200)))
     }
 
+    // Plan 11: links the Mac's parser accepts are not dropped here.
+    @Test fun linksSwiftAcceptsAreAllowed() {
+        listOf("https://example.com/a|b", "https://example.com/{x}", "https://example.com/^", "https://bücher.de/").forEach {
+            assertTrue(it, LinkExtractor.isAllowed(it))
+        }
+        assertFalse(LinkExtractor.isAllowed("https://"))
+        assertFalse(LinkExtractor.isAllowed("https:/x.com"))
+        assertFalse(LinkExtractor.isAllowed("https://bad host.com/"))
+    }
+
     // Final review I-3: a closing bracket that belongs to the link stays.
     @Test fun balancedBracketsStay() {
         assertEquals("https://en.m.wikipedia.org/wiki/Mercury_(planet)", LinkExtractor.firstLink("https://en.m.wikipedia.org/wiki/Mercury_(planet)"))
@@ -48,25 +58,16 @@ class LinkExtractorTest {
 class RingSessionTest {
     @Test fun startsOnceAndStopsOnce() {
         val ring = RingSession()
-        assertTrue(ring.start(0))
-        assertFalse(ring.start(10)) // already ringing
+        assertTrue(ring.start())
+        assertFalse(ring.start()) // already ringing
         assertTrue(ring.stop())
         assertFalse(ring.stop())
-    }
-
-    // Review Focus #3
-    @Test fun timesOutAfterThirtySeconds() {
-        val ring = RingSession()
-        ring.start(1_000)
-        assertFalse(ring.timedOut(30_999))
-        assertTrue(ring.timedOut(31_000))
     }
 
     // Review Focus #3
     @Test fun stopReportsOnlyWhenRinging() {
         val ring = RingSession()
         assertFalse(ring.stop()) // e.g. a disconnect while idle sends nothing
-        assertFalse(ring.timedOut(999_999))
     }
 }
 
