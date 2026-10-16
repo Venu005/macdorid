@@ -45,7 +45,7 @@ public actor PhoneExtras {
     private let send: @Sendable (Message) async throws -> Void
     private var tasks: [Task<Void, Never>] = []
     private var linkThrottle = LinkThrottle()
-    /// Now Playing art kept on disk (Plan 11: the folder was never pruned).
+    /// Now Playing art kept across sessions (Plan 11: the folder was never pruned).
     static let artKept = 8
 
     public init(art: IconCache, now: @escaping @Sendable () -> Date = { Date() }, send: @escaping @Sendable (Message) async throws -> Void) {
@@ -77,9 +77,7 @@ public actor PhoneExtras {
                 $0.mediaReceivedAt = at
             }
         case .mediaArt(let body):
-            if art.save(hash: body.hash, pngBase64: body.jpeg) { // validated like app icons; the image format doesn't matter
-                art.prune(keeping: Self.artKept)
-            }
+            art.save(hash: body.hash, pngBase64: body.jpeg) // validated like app icons; the image format doesn't matter
         case .linkOpen(let body):
             if let url = LinkRules.allowedURL(body.url), linkThrottle.allows(at: now()) { eventBroadcast.yield(.openLink(url)) }
         default:
@@ -90,6 +88,9 @@ public actor PhoneExtras {
     func connectionChanged(_ status: ConnectionStatus) {
         switch status {
         case .connected(let peer):
+            // Pruned only when a session starts: the phone sends each cover once per connection, so art from this
+            // session must stay (final review I1); whatever is still needed is sent again after this hello.
+            art.prune(keeping: Self.artKept)
             update {
                 $0.connected = true
                 $0.phoneFeatures = Set(peer.features)

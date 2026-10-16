@@ -317,8 +317,20 @@ final class AppModel {
         await beginPairing()
     }
 
-    /// The pairing view went away (window closed, phone paired): shut the window without changing what the view shows.
-    func closePairingWindow() async { await pairing.closeWindow() }
+    @ObservationIgnored private var visiblePairingViews = 0
+
+    func pairingViewAppeared() { visiblePairingViews += 1 }
+
+    /// The last pairing view went away (window closed, page left): shut the pairing window without changing what the
+    /// view shows. Checked once this update is over, so a view that is replaced (disappears and reappears at once)
+    /// keeps its code (final review).
+    func pairingViewDisappeared() {
+        visiblePairingViews = max(0, visiblePairingViews - 1)
+        Task { [weak self] in
+            guard let self, visiblePairingViews == 0 else { return }
+            await pairing.closeWindow()
+        }
+    }
 
     func cancelPairing() async {
         isRepairing = false
@@ -497,24 +509,22 @@ final class AppModel {
     func cancelTransfer(_ id: String) { Task { await transferManager.cancel(id: id) } }
     func retryTransfer(_ id: String) { Task { await transferManager.retry(id: id) } }
 
-    /// Bumped to re-check received files (the Files page appearing); rows read it, so they redraw.
-    private(set) var receivedFileChecks = 0
-    /// Per-record answers, so a busy history doesn't stat every file on every update (Plan 11).
-    @ObservationIgnored private var receivedFileCache: [String: (url: URL, check: Int, exists: Bool)] = [:]
+    /// Bumped whenever a received file's answer may have changed; rows read it, so they redraw.
+    private(set) var receivedFileGeneration = 0
+    /// Cached per record for rows, so a busy history doesn't stat every file on every update (Plan 11).
+    @ObservationIgnored private var receivedFiles = ReceivedFileChecks()
 
-    /// A received file can be deleted or moved after it arrived; rows check (cached per record) and actions check again.
+    /// A received file can be deleted or moved after it arrived. Rows use the cached answer; actions look again.
     func receivedFileExists(_ record: TransferRecord) -> Bool {
         guard record.direction == .fromPhone, let url = record.savedURL else { return true }
-        let check = receivedFileChecks
-        if let cached = receivedFileCache[record.id], cached.url == url, cached.check == check { return cached.exists }
-        let exists = FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
-        receivedFileCache[record.id] = (url, check, exists)
-        return exists
+        _ = receivedFileGeneration
+        return receivedFiles.rowSaysExists(id: record.id, url: url)
     }
 
+    /// The Files page or the popover appeared: look at every received file again.
     func recheckReceivedFiles() {
-        receivedFileCache.removeAll()
-        receivedFileChecks += 1
+        receivedFiles.clear()
+        receivedFileGeneration += 1
     }
 
     func revealReceived(_ record: TransferRecord) {
@@ -529,7 +539,10 @@ final class AppModel {
 
     private func usableReceivedFile(_ record: TransferRecord) -> URL? {
         guard let url = record.savedURL else { return nil }
-        guard receivedFileExists(record) else {
+        // Always looked at again, never the rows' cached answer (final review I2); the rows then follow.
+        let exists = receivedFiles.existsNow(id: record.id, url: url)
+        receivedFileGeneration += 1
+        guard exists else {
             transientError = "“\(record.name)” is no longer on this Mac — it was deleted or moved."
             return nil
         }

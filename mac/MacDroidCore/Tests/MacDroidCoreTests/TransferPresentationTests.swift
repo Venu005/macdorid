@@ -79,3 +79,41 @@ import Testing
         #expect(TransferPresentation.dropSummary(count: 1, totalBytes: nil) == "1 file")
     }
 }
+
+@Suite struct ReceivedFileChecksTests {
+    final class Disk: @unchecked Sendable { var present: Set<String> = [] }
+
+    // Final review I2: rows may use a cached answer, but Open/Reveal always look again and refresh the cache.
+    @Test func actionsLookAgainAndRowsFollow() {
+        let disk = Disk()
+        let url = URL(fileURLWithPath: "/tmp/a.bin")
+        disk.present = [url.path]
+        var checks = ReceivedFileChecks { disk.present.contains($0.path) }
+        let r1 = checks.rowSaysExists(id: "t1", url: url)
+        #expect(r1)
+        disk.present = [] // deleted in Finder
+        let r2 = checks.rowSaysExists(id: "t1", url: url)
+        #expect(r2) // rows: cached
+        let r3 = checks.existsNow(id: "t1", url: url)
+        #expect(!r3) // actions: looked again
+        let r4 = checks.rowSaysExists(id: "t1", url: url)
+        #expect(!r4) // and the row follows
+        disk.present = [url.path] // put back from the Trash
+        let r5 = checks.existsNow(id: "t1", url: url)
+        #expect(r5)
+        let r6 = checks.rowSaysExists(id: "t1", url: url)
+        #expect(r6)
+    }
+
+    @Test func clearingRechecksEveryRow() {
+        let disk = Disk()
+        let url = URL(fileURLWithPath: "/tmp/b.bin")
+        var checks = ReceivedFileChecks { disk.present.contains($0.path) }
+        let r7 = checks.rowSaysExists(id: "t2", url: url)
+        #expect(!r7)
+        disk.present = [url.path]
+        checks.clear()
+        let r8 = checks.rowSaysExists(id: "t2", url: url)
+        #expect(r8)
+    }
+}

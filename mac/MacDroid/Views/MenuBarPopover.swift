@@ -29,6 +29,7 @@ struct MenuBarPopover: View {
         }
         .padding(12)
         .frame(width: 300)
+        .onAppear { model.recheckReceivedFiles() } // its rows' "file is gone" state is fresh each time it opens
         .overlay { if drop.isTargeted { dropOverlay } }
         .onDrop(of: [.fileURL], delegate: PopoverDropDelegate(model: model, preview: $drop))
     }

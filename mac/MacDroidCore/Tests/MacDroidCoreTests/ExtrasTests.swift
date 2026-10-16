@@ -117,6 +117,16 @@ import Testing
         #expect(h.art.url(for: "0123456789abcdef") != nil)
     }
 
+    // Final review I1: the phone sends each cover once per connection, so art seen this session must stay on disk.
+    @Test func artFromThisSessionIsNeverPruned() async throws {
+        let h = try Harness()
+        await h.connect()
+        let jpeg = Data([1, 2, 3]).base64EncodedString()
+        let hashes = (0..<12).map { String(format: "%016x", $0) }
+        for hash in hashes { await h.extras.handle(.mediaArt(MediaArt(hash: hash, jpeg: jpeg))) }
+        #expect(hashes.allSatisfy { h.art.url(for: $0) != nil })
+    }
+
     // Review Focus #5
     @Test func badArtHashIsIgnored() async throws {
         let h = try Harness()
