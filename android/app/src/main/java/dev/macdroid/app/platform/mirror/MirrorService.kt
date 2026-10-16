@@ -34,8 +34,9 @@ class MirrorService : Service() {
     private var projection: MediaProjection? = null
     private var encoder: ScreenEncoder? = null
     private var audio: AudioCapturer? = null
-    private var stream: MediaStreamClient? = null
-    private var policy: SendPolicy? = null
+    // Read on the encoder and audio threads (Plan 7 minor #8).
+    @Volatile private var stream: MediaStreamClient? = null
+    @Volatile private var policy: SendPolicy? = null
     @Volatile private var lastConfig: ByteArray? = null
     private var options: MirrorStartBody? = null
     private var size: Triple<Int, Int, Int>? = null
@@ -63,6 +64,9 @@ class MirrorService : Service() {
             finish(MirrorStopReason.User)
             return START_NOT_STICKY
         }
+        // A second start while a session runs (a repeated consent result): keep the running one (Plan 7 minor #5).
+        if (projection != null && !finished) return START_NOT_STICKY
+        if (finished) resetForNewSession() // this instance ended a session and is being reused before it was destroyed
         val body = intent?.let { readOptions(it) }
         @Suppress("DEPRECATION")
         val data = intent?.getParcelableExtra<Intent>(EXTRA_DATA)
@@ -131,7 +135,7 @@ class MirrorService : Service() {
         if (config) {
             val frame = MirrorFrame.encode(MirrorFrame.TYPE_CONFIG, false, micros, data)
             lastConfig = frame
-            stream.send(frame)
+            if (stream.isOpen) stream.send(frame) // otherwise onOpen sends it, once
             return
         }
         when (synchronized(policy) { policy.video(keyFrame, stream.queuedBytes) }) {
@@ -169,6 +173,20 @@ class MirrorService : Service() {
             return
         }
         graph.mirrorBridge.session.streaming(next.first, next.second, next.third, audio = audioOn, control = MacDroidControlService.running.value)
+    }
+
+    private fun resetForNewSession() {
+        finished = false
+        projection = null
+        encoder = null
+        audio = null
+        stream = null
+        policy = null
+        lastConfig = null
+        options = null
+        size = null
+        audioOn = false
+        savedVolume = null
     }
 
     /** [reason] null: the session already ended elsewhere (the Mac, a lost connection); nothing to report. */

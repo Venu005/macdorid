@@ -35,11 +35,12 @@ class ScreenEncoder(
 
     /** Rotation or a display change: a new encoder at the new size (spec §3.2). */
     fun resize(width: Int, height: Int) {
+        display?.surface = null // detach before the old encoder's surface is released (Plan 7 minor #3)
         stopCodec()
         val (codec, surface) = newCodec(width, height)
         display?.resize(width, height, dpi)
-        display?.surface = surface
         begin(codec)
+        display?.surface = surface
     }
 
     fun requestKeyFrame() {
@@ -47,6 +48,7 @@ class ScreenEncoder(
     }
 
     fun release() {
+        display?.surface = null
         stopCodec()
         display?.release()
         display = null
